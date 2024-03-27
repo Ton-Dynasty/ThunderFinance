@@ -122,7 +122,6 @@ contract MasterChef with Deployable {
     owner: Address;
     pools: map<Address, PoolInfo>;
     totalAllocPoint: Int;
-    lastRewardBlock: Int as uint256;
     rewardPerBlock: Int as coins;
     rewardDecimal: Int;
 
