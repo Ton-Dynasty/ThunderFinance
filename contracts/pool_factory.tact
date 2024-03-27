@@ -123,19 +123,15 @@ contract MasterChef with Deployable {
     pools: map<Address, PoolInfo>;
     totalAllocPoint: Int;
     lastRewardBlock: Int as uint256;
-    lpSupply: Int as coins;
     rewardPerBlock: Int as coins;
     rewardDecimal: Int;
-    accPerShare: Int as coins;
 
     init(owner: Address, rewardPerBlock: Int) {
         self.owner = owner;
         self.totalAllocPoint = 0;
         self.lastRewardBlock = now();
         self.rewardPerBlock = rewardPerBlock;
-        self.lpSupply = 0;
         self.rewardDecimal = 6;
-        self.accPerShare = 0;
     }
 
 
@@ -304,7 +300,7 @@ contract MasterChef with Deployable {
             return;
         }
 
-        if (self.lpSupply > 0 ) {
+        if (pool.lpSupply > 0 ) {
             let reward: Int = (now - pool.lastRewardBlock) * self.rewardPerBlock;
             let rewardAmount: Int = reward * pool.allocPoint / self.totalAllocPoint;
             pool.accRewardPerShare = pool.accRewardPerShare + (rewardAmount / pool.lpSupply);
