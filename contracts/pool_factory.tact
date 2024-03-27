@@ -189,6 +189,7 @@ contract MasterChef with Deployable {
     receive(msg: Withdraw) {
         // check if pool exists
         require(self.pools.get(msg.lpTokenAddress) != null , "pool not exists");
+        self.updatePool(jettonWallet);
 
         let initCode: StateInit = self._calculateMiniChefInit(sender());
         let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
