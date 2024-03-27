@@ -70,6 +70,26 @@ message WithdrawInternalReply {
     beneficiary: Address;
 }
 
+message Harvest {
+    queryId: Int as uint64;
+    lpTokenAddress: Address; // Pool Factory LP token Wallet address
+    benificiary: Address; // the one who will receive the reward
+}
+
+message HarvestInternal {
+    queryId: Int as uint64;
+    lpTokenAddress: Address; // Pool Factory LP token Wallet address
+    benificiary: Address; // the one who will receive the reward
+    accRewardPerShare: Int as coins;
+}
+
+message HarvestInternalReply {
+    queryId: Int as uint64;
+    lpTokenAddress: Address; // Pool Factory LP token Wallet address
+    benificiary: Address; // the one who will receive the reward
+    reward: Int as coins;
+    sender: Address;
+}
 
 
 contract MasterChef with Deployable {
@@ -183,6 +203,28 @@ contract MasterChef with Deployable {
         // TODO: send principle to msg.beneficiary
     }
 
+    receive(msg: Harvest) {
+        require(self.pools.get(msg.lpTokenAddress) != null , "pool not exists");
+        let initCode: StateInit = self._calculateMiniChefInit(sender());
+        let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
+        self.updatePool(msg.lpTokenAddress);
+        send(SendParameters{
+                to: contractAddress(initCode),
+                value: 0,
+                mode: SendRemainingValue,
+                bounce: true,
+                body: HarvestInternal{
+                    queryId: msg.queryId,
+                    lpTokenAddress: msg.lpTokenAddress,
+                    accRewardPerShare: pool.accRewardPerShare,
+                    beneficiary: msg.beneficiary,
+                }.toCell(),
+                code: initCode.code,
+                data: initCode.data
+            }
+        );
+    }
+
 
     fun updatePool(lpTokenAddress: Address) {
         require(self.pools.get(lpTokenAddress) != null , "pool not exists");
@@ -270,5 +312,18 @@ contract MiniChef with Deployable {
                 beneficiary: msg.beneficiary
             }
         })
+    }
+
+    receive(msg: HarvestInternal) {
+        require(sender() == self.masterChef, "only masterChef can harvest");
+        let userInfo: UserInfo = self.userInfo.get(msg.lpTokenAddress)!!;
+        let accumulatedReward: Int = userInfo.amount * msg.accRewardPerShare; // TODO: ACC_PRECISION?
+        let _pendingReward: Int = accumulatedReward - userInfo.rewardDebt;
+        if (_pendingReward <= 0) {
+            return;
+        }
+        userInfo.rewardDebt = accumulatedReward;
+        self.userInfo.set(msg.lpTokenAddress, userInfo);
+    
     }
 }
