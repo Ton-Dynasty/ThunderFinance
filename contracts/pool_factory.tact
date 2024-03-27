@@ -91,6 +91,30 @@ message HarvestInternalReply {
     sender: Address;
 }
 
+message WithdrawAndHarvest {
+    queryId: Int as uint64;
+    lpTokenAddress: Address; // Pool Factory LP token Wallet address
+    amount: Int as coins;
+    beneficiary: Address;
+}
+
+message WithdrawAndHarvestInternal {
+    queryId: Int as uint64;
+    lpTokenAddress: Address; // Pool Factory LP token Wallet address
+    amount: Int as coins;
+    accRewardPerShare: Int as coins;
+    beneficiary: Address;
+    sender: Address;
+}
+
+message WithdrawAndHarvestReply {
+    queryId: Int as uint64;
+    lpTokenAddress: Address; // Pool Factory LP token Wallet address
+    benificiary: Address; // the one who will receive the reward
+    reward: Int as coins;
+    amount: Int as coins;
+    sender: Address;
+}
 
 contract MasterChef with Deployable {
 
@@ -217,12 +241,57 @@ contract MasterChef with Deployable {
                     queryId: msg.queryId,
                     lpTokenAddress: msg.lpTokenAddress,
                     accRewardPerShare: pool.accRewardPerShare,
-                    beneficiary: msg.beneficiary,
+                    benificiary: msg.benificiary
                 }.toCell(),
                 code: initCode.code,
                 data: initCode.data
             }
         );
+
+    }
+
+    receive(msg: HarvestInternalReply) {
+        let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
+        let expectedSender: Address = contractAddress(initCode);
+        require(expectedSender == sender(), "unexpected sender");
+
+        // TODO: mint reward jetton to msg.beneficiary
+    }
+
+    receive(msg: WithdrawAndHarvest) {
+        // check if pool exists
+        require(self.pools.get(msg.lpTokenAddress) != null , "pool not exists");
+
+        let initCode: StateInit = self._calculateMiniChefInit(sender());
+        let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
+        send(SendParameters{
+                to: contractAddress(initCode),
+                value: 0,
+                mode: SendRemainingValue,
+                bounce: true,
+                body: WithdrawAndHarvestInternal{
+                    queryId: msg.queryId,
+                    lpTokenAddress: msg.lpTokenAddress,
+                    amount: msg.amount,
+                    accRewardPerShare: pool.accRewardPerShare,
+                    beneficiary: msg.beneficiary,
+                    sender: sender()
+                }.toCell(),
+                code: initCode.code,
+                data: initCode.data
+            }
+        );
+    }
+
+    receive(msg: WithdrawAndHarvestReply) {
+        let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
+        let expectedSender: Address = contractAddress(initCode);
+        require(expectedSender == sender(), "unexpected sender");
+
+        // TODO: mint reward jetton to msg.beneficiary
+
+        // TODO: send amount to msg.beneficiary
+
     }
 
 
@@ -279,14 +348,6 @@ contract MiniChef with Deployable {
         userInfo.rewardDebt = userInfo.rewardDebt + msg.rewardDebt; // TODO: ACC_PRECISION?
         self.userInfo.set(msg.lpTokenAddress, userInfo);
     }
-
-    // handle bounce
-    bounced(src: bounced<WithdrawInternalReply>) {
-        let userInfo: UserInfo = self.userInfo.get(src.lpTokenAddress)!!;
-        userInfo.amount = userInfo.amount + msg.amount;
-        userInfo.rewardDebt = userInfo.rewardDebt + msg.rewardDebt; // TODO: ACC_PRECISION?
-        self.userInfo.set(msg.lpTokenAddress, userInfo);
-    }
     
 
     receive(msg: WithdrawInternal) {
@@ -310,8 +371,8 @@ contract MiniChef with Deployable {
                 sender: msg.sender,
                 rewardDebt: userInfo.rewardDebt,
                 beneficiary: msg.beneficiary
-            }
-        })
+            }.toCell()
+        });
     }
 
     receive(msg: HarvestInternal) {
@@ -324,6 +385,48 @@ contract MiniChef with Deployable {
         }
         userInfo.rewardDebt = accumulatedReward;
         self.userInfo.set(msg.lpTokenAddress, userInfo);
+
+        // Send pending reward ammount to MasterChef, and then MasterChef will send it to the user
+        send(SendParameters{
+            to: self.masterChef,
+            value: 0,
+            mode: SendRemainingValue,
+            body: HarvestInternalReply{
+                queryId: msg.queryId,
+                lpTokenAddress: msg.lpTokenAddress,
+                reward: _pendingReward,
+                sender: self.owner,
+                benificiary: msg.benificiary
+            }.toCell()
+        });
     
+    }
+    receive(msg: WithdrawAndHarvestInternal) {
+        require(sender() == self.masterChef, "only masterChef can harvest");
+        let userInfo: UserInfo = self.userInfo.get(msg.lpTokenAddress)!!;
+        let accumulatedReward: Int = userInfo.amount * msg.accRewardPerShare; // TODO: ACC_PRECISION?
+        let _pendingReward: Int = accumulatedReward - userInfo.rewardDebt;
+        if (_pendingReward <= 0) {
+            return;
+        }
+        userInfo.rewardDebt = accumulatedReward - msg.amount * msg.accRewardPerShare;
+        userInfo.amount = userInfo.amount - msg.amount;
+        self.userInfo.set(msg.lpTokenAddress, userInfo);
+
+        // Send WithdrawAndHarvestReply to MasterChef
+        send(SendParameters{
+            to: self.masterChef,
+            value: 0,
+            mode: SendRemainingValue,
+            body: WithdrawAndHarvestReply{
+                queryId: msg.queryId,
+                lpTokenAddress: msg.lpTokenAddress,
+                reward: _pendingReward,
+                amount: msg.amount,
+                sender: self.owner,
+                benificiary: msg.beneficiary
+            }.toCell()
+        });
+
     }
 }
