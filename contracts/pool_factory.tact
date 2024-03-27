@@ -129,7 +129,6 @@ contract MasterChef with Deployable {
     init(owner: Address, rewardPerBlock: Int) {
         self.owner = owner;
         self.totalAllocPoint = 0;
-        self.lastRewardBlock = now();
         self.rewardPerBlock = rewardPerBlock;
         self.rewardDecimal = 6;
     }
