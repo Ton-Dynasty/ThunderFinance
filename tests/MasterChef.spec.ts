@@ -42,7 +42,7 @@ describe('PoolFactory', () => {
         // blockchain and poolFactory are ready to use
     });
 
-    it('should add pool', async () => {
+    it('Should add pool', async () => {
         const addPoolResult = await masterChef.send(
             deployer.getSender(),
             { value: toNano('0.05') },
@@ -60,4 +60,12 @@ describe('PoolFactory', () => {
             op: 1266490084,
         });
     });
+
+    it('Should deposit', async () => {});
+
+    it('Should deposit and harvest', async () => {});
+
+    it('Should deposit and withdraw', async () => {});
+
+    it('Should deposit and withdarw with harvest', async () => {});
 });
