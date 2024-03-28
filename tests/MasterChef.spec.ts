@@ -16,6 +16,7 @@ describe('PoolFactory', () => {
     let masterChefJettonWallet: SandboxContract<JettonWalletUSDT>;
     let deployerJettonWallet: SandboxContract<JettonWalletUSDT>;
     let rewardPerSecond: bigint;
+    let seed: bigint;
 
     async function depositJettonTransfer(
         usdt: SandboxContract<JettonMasterUSDT>,
@@ -117,11 +118,12 @@ describe('PoolFactory', () => {
 
     beforeEach(async () => {
         blockchain = await Blockchain.create();
+        seed = 0n;
         blockchain.now = Math.floor(Date.now() / 1000);
         deployer = await blockchain.treasury('deployer');
         user = await blockchain.treasury('user');
         usdt = blockchain.openContract(await JettonMasterUSDT.fromInit(deployer.address, beginCell().endCell()));
-        masterChef = blockchain.openContract(await MasterChef.fromInit(deployer.address));
+        masterChef = blockchain.openContract(await MasterChef.fromInit(deployer.address, seed));
         masterChefJettonWallet = blockchain.openContract(
             await JettonWalletUSDT.fromInit(masterChef.address, usdt.address),
         );
@@ -181,6 +183,7 @@ describe('PoolFactory', () => {
 
     it('Should user deposit usdt to master chef and update pool', async () => {
         await addPool(masterChef, masterChefJettonWallet);
+        let periodTime = 10;
         const userDepositAmount = 1n * 10n ** 6n;
         const depositResult = await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
         // send the deposit to MasterChef

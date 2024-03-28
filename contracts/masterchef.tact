@@ -143,13 +143,15 @@ contract MasterChef with Deployable {
     rewardPerSecond: Int as coins = 0;
     createdAt: Int as uint64 = 0;
     deadline: Int as uint64 = 0;
+    seed: Int;
 
     // initialize the contract with owner and reward jetton wallet address
-    init(owner: Address) {
+    init(owner: Address, seed: Int) {
         self.owner = owner;
         self.isInitialized = false;
         self.rewardWallet = newAddress(0, 0);
         self.rewardDecimal = 6;
+        self.seed = seed;
     }
 
     receive(msg: SetUp) {
