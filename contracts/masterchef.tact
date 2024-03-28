@@ -115,6 +115,7 @@ message Initialize {
 
 message SetUp {
     rewardWallet: Address;
+    rewardDecimal: Int;
 }
 
 struct MasterChefData {
@@ -138,6 +139,7 @@ contract MasterChef with Deployable {
 
     // for reward jetton
     rewardWallet: Address;
+    rewardDecimal: Int;
     rewardPerSecond: Int as coins = 0;
     createdAt: Int as uint64 = 0;
     deadline: Int as uint64 = 0;
@@ -147,12 +149,14 @@ contract MasterChef with Deployable {
         self.owner = owner;
         self.isInitialized = false;
         self.rewardWallet = newAddress(0, 0);
+        self.rewardDecimal = 6;
     }
 
     receive(msg: SetUp) {
         self.requireNotInitialized();
         require(self.rewardWallet == newAddress(0, 0), "reward wallet already set");
         self.rewardWallet = msg.rewardWallet;
+        self.rewardDecimal = msg.rewardDecimal;
     }
 
     inline fun requireInitialized() {
@@ -223,6 +227,8 @@ contract MasterChef with Deployable {
 
         let initCode: StateInit = self._calculateMiniChefInit(beneficiary);
         let pool: PoolInfo = self.pools.get(ctx.sender)!!;
+        pool.lpSupply = pool.lpSupply + msg.amount;
+        self.pools.set(ctx.sender, pool);
         send(SendParameters{
                 to: contractAddress(initCode),
                 value: 0,
@@ -413,7 +419,7 @@ contract MasterChef with Deployable {
 
         if (pool.lpSupply > 0 ) {
             let reward: Int = (now - pool.lastRewardBlock) * self.rewardPerSecond;
-            let rewardAmount: Int = reward * pool.allocPoint / self.totalAllocPoint;
+            let rewardAmount: Int = pow(10, 6) * reward * pool.allocPoint / self.totalAllocPoint;
             pool.accRewardPerShare = pool.accRewardPerShare + (rewardAmount / pool.lpSupply);
         } 
         pool.lastRewardBlock = now;
@@ -465,6 +471,9 @@ contract MiniChef with Deployable {
 
     receive(msg: UserDeposit) {
         require(sender() == self.masterChef, "only masterChef can deposit");
+        if(self.userInfo.get(msg.lpTokenAddress) == null) {
+            self.userInfo.set(msg.lpTokenAddress, UserInfo{amount: 0, rewardDebt: 0});
+        }
         let userInfo: UserInfo = self.userInfo.get(msg.lpTokenAddress)!!;
         userInfo.amount  = userInfo.amount + msg.amount;
         userInfo.rewardDebt = userInfo.rewardDebt + msg.rewardDebt; 
@@ -550,6 +559,12 @@ contract MiniChef with Deployable {
             }.toCell()
         });
 
+    }
+
+    // Get Methods
+    get fun getUserInfo(lpTokenAddress: Address): UserInfo {
+        require(self.userInfo.get(lpTokenAddress) != null , "user not exists");
+        return self.userInfo.get(lpTokenAddress)!!;
     }
 
 }
