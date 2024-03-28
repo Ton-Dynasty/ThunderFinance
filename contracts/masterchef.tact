@@ -66,20 +66,20 @@ message WithdrawInternalReply {
 message Harvest {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
-    benificiary: Address; // the one who will receive the reward
+    beneficiary: Address; // the one who will receive the reward
 }
 
 message HarvestInternal {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
-    benificiary: Address; // the one who will receive the reward
+    beneficiary: Address; // the one who will receive the reward
     accRewardPerShare: Int as coins;
 }
 
 message HarvestInternalReply {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
-    benificiary: Address; // the one who will receive the reward
+    beneficiary: Address; // the one who will receive the reward
     reward: Int as coins;
     sender: Address;
 }
@@ -103,7 +103,7 @@ message WithdrawAndHarvestInternal {
 message WithdrawAndHarvestReply {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
-    benificiary: Address; // the one who will receive the reward
+    beneficiary: Address; // the one who will receive the reward
     reward: Int as coins;
     amount: Int as coins;
     sender: Address;
@@ -300,8 +300,8 @@ contract MasterChef with Deployable {
         self.requireInitialized();
         require(self.pools.get(msg.lpTokenAddress) != null , "pool not exists");
         let initCode: StateInit = self._calculateMiniChefInit(sender());
-        let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
         self.updatePool(msg.lpTokenAddress);
+        let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
         send(SendParameters{
                 to: contractAddress(initCode),
                 value: 0,
@@ -311,7 +311,7 @@ contract MasterChef with Deployable {
                     queryId: msg.queryId,
                     lpTokenAddress: msg.lpTokenAddress,
                     accRewardPerShare: pool.accRewardPerShare,
-                    benificiary: msg.benificiary
+                    beneficiary: msg.beneficiary
                 }.toCell(),
                 code: initCode.code,
                 data: initCode.data
@@ -324,19 +324,19 @@ contract MasterChef with Deployable {
         let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
         let expectedSender: Address = contractAddress(initCode);
         require(expectedSender == sender(), "unexpected sender");
-
         send(SendParameters{
-                to: myAddress(),
+                to: self.rewardWallet,
                 value: 0,
                 mode: SendRemainingValue,
-                body: JettonMint{
-                    origin: myAddress(),
-                    receiver: msg.benificiary,
+                body: JettonTransfer{
+                    query_id: 0,
                     amount: msg.reward,
+                    destination: msg.beneficiary,
+                    response_destination: msg.beneficiary,
                     custom_payload: null,
                     forward_ton_amount: 0,
                     forward_payload: emptySlice()
-                }.toCell()
+            }.toCell()
             }
         );
 
@@ -380,7 +380,7 @@ contract MasterChef with Deployable {
                 mode: SendRemainingValue,
                 body: JettonMint{
                     origin: myAddress(),
-                    receiver: msg.benificiary,
+                    receiver: msg.beneficiary,
                     amount: msg.amount,
                     custom_payload: null,
                     forward_ton_amount: 0,
@@ -398,8 +398,8 @@ contract MasterChef with Deployable {
             body: JettonTransfer{
                 query_id: 0,
                 amount: msg.amount,
-                destination: msg.benificiary,
-                response_destination: msg.benificiary,
+                destination: msg.beneficiary,
+                response_destination: msg.beneficiary,
                 custom_payload: null,
                 forward_ton_amount: 0,
                 forward_payload: emptySlice()
@@ -510,14 +510,13 @@ contract MiniChef with Deployable {
     receive(msg: HarvestInternal) {
         require(sender() == self.masterChef, "only masterChef can harvest");
         let userInfo: UserInfo = self.userInfo.get(msg.lpTokenAddress)!!;
-        let accumulatedReward: Int = userInfo.amount * msg.accRewardPerShare; 
+        let accumulatedReward: Int = userInfo.amount * msg.accRewardPerShare / pow(10, 6); 
         let _pendingReward: Int = accumulatedReward - userInfo.rewardDebt;
         if (_pendingReward <= 0) {
             return;
         }
         userInfo.rewardDebt = accumulatedReward;
         self.userInfo.set(msg.lpTokenAddress, userInfo);
-
         // Send pending reward ammount to MasterChef, and then MasterChef will send it to the user
         send(SendParameters{
             to: self.masterChef,
@@ -528,7 +527,7 @@ contract MiniChef with Deployable {
                 lpTokenAddress: msg.lpTokenAddress,
                 reward: _pendingReward,
                 sender: self.owner,
-                benificiary: msg.benificiary
+                beneficiary: msg.beneficiary
             }.toCell()
         });
     
@@ -556,7 +555,7 @@ contract MiniChef with Deployable {
                 reward: _pendingReward,
                 amount: msg.amount,
                 sender: self.owner,
-                benificiary: msg.beneficiary
+                beneficiary: msg.beneficiary
             }.toCell()
         });
 

@@ -160,7 +160,7 @@ describe('PoolFactory', () => {
         expect(isInitialized).toBe(true);
     });
 
-    it('Should add pool', async () => {
+    it('Should owner add pool into master chef', async () => {
         const allocPoint = 100n;
         const addPoolResult = await addPool(masterChef, masterChefJettonWallet, allocPoint);
         // Send AddPool to MasterChef
@@ -179,8 +179,8 @@ describe('PoolFactory', () => {
         expect(poolData.lpTokenAddress.toString()).toBe(masterChefJettonWallet.address.toString());
     });
 
-    it('Should deposit', async () => {
-        const periodTime = 10;
+    it('Should user deposit usdt to master chef and update pool', async () => {
+        await addPool(masterChef, masterChefJettonWallet);
         const userDepositAmount = 1n * 10n ** 6n;
         const depositResult = await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
         // send the deposit to MasterChef
@@ -228,7 +228,69 @@ describe('PoolFactory', () => {
         );
     });
 
-    // it('Should deposit and harvest', async () => {});
+    it('Should deposit and harvest', async () => {
+        await addPool(masterChef, masterChefJettonWallet);
+        const userDepositAmount = 1n * 10n ** 6n;
+        const periodTime = 10;
+        await depositJettonTransfer(usdt, user, masterChef, userDepositAmount);
+        // Update time to periodTime, so that we can harvest
+        blockchain.now = Math.floor(Date.now() / 1000) + periodTime;
+        const userJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(user.address, usdt.address));
+        const userUSDTBalanceBefore = (await userJettonWallet.getGetWalletData()).balance;
+
+        // User send Harvest to MasterChef
+        const harvestResult = await masterChef.send(
+            user.getSender(),
+            { value: toNano('1') },
+            {
+                $$type: 'Harvest',
+                queryId: 0n,
+                lpTokenAddress: masterChefJettonWallet.address,
+                beneficiary: user.address,
+            },
+        );
+
+        // Check if the user send Harvest to MasterChef
+        expect(harvestResult.transactions).toHaveTransaction({
+            from: user.address,
+            to: masterChef.address,
+            success: true,
+        });
+
+        // Check if the MasterChef send HarvestInternal to MiniChef
+        const miniChef = blockchain.openContract(await MiniChef.fromInit(user.address));
+        expect(harvestResult.transactions).toHaveTransaction({
+            from: masterChef.address,
+            to: miniChef.address,
+            success: true,
+        });
+
+        // Check if MiniChef send HarvestInternalReply to user
+        expect(harvestResult.transactions).toHaveTransaction({
+            from: miniChef.address,
+            to: masterChef.address,
+            success: true,
+        });
+
+        // Check that MasterChef send JettonTransfer to user
+        expect(harvestResult.transactions).toHaveTransaction({
+            from: masterChef.address,
+            to: masterChefJettonWallet.address,
+            success: true,
+        });
+
+        // Check that MasterChef JettonWallet send JettonTransfer to user
+        expect(harvestResult.transactions).toHaveTransaction({
+            from: masterChefJettonWallet.address,
+            to: userJettonWallet.address,
+            success: true,
+        });
+
+        // User JettonWallet should have received the reward
+        const userUSDTBalanceAfter = (await userJettonWallet.getGetWalletData()).balance;
+        const benifit = (userDepositAmount * BigInt(periodTime) * rewardPerSecond) / 10n ** 6n;
+        expect(userUSDTBalanceAfter).toBeGreaterThanOrEqual(userUSDTBalanceBefore + benifit);
+    });
 
     it('Should deposit and withdraw', async () => {
         const userDepositAmount = 1n * 10n ** 6n;
