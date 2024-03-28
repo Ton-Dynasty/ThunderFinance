@@ -111,7 +111,8 @@ message WithdrawAndHarvestReply {
     amount: Int as coins;
     sender: Address;
 }
-// Tic Ton reward Token (TIC) contract
+
+
 contract RewardJettonWallet with JettonWallet {
     balance: Int as coins = 0;
     owner: Address;
