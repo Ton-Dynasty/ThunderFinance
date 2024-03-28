@@ -1,6 +1,6 @@
 import { Blockchain, printTransactionFees, SandboxContract, TreasuryContract } from '@ton/sandbox';
 import { Address, beginCell, toNano } from '@ton/core';
-import { MasterChef } from '../wrappers/MasterChef';
+import { MasterChef, PoolInfo } from '../wrappers/MasterChef';
 import { JettonWalletUSDT } from '../wrappers/JettonWallet';
 import { JettonMasterUSDT } from '../wrappers/JettonMaster';
 import '@ton/test-utils';
@@ -156,35 +156,33 @@ describe('PoolFactory', () => {
         // the check is done inside beforeEach
     });
 
-    // it('Should add pool', async () => {
-    //     const addPoolResult = await masterChef.send(
-    //         deployer.getSender(),
-    //         { value: toNano('0.05') },
-    //         {
-    //             $$type: 'AddPool',
-    //             lpTokenAddress: masterChefJettonWallet.address,
-    //             allocPoint: 100n,
-    //         },
-    //     );
+    it('Should add pool', async () => {
+        const allocPoint = 100n;
+        const addPoolResult = await masterChef.send(
+            deployer.getSender(),
+            { value: toNano('0.05') },
+            {
+                $$type: 'AddPool',
+                lpTokenAddress: masterChefJettonWallet.address,
+                allocPoint: allocPoint,
+            },
+        );
 
-    //     expect(addPoolResult.transactions).toHaveTransaction({
-    //         from: deployer.address,
-    //         to: masterChef.address,
-    //         success: true,
-    //         op: 1266490084,
-    //     });
-    // });
+        // Send AddPool to MasterChef
+        expect(addPoolResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: masterChef.address,
+            success: true,
+            op: 0x4b7d1ae4,
+        });
 
-    // it('Should deposit', async () => {
-    //     await addPool(masterChef, masterChefJettonWallet);
-    //     const jettonTransferResult = await jettonTransfer(usdt, user, masterChef);
-    //     printTransactionFees(jettonTransferResult.transactions);
-    //     expect(jettonTransferResult.transactions).toHaveTransaction({
-    //         from: user.address,
-    //         to: masterChef.address,
-    //         success: true,
-    //     });
-    // });
+        let poolData: PoolInfo = await masterChef.getGetPoolInfo(masterChefJettonWallet.address);
+        // allocPoint should be equal to 100
+        expect(poolData.allocPoint).toBe(allocPoint);
+
+        // poolData.lpToken should be equal to masterChefJettonWallet.address
+        expect(poolData.lpTokenAddress.toString()).toBe(masterChefJettonWallet.address.toString());
+    });
 
     // it('Should deposit and harvest', async () => {});
 

@@ -445,6 +445,11 @@ contract MasterChef with Deployable {
         };
     }
 
+    get fun getPoolInfo(lpTokenAddress: Address): PoolInfo {
+        require(self.pools.get(lpTokenAddress) != null , "pool not exists");
+        return self.pools.get(lpTokenAddress)!!;
+    }
+
 }
 
 contract MiniChef with Deployable {
