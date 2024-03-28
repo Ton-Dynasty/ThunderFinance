@@ -59,6 +59,25 @@ describe('PoolFactory', () => {
             success: true,
             op: 1266490084,
         });
+
+        await usdt.send(deployer.getSender(), { value: toNano('0.05') }, 'Mint:1');
+        const deployerJettonWallet = blockchain.openContract(
+            await JettonWalletUSDT.fromInit(deployer.address, usdt.address),
+        );
+        deployerJettonWallet.send(
+            deployer.getSender(),
+            { value: toNano('1.1') },
+            {
+                $$type: 'JettonTransfer',
+                query_id: 1n,
+                amount: 1n * 10n ** 6n,
+                destination: masterChef.address,
+                response_destination: masterChef.address,
+                custom_payload: null,
+                forward_ton_amount: toNano('1'),
+                forward_payload: beginCell().endCell(),
+            },
+        );
     });
 
     it('Should deposit', async () => {});
