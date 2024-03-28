@@ -1,10 +1,7 @@
 import "@stdlib/deploy";
 import "./packages/token/jetton/JettonMaster.tact";
-import "./packages/token/jetton/JettonWallet.tact";
-struct Init{
-    owner: Address;
-    rewardPerBlock: Int as coins;
-}
+
+
 
 message AddPool{
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
@@ -112,50 +109,54 @@ message WithdrawAndHarvestReply {
     sender: Address;
 }
 
-
-contract RewardJettonWallet with JettonWallet {
-    balance: Int as coins = 0;
-    owner: Address;
-    jetton_master: Address;
-    init(owner: Address, jetton_master: Address){
-        self.owner = owner;
-        self.jetton_master = jetton_master;
-    }
-
-    override inline fun calculate_jetton_wallet_init(owner_address: Address): StateInit {
-        return initOf RewardJettonWallet(owner_address, self.jetton_master);
-    }
+message Initialize {
+    rewardJettonContent: Cell; // jetton content for reward token
 }
 
-contract MasterChef with Deployable, JettonMaster {
+contract MasterChef with Deployable {
+    // State
+    isInitialized: Bool = false;
 
     // Pool
     owner: Address;
     pools: map<Address, PoolInfo>;
-    totalAllocPoint: Int;
-    rewardPerBlock: Int as coins;
-    rewardDecimal: Int;
-    total_supply: Int as coins = 0;
-    mintable: Bool = true;
-    jetton_content: Cell;
+    totalAllocPoint: Int = 0;
 
+    // for reward jetton
+    rewardWallet: Address;
+    rewardPerSecond: Int as coins = 0;
+    createdAt: Int as uint64 = 0;
+    deadline: Int as uint64 = 0;
 
-    init(owner: Address, rewardPerBlock: Int) {
+    // initialize the contract with owner and reward jetton wallet address
+    init(owner: Address, rewardWallet: Address) {
         self.owner = owner;
-        self.totalAllocPoint = 0;
-        self.rewardPerBlock = rewardPerBlock;
-        self.rewardDecimal = 6;
-        self.jetton_content = emptyCell();
+        self.rewardWallet = rewardWallet;
+        self.isInitialized = false;
+    }
+
+    inline fun requireInitialized() {
+        require(self.isInitialized, "contract not initialized");
+    }
+
+    inline fun requireNotInitialized() {
+        require(!self.isInitialized, "contract already initialized");
     }
 
 
-
-    override inline fun calculate_jetton_wallet_init(owner_address: Address): StateInit {
-        return initOf RewardJettonWallet(owner_address, myAddress());
+    inline fun handleSetup(ctx: Context, amount: Int, deadline: Int, rewardPerSecond: Int) {
+        self.requireNotInitialized();
+        self.createdAt = now();
+        self.deadline = deadline;
+        self.rewardPerSecond = rewardPerSecond;
+        let expectedAmount: Int = (deadline - self.createdAt) * rewardPerSecond;
+        require(amount >= expectedAmount, "insufficient reward jetton amount");
+        self.isInitialized = true;
     }
 
 
     receive(msg: AddPool){
+        self.requireInitialized();
         require(sender() == self.owner, "only owner can add pool");
         require(self.pools.get(msg.lpTokenAddress) == null , "pool already exist");
         self.totalAllocPoint = self.totalAllocPoint + msg.allocPoint;
@@ -170,18 +171,33 @@ contract MasterChef with Deployable, JettonMaster {
     }
 
     receive (msg: UpdatePool) {
+        self.requireInitialized();
         self.updatePool(msg.lpTokenAddress);
     }
     
     receive(msg: JettonTransferNotification) {
-        // get jetton wallet address
-        let jettonWallet: Address = sender();
+        // context sender is from different kind of jetton wallet 
+        let ctx: Context = context();
+
+        // If not initialized, only accept reward jetton with Setup message payload
+        if (!self.isInitialized) {
+            // message Setup {
+            //     rewardPerSecond: Int as coins;
+            //     deadline: Int as uint64;
+            // }
+            require(ctx.sender == self.rewardWallet, "only reward jetton wallet can send message");
+            require(!msg.forward_payload.dataEmpty(), "payload is empty");
+            let rewardPerSecond: Int = msg.forward_payload.loadCoins();
+            let deadline: Int = msg.forward_payload.loadUint(64);
+            self.handleSetup(ctx, msg.amount, deadline, rewardPerSecond);
+            return;
+        }
 
         // check if pool exists
-        require(self.pools.get(jettonWallet) != null , "pool not exists");
+        require(self.pools.get(ctx.sender) != null , "pool not exists");
 
         // transfer from masterchef jetton wallet
-        self.updatePool(jettonWallet);
+        self.updatePool(ctx.sender);
 
         // load address from forward payload, if it does not exist, use msg.sender
         let beneficiary: Address = msg.sender;
@@ -191,14 +207,14 @@ contract MasterChef with Deployable, JettonMaster {
         }
 
         let initCode: StateInit = self._calculateMiniChefInit(beneficiary);
-        let pool: PoolInfo = self.pools.get(jettonWallet)!!;
+        let pool: PoolInfo = self.pools.get(ctx.sender)!!;
         send(SendParameters{
                 to: contractAddress(initCode),
                 value: 0,
                 mode: SendRemainingValue,
                 body: UserDeposit{
                     queryId: msg.query_id,
-                    lpTokenAddress: jettonWallet,
+                    lpTokenAddress: ctx.sender,
                     amount: msg.amount,
                     rewardDebt: pool.accRewardPerShare * msg.amount
                 }.toCell(),
@@ -210,6 +226,7 @@ contract MasterChef with Deployable, JettonMaster {
 
 
     receive(msg: Withdraw) {
+        self.requireInitialized();
         // check if pool exists
         require(self.pools.get(msg.lpTokenAddress) != null , "pool not exists");
         self.updatePool(msg.lpTokenAddress);
@@ -259,6 +276,7 @@ contract MasterChef with Deployable, JettonMaster {
     }
 
     receive(msg: Harvest) {
+        self.requireInitialized();
         require(self.pools.get(msg.lpTokenAddress) != null , "pool not exists");
         let initCode: StateInit = self._calculateMiniChefInit(sender());
         let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
@@ -304,6 +322,7 @@ contract MasterChef with Deployable, JettonMaster {
     }
 
     receive(msg: WithdrawAndHarvest) {
+        self.requireInitialized();
         // check if pool exists
         require(self.pools.get(msg.lpTokenAddress) != null , "pool not exists");
 
@@ -373,13 +392,12 @@ contract MasterChef with Deployable, JettonMaster {
         require(self.pools.get(lpTokenAddress) != null , "pool not exists");
         let pool: PoolInfo = self.pools.get(lpTokenAddress)!!;
         let now: Int = now();
-        if (now <= pool.lastRewardBlock)
-        {
+        if (now <= pool.lastRewardBlock){
             return;
         }
 
         if (pool.lpSupply > 0 ) {
-            let reward: Int = (now - pool.lastRewardBlock) * self.rewardPerBlock;
+            let reward: Int = (now - pool.lastRewardBlock) * self.rewardPerSecond;
             let rewardAmount: Int = reward * pool.allocPoint / self.totalAllocPoint;
             pool.accRewardPerShare = pool.accRewardPerShare + (rewardAmount / pool.lpSupply);
         } 
