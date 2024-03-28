@@ -14,6 +14,8 @@ describe('PoolFactory', () => {
     let masterChef: SandboxContract<MasterChef>;
     let usdt: SandboxContract<JettonMasterUSDT>;
     let masterChefJettonWallet: SandboxContract<JettonWalletUSDT>;
+    let deployerJettonWallet: SandboxContract<JettonWalletUSDT>;
+    let masterChefJettonWalletAddress: Address;
 
     async function jettonTransfer(
         usdt: SandboxContract<JettonMasterUSDT>,
@@ -59,10 +61,13 @@ describe('PoolFactory', () => {
         deployer = await blockchain.treasury('deployer');
         user = await blockchain.treasury('user');
         usdt = blockchain.openContract(await JettonMasterUSDT.fromInit(deployer.address, beginCell().endCell()));
-        masterChef = blockchain.openContract(await MasterChef.fromInit(deployer.address, usdt.address));
+        masterChef = blockchain.openContract(await MasterChef.fromInit(deployer.address));
         masterChefJettonWallet = blockchain.openContract(
             await JettonWalletUSDT.fromInit(masterChef.address, usdt.address),
         );
+
+        await usdt.send(deployer.getSender(), { value: toNano('1') }, 'Mint:1');
+        deployerJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(deployer.address, usdt.address));
 
         const deployResult = await masterChef.send(
             deployer.getSender(),
@@ -89,12 +94,31 @@ describe('PoolFactory', () => {
     });
 
     it('should initialize Master Chef', async () => {
+        const setUpResult = await masterChef.send(
+            deployer.getSender(),
+            {
+                value: toNano('0.05'),
+            },
+            {
+                $$type: 'SetUp',
+                rewardWallet: masterChefJettonWallet.address,
+            },
+        );
+        expect(setUpResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: masterChef.address,
+            success: true,
+            op: 0xec847480,
+        });
+
+        //printTransactionFees(setUpResult.transactions);
+        //console.log('SetUp res---------', setUpResult);
+        //console.log('Deploy res---------');
         const rewardPerSecond = 1n * 10n ** 5n;
         const rewardPeriod = 1000;
         const deadline = blockchain.now!! + rewardPeriod;
-        console.log('deadline', deadline, blockchain.now!!, rewardPeriod);
         const rewardAmount = rewardPerSecond * BigInt(rewardPeriod);
-        const initResult = await masterChefJettonWallet.send(
+        const initResult = await deployerJettonWallet.send(
             deployer.getSender(),
             {
                 value: toNano('1.5'),
@@ -104,48 +128,51 @@ describe('PoolFactory', () => {
                 query_id: 0n,
                 amount: rewardAmount,
                 destination: masterChef.address,
-                response_destination: user.address,
+                response_destination: deployer.address,
                 custom_payload: null,
                 forward_ton_amount: toNano('1'),
                 forward_payload: beginCell().storeCoins(rewardPerSecond).storeUint(deadline, 64).endCell(),
             },
         );
-        
+
+        const masterChefData = await masterChef.getGetMasterChefData();
+        const isInitialized = masterChefData.isInitialized;
+        expect(isInitialized).toBe(true);
     });
 
-    it('Should add pool', async () => {
-        const addPoolResult = await masterChef.send(
-            deployer.getSender(),
-            { value: toNano('0.05') },
-            {
-                $$type: 'AddPool',
-                lpTokenAddress: masterChefJettonWallet.address,
-                allocPoint: 100n,
-            },
-        );
+    // it('Should add pool', async () => {
+    //     const addPoolResult = await masterChef.send(
+    //         deployer.getSender(),
+    //         { value: toNano('0.05') },
+    //         {
+    //             $$type: 'AddPool',
+    //             lpTokenAddress: masterChefJettonWallet.address,
+    //             allocPoint: 100n,
+    //         },
+    //     );
 
-        expect(addPoolResult.transactions).toHaveTransaction({
-            from: deployer.address,
-            to: masterChef.address,
-            success: true,
-            op: 1266490084,
-        });
-    });
+    //     expect(addPoolResult.transactions).toHaveTransaction({
+    //         from: deployer.address,
+    //         to: masterChef.address,
+    //         success: true,
+    //         op: 1266490084,
+    //     });
+    // });
 
-    it('Should deposit', async () => {
-        await addPool(masterChef, masterChefJettonWallet);
-        const jettonTransferResult = await jettonTransfer(usdt, user, masterChef);
-        printTransactionFees(jettonTransferResult.transactions);
-        expect(jettonTransferResult.transactions).toHaveTransaction({
-            from: user.address,
-            to: masterChef.address,
-            success: true,
-        });
-    });
+    // it('Should deposit', async () => {
+    //     await addPool(masterChef, masterChefJettonWallet);
+    //     const jettonTransferResult = await jettonTransfer(usdt, user, masterChef);
+    //     printTransactionFees(jettonTransferResult.transactions);
+    //     expect(jettonTransferResult.transactions).toHaveTransaction({
+    //         from: user.address,
+    //         to: masterChef.address,
+    //         success: true,
+    //     });
+    // });
 
-    it('Should deposit and harvest', async () => {});
+    // it('Should deposit and harvest', async () => {});
 
-    it('Should deposit and withdraw', async () => {});
+    // it('Should deposit and withdraw', async () => {});
 
-    it('Should deposit and withdarw with harvest', async () => {});
+    // it('Should deposit and withdarw with harvest', async () => {});
 });

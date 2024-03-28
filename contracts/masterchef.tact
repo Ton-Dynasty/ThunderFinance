@@ -113,6 +113,20 @@ message Initialize {
     rewardJettonContent: Cell; // jetton content for reward token
 }
 
+message SetUp {
+    rewardWallet: Address;
+}
+
+struct MasterChefData {
+    owner: Address;
+    rewardWallet: Address;
+    rewardPerSecond: Int as coins;
+    createdAt: Int as uint64;
+    deadline: Int as uint64;
+    isInitialized: Bool;
+    totalAllocPoint: Int;
+}
+
 contract MasterChef with Deployable {
     // State
     isInitialized: Bool = false;
@@ -129,10 +143,16 @@ contract MasterChef with Deployable {
     deadline: Int as uint64 = 0;
 
     // initialize the contract with owner and reward jetton wallet address
-    init(owner: Address, rewardWallet: Address) {
+    init(owner: Address) {
         self.owner = owner;
-        self.rewardWallet = rewardWallet;
         self.isInitialized = false;
+        self.rewardWallet = newAddress(0, 0);
+    }
+
+    receive(msg: SetUp) {
+        self.requireNotInitialized();
+        require(self.rewardWallet == newAddress(0, 0), "reward wallet already set");
+        self.rewardWallet = msg.rewardWallet;
     }
 
     inline fun requireInitialized() {
@@ -178,13 +198,8 @@ contract MasterChef with Deployable {
     receive(msg: JettonTransferNotification) {
         // context sender is from different kind of jetton wallet 
         let ctx: Context = context();
-
         // If not initialized, only accept reward jetton with Setup message payload
         if (!self.isInitialized) {
-            // message Setup {
-            //     rewardPerSecond: Int as coins;
-            //     deadline: Int as uint64;
-            // }
             require(ctx.sender == self.rewardWallet, "only reward jetton wallet can send message");
             require(!msg.forward_payload.dataEmpty(), "payload is empty");
             let rewardPerSecond: Int = msg.forward_payload.loadCoins();
@@ -417,6 +432,19 @@ contract MasterChef with Deployable {
         return contractAddress(initCode);
     }
 
+        // Get Methods
+    get fun getMasterChefData(): MasterChefData {
+        return MasterChefData{
+            owner: self.owner,
+            rewardWallet: self.rewardWallet,
+            rewardPerSecond: self.rewardPerSecond,
+            createdAt: self.createdAt,
+            deadline: self.deadline,
+            isInitialized: self.isInitialized,
+            totalAllocPoint: self.totalAllocPoint
+        };
+    }
+
 }
 
 contract MiniChef with Deployable {
@@ -518,4 +546,5 @@ contract MiniChef with Deployable {
         });
 
     }
+
 }
