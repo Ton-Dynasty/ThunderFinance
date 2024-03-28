@@ -128,6 +128,57 @@ struct MasterChefData {
     totalAllocPoint: Int;
 }
 
+message BuildMasterChef {
+    owner: Address;
+}
+
+message CreateMasterChef {
+    owner: Address;
+    seed: Int;
+}
+
+contract Kitchen with Deployable {
+    owner: Address;
+    seed: Int;
+    init(owner: Address) {
+        self.owner = owner;
+        self.seed = 0;
+    }
+
+    receive(msg: BuildMasterChef) {
+        let initCode: StateInit = self._calculateMasterChef(msg.owner,self.seed);
+        send(SendParameters{
+                to: contractAddress(initCode),
+                value: 0,
+                mode: SendRemainingValue,
+                body: CreateMasterChef{
+                    owner: msg.owner,
+                    seed: self.seed
+                }.toCell(),
+                code: initCode.code,
+                data: initCode.data
+            }
+        );
+        self.seed = self.seed + 1;
+    }
+
+    inline fun _calculateMasterChef(owner: Address, seed: Int): StateInit {
+        return initOf MasterChef(owner,seed);
+    }
+
+    // Get Methods
+    // Get alarm address by alarm index
+    get fun getMasterChefAddress(owner: Address, seed: Int): Address {
+        let initCode: StateInit = self._calculateMasterChef(owner, seed);
+        return contractAddress(initCode);
+    }
+
+    // Get Seed count
+    get fun getSeed(): Int {
+        return self.seed;
+    }
+}
+
 contract MasterChef with Deployable {
     // State
     isInitialized: Bool = false;
@@ -152,6 +203,10 @@ contract MasterChef with Deployable {
         self.rewardWallet = newAddress(0, 0);
         self.rewardDecimal = 6;
         self.seed = seed;
+    }
+
+    receive(msg: CreateMasterChef) {
+        emit(CreateMasterChef{owner: msg.owner, seed: msg.seed}.toCell());
     }
 
     receive(msg: SetUp) {
@@ -344,31 +399,31 @@ contract MasterChef with Deployable {
 
     }
 
-    receive(msg: WithdrawAndHarvest) {
-        self.requireInitialized();
-        // check if pool exists
-        require(self.pools.get(msg.lpTokenAddress) != null , "pool not exists");
+    // receive(msg: WithdrawAndHarvest) {
+    //     self.requireInitialized();
+    //     // check if pool exists
+    //     require(self.pools.get(msg.lpTokenAddress) != null , "pool not exists");
 
-        let initCode: StateInit = self._calculateMiniChefInit(sender());
-        let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
-        send(SendParameters{
-                to: contractAddress(initCode),
-                value: 0,
-                mode: SendRemainingValue,
-                bounce: true,
-                body: WithdrawAndHarvestInternal{
-                    queryId: msg.queryId,
-                    lpTokenAddress: msg.lpTokenAddress,
-                    amount: msg.amount,
-                    accRewardPerShare: pool.accRewardPerShare,
-                    beneficiary: msg.beneficiary,
-                    sender: sender()
-                }.toCell(),
-                code: initCode.code,
-                data: initCode.data
-            }
-        );
-    }
+    //     let initCode: StateInit = self._calculateMiniChefInit(sender());
+    //     let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
+    //     send(SendParameters{
+    //             to: contractAddress(initCode),
+    //             value: 0,
+    //             mode: SendRemainingValue,
+    //             bounce: true,
+    //             body: WithdrawAndHarvestInternal{
+    //                 queryId: msg.queryId,
+    //                 lpTokenAddress: msg.lpTokenAddress,
+    //                 amount: msg.amount,
+    //                 accRewardPerShare: pool.accRewardPerShare,
+    //                 beneficiary: msg.beneficiary,
+    //                 sender: sender()
+    //             }.toCell(),
+    //             code: initCode.code,
+    //             data: initCode.data
+    //         }
+    //     );
+    // }
 
     receive(msg: WithdrawAndHarvestReply) {
         let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
@@ -534,34 +589,34 @@ contract MiniChef with Deployable {
         });
     
     }
-    receive(msg: WithdrawAndHarvestInternal) {
-        require(sender() == self.masterChef, "only masterChef can harvest");
-        let userInfo: UserInfo = self.userInfo.get(msg.lpTokenAddress)!!;
-        let accumulatedReward: Int = userInfo.amount * msg.accRewardPerShare; 
-        let _pendingReward: Int = accumulatedReward - userInfo.rewardDebt;
-        if (_pendingReward <= 0) {
-            return;
-        }
-        userInfo.rewardDebt = accumulatedReward - msg.amount * msg.accRewardPerShare;
-        userInfo.amount = userInfo.amount - msg.amount;
-        self.userInfo.set(msg.lpTokenAddress, userInfo);
+    // receive(msg: WithdrawAndHarvestInternal) {
+    //     require(sender() == self.masterChef, "only masterChef can harvest");
+    //     let userInfo: UserInfo = self.userInfo.get(msg.lpTokenAddress)!!;
+    //     let accumulatedReward: Int = userInfo.amount * msg.accRewardPerShare; 
+    //     let _pendingReward: Int = accumulatedReward - userInfo.rewardDebt;
+    //     if (_pendingReward <= 0) {
+    //         return;
+    //     }
+    //     userInfo.rewardDebt = accumulatedReward - msg.amount * msg.accRewardPerShare;
+    //     userInfo.amount = userInfo.amount - msg.amount;
+    //     self.userInfo.set(msg.lpTokenAddress, userInfo);
 
-        // Send WithdrawAndHarvestReply to MasterChef
-        send(SendParameters{
-            to: self.masterChef,
-            value: 0,
-            mode: SendRemainingValue,
-            body: WithdrawAndHarvestReply{
-                queryId: msg.queryId,
-                lpTokenAddress: msg.lpTokenAddress,
-                reward: _pendingReward,
-                amount: msg.amount,
-                sender: self.owner,
-                beneficiary: msg.beneficiary
-            }.toCell()
-        });
+    //     // Send WithdrawAndHarvestReply to MasterChef
+    //     send(SendParameters{
+    //         to: self.masterChef,
+    //         value: 0,
+    //         mode: SendRemainingValue,
+    //         body: WithdrawAndHarvestReply{
+    //             queryId: msg.queryId,
+    //             lpTokenAddress: msg.lpTokenAddress,
+    //             reward: _pendingReward,
+    //             amount: msg.amount,
+    //             sender: self.owner,
+    //             beneficiary: msg.beneficiary
+    //         }.toCell()
+    //     });
 
-    }
+    // }
 
     // Get Methods
     get fun getUserInfo(lpTokenAddress: Address): UserInfo {

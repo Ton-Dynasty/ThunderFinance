@@ -1,3 +1,4 @@
+import { Kitchen } from './../build/MasterChef/tact_Kitchen';
 import { Blockchain, printTransactionFees, SandboxContract, TreasuryContract } from '@ton/sandbox';
 import { Address, beginCell, toNano } from '@ton/core';
 import { MasterChef, PoolInfo } from '../wrappers/MasterChef';
@@ -15,6 +16,7 @@ describe('PoolFactory', () => {
     let usdt: SandboxContract<JettonMasterUSDT>;
     let masterChefJettonWallet: SandboxContract<JettonWalletUSDT>;
     let deployerJettonWallet: SandboxContract<JettonWalletUSDT>;
+    let kitchen: SandboxContract<Kitchen>;
     let rewardPerSecond: bigint;
     let seed: bigint;
 
@@ -122,6 +124,7 @@ describe('PoolFactory', () => {
         blockchain.now = Math.floor(Date.now() / 1000);
         deployer = await blockchain.treasury('deployer');
         user = await blockchain.treasury('user');
+        kitchen = await blockchain.openContract(await Kitchen.fromInit(deployer.address));
         usdt = blockchain.openContract(await JettonMasterUSDT.fromInit(deployer.address, beginCell().endCell()));
         masterChef = blockchain.openContract(await MasterChef.fromInit(deployer.address, seed));
         masterChefJettonWallet = blockchain.openContract(
@@ -132,7 +135,7 @@ describe('PoolFactory', () => {
         await usdt.send(deployer.getSender(), { value: toNano('1') }, 'Mint:1');
         deployerJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(deployer.address, usdt.address));
 
-        const deployResult = await masterChef.send(
+        const kitcherResult = await kitchen.send(
             deployer.getSender(),
             {
                 value: toNano('0.05'),
@@ -142,13 +145,48 @@ describe('PoolFactory', () => {
                 queryId: 0n,
             },
         );
-
-        expect(deployResult.transactions).toHaveTransaction({
+        expect(kitcherResult.transactions).toHaveTransaction({
             from: deployer.address,
-            to: masterChef.address,
+            to: kitchen.address,
             deploy: true,
             success: true,
         });
+
+        // Build the MasterChef contract from kitchen
+        const masterChefResult = await kitchen.send(
+            deployer.getSender(),
+            {
+                value: toNano('0.5'),
+            },
+            {
+                $$type: 'BuildMasterChef',
+                owner: deployer.address,
+            },
+        );
+
+        expect(masterChefResult.transactions).toHaveTransaction({
+            from: kitchen.address,
+            to: masterChef.address,
+            success: true,
+        });
+
+        // const deployResult = await masterChef.send(
+        //     deployer.getSender(),
+        //     {
+        //         value: toNano('0.05'),
+        //     },
+        //     {
+        //         $$type: 'Deploy',
+        //         queryId: 0n,
+        //     },
+        // );
+
+        // expect(deployResult.transactions).toHaveTransaction({
+        //     from: deployer.address,
+        //     to: masterChef.address,
+        //     deploy: true,
+        //     success: true,
+        // });
 
         const setUpResult = await setup(masterChef, masterChefJettonWallet);
         expect(setUpResult.transactions).toHaveTransaction({
@@ -318,7 +356,6 @@ describe('PoolFactory', () => {
                 beneficiary: user.address,
             },
         );
-        printTransactionFees(withdrawResult.transactions);
         // check the depositAndWithdrawResult is sucess
         expect(withdrawResult.transactions).toHaveTransaction({
             from: user.address,
