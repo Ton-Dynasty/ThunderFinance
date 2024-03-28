@@ -10,6 +10,14 @@ message(0x0f8a7ea5) JettonTransfer {
     forward_payload: Slice as remaining;    // optional custom data that should be sent to the destination address.
 }
 
+message(0x7362d09c) JettonTransferNotification {
+    query_id: Int as uint64;                // arbitrary request number
+    amount: Int as coins;                   // amount of jettons to transfer
+    sender: Address;                        // address of the sender of the jettons
+    forward_payload: Slice as remaining;    // optional custom payload
+}
+
+
 message Claim {
     account: Address; // the address of the account to claim the coins
     amount: Int as coins; // the amount of coins to claim
@@ -18,18 +26,33 @@ message Claim {
     merkleProof: Slice; 
 }
 
-contract MerkleDistributor {
+contract MerkleDistributor with Deployable {
     merkleRoot: Int as uint256;
     airDropJettonWallet: Address;
     isInitialized: Bool = false;
+    owner: Address;
 
-    init(merkleRoot: Int, airDropJettonWallet: Address) {
+    init(merkleRoot: Int) {
         self.merkleRoot = merkleRoot;
-        self.airDropJettonWallet = airDropJettonWallet;
+        self.owner = sender();
+        self.airDropJettonWallet = newAddress(0, 0);
     }
 
+    receive(msg: JettonTransferNotification) {
+        // if notification cames from sender and the forward_paload is uint with value 1
+        // then set the contract as initialized
+        require(self.isInitialized == false, "Contract is already initialized");
+        if (msg.sender == self.owner) {
+            let value: Int = msg.forward_payload.loadUint(1);
+            if (value == 1) {
+                self.isInitialized = true;
+                self.airDropJettonWallet = sender();
+            }
+        }
+    }
 
     receive(msg: Claim) {
+        require(self.isInitialized, "Contract is not initialized");
         let nodeHash: Int = beginCell().storeAddress(msg.account).storeCoins(msg.amount).asSlice().hash();
         let rootHash: Int = self._processProof(nodeHash, msg.merkleProof);
         if (rootHash == self.merkleRoot) {
@@ -49,6 +72,7 @@ contract MerkleDistributor {
             });
         }
     }
+
 
     inline fun _processProof(nodeHash: Int, proof: Slice): Int {
         let length: Int = proof.loadUint(32);
