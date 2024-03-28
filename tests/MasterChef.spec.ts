@@ -13,6 +13,7 @@ describe('PoolFactory', () => {
     let user: SandboxContract<TreasuryContract>;
     let masterChef: SandboxContract<MasterChef>;
     let usdt: SandboxContract<JettonMasterUSDT>;
+    let masterChefJettonWallet: SandboxContract<JettonWalletUSDT>;
 
     async function jettonTransfer(
         usdt: SandboxContract<JettonMasterUSDT>,
@@ -37,10 +38,10 @@ describe('PoolFactory', () => {
         );
     }
 
-    async function addPool() {
-        const masterChefJettonWallet = blockchain.openContract(
-            await JettonWalletUSDT.fromInit(masterChef.address, usdt.address),
-        );
+    async function addPool(
+        masterChef: SandboxContract<MasterChef>,
+        masterChefJettonWallet: SandboxContract<JettonWalletUSDT>,
+    ) {
         return await masterChef.send(
             deployer.getSender(),
             { value: toNano('0.05') },
@@ -58,6 +59,9 @@ describe('PoolFactory', () => {
         user = await blockchain.treasury('user');
         masterChef = blockchain.openContract(await MasterChef.fromInit(deployer.address, 100n));
         usdt = blockchain.openContract(await JettonMasterUSDT.fromInit(deployer.address, beginCell().endCell()));
+        masterChefJettonWallet = blockchain.openContract(
+            await JettonWalletUSDT.fromInit(masterChef.address, usdt.address),
+        );
 
         const deployResult = await masterChef.send(
             deployer.getSender(),
@@ -84,9 +88,6 @@ describe('PoolFactory', () => {
     });
 
     it('Should add pool', async () => {
-        const masterChefJettonWallet = blockchain.openContract(
-            await JettonWalletUSDT.fromInit(masterChef.address, usdt.address),
-        );
         const addPoolResult = await masterChef.send(
             deployer.getSender(),
             { value: toNano('0.05') },
@@ -106,7 +107,7 @@ describe('PoolFactory', () => {
     });
 
     it('Should deposit', async () => {
-        await addPool();
+        await addPool(masterChef, masterChefJettonWallet);
         const jettonTransferResult = await jettonTransfer(usdt, user, masterChef);
         printTransactionFees(jettonTransferResult.transactions);
         expect(jettonTransferResult.transactions).toHaveTransaction({
