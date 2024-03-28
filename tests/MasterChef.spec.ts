@@ -1,21 +1,19 @@
 import { Blockchain, SandboxContract, TreasuryContract } from '@ton/sandbox';
 import { toNano } from '@ton/core';
-import { PoolFactory } from '../wrappers/PoolFactory';
+import { MasterChef } from '../wrappers/MasterChef';
 import '@ton/test-utils';
 
 describe('PoolFactory', () => {
     let blockchain: Blockchain;
     let deployer: SandboxContract<TreasuryContract>;
-    let poolFactory: SandboxContract<PoolFactory>;
+    let masterChef: SandboxContract<MasterChef>;
 
     beforeEach(async () => {
         blockchain = await Blockchain.create();
-
-        poolFactory = blockchain.openContract(await PoolFactory.fromInit());
-
         deployer = await blockchain.treasury('deployer');
+        masterChef = blockchain.openContract(await MasterChef.fromInit(deployer.address, 100n));
 
-        const deployResult = await poolFactory.send(
+        const deployResult = await masterChef.send(
             deployer.getSender(),
             {
                 value: toNano('0.05'),
@@ -23,12 +21,12 @@ describe('PoolFactory', () => {
             {
                 $$type: 'Deploy',
                 queryId: 0n,
-            }
+            },
         );
 
         expect(deployResult.transactions).toHaveTransaction({
             from: deployer.address,
-            to: poolFactory.address,
+            to: masterChef.address,
             deploy: true,
             success: true,
         });

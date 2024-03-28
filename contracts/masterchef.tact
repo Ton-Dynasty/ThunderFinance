@@ -401,7 +401,6 @@ contract MasterChef with Deployable, JettonMaster {
 }
 
 contract MiniChef with Deployable {
-
     rewardDebt: Int as coins;
     owner: Address;
     userInfo: map <Address, UserInfo>;
