@@ -18,7 +18,7 @@ message UserDeposit {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
     amount: Int as coins;
-    rewardDebt: Int as coins;
+    rewardDebt: Int;
 }
 
 struct PoolInfo {
@@ -32,7 +32,7 @@ struct PoolInfo {
 
 struct UserInfo {
     amount: Int as coins;
-    rewardDebt: Int as coins;
+    rewardDebt: Int;
 }
 
 
@@ -49,7 +49,7 @@ message WithdrawInternal {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
     amount: Int as coins;
-    rewardDebt: Int as coins;
+    rewardDebt: Int;
     beneficiary: Address;
     sender: Address;
 }
@@ -59,7 +59,7 @@ message WithdrawInternalReply {
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
     amount: Int as coins;
     sender: Address;
-    rewardDebt: Int as coins;
+    rewardDebt: Int;
     beneficiary: Address;
 }
 
@@ -263,7 +263,7 @@ contract MasterChef with Deployable {
                     queryId: msg.queryId,
                     lpTokenAddress: msg.lpTokenAddress,
                     amount: msg.amount,
-                    rewardDebt: pool.accRewardPerShare * msg.amount,
+                    rewardDebt: pool.accRewardPerShare * msg.amount / pow(10, 6),
                     beneficiary: msg.beneficiary,
                     sender: sender()
                 }.toCell(),
@@ -459,7 +459,7 @@ contract MasterChef with Deployable {
 }
 
 contract MiniChef with Deployable {
-    rewardDebt: Int as coins = 0;
+    rewardDebt: Int;
     owner: Address;
     userInfo: map <Address, UserInfo>;
     masterChef: Address;
@@ -467,6 +467,7 @@ contract MiniChef with Deployable {
     init(owner: Address) {
         self.owner = owner; 
         self.masterChef = sender();  
+        self.rewardDebt = 0;
     }
 
     receive(msg: UserDeposit) {

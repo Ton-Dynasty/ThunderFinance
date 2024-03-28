@@ -104,6 +104,17 @@ describe('PoolFactory', () => {
         );
     }
 
+    async function deposit(
+        masterChef: SandboxContract<MasterChef>,
+        user: SandboxContract<TreasuryContract>,
+        masterChefJettonWallet: SandboxContract<JettonWalletUSDT>,
+        usdt: SandboxContract<JettonMasterUSDT>,
+        userDepositAmount = 1n * 10n ** 6n,
+    ) {
+        await addPool(masterChef, masterChefJettonWallet);
+        return await depositJettonTransfer(usdt, user, masterChef, userDepositAmount);
+    }
+
     beforeEach(async () => {
         blockchain = await Blockchain.create();
         blockchain.now = Math.floor(Date.now() / 1000);
@@ -169,18 +180,17 @@ describe('PoolFactory', () => {
     });
 
     it('Should deposit', async () => {
-        await addPool(masterChef, masterChefJettonWallet);
-        const userDepositAmount = 1n * 10n ** 6n;
         const periodTime = 10;
-        const depositResult = await depositJettonTransfer(usdt, user, masterChef, userDepositAmount);
-
-        const miniChef = blockchain.openContract(await MiniChef.fromInit(user.address));
+        const userDepositAmount = 1n * 10n ** 6n;
+        const depositResult = await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
         // send the deposit to MasterChef
         expect(depositResult.transactions).toHaveTransaction({
             from: masterChefJettonWallet.address,
             to: masterChef.address,
             success: true,
         });
+
+        const miniChef = blockchain.openContract(await MiniChef.fromInit(user.address));
         // check if masterchef send userDeposit to minichef
         expect(depositResult.transactions).toHaveTransaction({
             from: masterChef.address,
@@ -189,7 +199,6 @@ describe('PoolFactory', () => {
         });
 
         const userInfo = await miniChef.getGetUserInfo(masterChefJettonWallet.address);
-
         // check the user deposit amount is correct
         expect(userInfo.amount).toBe(userDepositAmount);
         // check the reqardDeft is zero
@@ -221,7 +230,42 @@ describe('PoolFactory', () => {
 
     // it('Should deposit and harvest', async () => {});
 
-    // it('Should deposit and withdraw', async () => {});
+    it('Should deposit and withdraw', async () => {
+        const userDepositAmount = 1n * 10n ** 6n;
+        const userWithdrawAmount = 5n * 10n ** 5n;
+        const periodTime = 10;
+        const userJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(user.address, usdt.address));
+        // deposit first
+        await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
+        // get the balance of usdt before withdraw
+        const userUSDTBalanceBefore = (await userJettonWallet.getGetWalletData()).balance;
 
+        // withdraw
+        blockchain.now = Math.floor(Date.now() / 1000) + periodTime;
+        const withdrawResult = await masterChef.send(
+            user.getSender(),
+            { value: toNano('1') },
+            {
+                $$type: 'Withdraw',
+                queryId: 0n,
+                lpTokenAddress: masterChefJettonWallet.address,
+                amount: userWithdrawAmount,
+                beneficiary: user.address,
+            },
+        );
+        printTransactionFees(withdrawResult.transactions);
+        // check the depositAndWithdrawResult is sucess
+        expect(withdrawResult.transactions).toHaveTransaction({
+            from: user.address,
+            to: masterChef.address,
+            success: true,
+            op: 0x097bb407,
+        });
+
+        const userUSDTBalanceAfter = (await userJettonWallet.getGetWalletData()).balance;
+
+        // check the differnce between userUSDTBalanceBefore and userUSDTBalanceAfter is equal to userWithdrawAmount
+        expect(userUSDTBalanceAfter).toEqual(userUSDTBalanceBefore + userWithdrawAmount);
+    });
     // it('Should deposit and withdarw with harvest', async () => {});
 });
