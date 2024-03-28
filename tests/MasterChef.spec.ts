@@ -304,7 +304,7 @@ describe('MasterChef', () => {
         expect(userInfo.rewardDebt).toBe(0n);
 
         const poolDataBefore: PoolInfo = await masterChef.getGetPoolInfo(masterChefJettonWallet.address);
-        blockchain.now = Math.floor(Date.now() / 1000) + periodTime;
+        blockchain.now!! += periodTime;
         // user send update Pool to masterchef
         const updatePoolResult = await masterChef.send(
             user.getSender(),
@@ -322,7 +322,7 @@ describe('MasterChef', () => {
         });
         const poolDataAfter: PoolInfo = await masterChef.getGetPoolInfo(masterChefJettonWallet.address);
         // check the accRewardPerShare is updated
-        expect(poolDataAfter.accRewardPerShare).toBeGreaterThanOrEqual(
+        expect(poolDataAfter.accRewardPerShare).toEqual(
             poolDataBefore.accRewardPerShare + BigInt(periodTime) * rewardPerSecond,
         );
     });
@@ -333,7 +333,7 @@ describe('MasterChef', () => {
         const periodTime = 10;
         await depositJettonTransfer(usdt, user, masterChef, userDepositAmount);
         // Update time to periodTime, so that we can harvest
-        blockchain.now = Math.floor(Date.now() / 1000) + periodTime;
+        blockchain.now!! += periodTime;
         const userJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(user.address, usdt.address));
         const userUSDTBalanceBefore = (await userJettonWallet.getGetWalletData()).balance;
 
@@ -379,7 +379,7 @@ describe('MasterChef', () => {
         // User JettonWallet should have received the reward
         const userUSDTBalanceAfter = (await userJettonWallet.getGetWalletData()).balance;
         const benifit = (userDepositAmount * BigInt(periodTime) * rewardPerSecond) / 10n ** 6n;
-        expect(userUSDTBalanceAfter).toBeGreaterThanOrEqual(userUSDTBalanceBefore + benifit);
+        expect(userUSDTBalanceAfter).toEqual(userUSDTBalanceBefore + benifit);
     });
 
     it('Should deposit and withdraw', async () => {
@@ -393,7 +393,7 @@ describe('MasterChef', () => {
         const userUSDTBalanceBefore = (await userJettonWallet.getGetWalletData()).balance;
 
         // withdraw
-        blockchain.now = Math.floor(Date.now() / 1000) + periodTime;
+        blockchain.now!! += periodTime;
         const withdrawResult = await withdraw(masterChef, user, masterChefJettonWallet, userWithdrawAmount);
         // check the depositAndWithdrawResult is sucess
         expect(withdrawResult.transactions).toHaveTransaction({
@@ -420,13 +420,13 @@ describe('MasterChef', () => {
         const userUSDTBalanceBeforeWithdraw = (await userJettonWallet.getGetWalletData()).balance;
 
         // Update time to periodTime, so that we can withdraw
-        blockchain.now = Math.floor(Date.now() / 1000) + periodTime;
+        blockchain.now!! += periodTime;
         // withdraw
         await withdraw(masterChef, user, masterChefJettonWallet, userWithdrawAmount);
         const userUSDTBalanceBeforeHarvest = (await userJettonWallet.getGetWalletData()).balance;
 
         // Update time to periodTime, so that we can harvest
-        blockchain.now = Math.floor(Date.now() / 1000) + periodTime * 2;
+        blockchain.now!! += periodTime;
         // User send Harvest to MasterChef
         await harvest(masterChef, user, masterChefJettonWallet);
         const userUSDTBalanceAfterHarvest = (await userJettonWallet.getGetWalletData()).balance;
@@ -436,7 +436,7 @@ describe('MasterChef', () => {
         // check the differnce between userUSDTBalanceBeforeWithdraw and userUSDTBalanceAfterHarvest is equal to userWithdrawAmount
         const remainDeposit = userDepositAmount - userWithdrawAmount;
         const benifit = ((userDepositAmount + remainDeposit) * BigInt(periodTime) * rewardPerSecond) / 10n ** 6n;
-        expect(userUSDTBalanceAfterHarvest).toBeGreaterThanOrEqual(userUSDTBalanceBeforeHarvest + benifit);
+        expect(userUSDTBalanceAfterHarvest).toEqual(userUSDTBalanceBeforeHarvest + benifit);
     });
 
     it('Should not withdraw internal reply by user', async () => {
@@ -476,6 +476,40 @@ describe('MasterChef', () => {
             op: 0x952bcd19,
             exitCode: 33311, //unexpected sender
         });
+    });
+
+    it('should harvest by different user', async () => {
+        const user1 = await blockchain.treasury('user1');
+        const user2 = await blockchain.treasury('user2');
+        const user1DepositAmount = 1n * 10n ** 6n;
+        const user2DepositAmount = 2n * 10n ** 6n;
+        const periodTime = 30;
+        // addpool
+        await addPool(masterChef, masterChefJettonWallet);
+        // user1 deposit
+        await depositJettonTransfer(usdt, user1, masterChef, user1DepositAmount);
+        const user1JettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(user1.address, usdt.address));
+        const user1USDTBalanceBefore = (await user1JettonWallet.getGetWalletData()).balance;
+        // user2 deposit
+        await depositJettonTransfer(usdt, user2, masterChef, user2DepositAmount);
+        const user2JettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(user2.address, usdt.address));
+        const user2USDTBalanceBefore = (await user2JettonWallet.getGetWalletData()).balance;
+        blockchain.now!! += periodTime;
+        // user1 harvest
+        await harvest(masterChef, user1, masterChefJettonWallet);
+        const user1USDTBalanceAfter = (await user1JettonWallet.getGetWalletData()).balance;
+        // user2 harvest
+        await harvest(masterChef, user2, masterChefJettonWallet);
+        const user2USDTBalanceAfter = (await user2JettonWallet.getGetWalletData()).balance;
+
+        // check the benefit of user1 and user2 are correct
+        const totalDeposit = user1DepositAmount + user2DepositAmount;
+        const rewardPerShare = (BigInt(periodTime) * rewardPerSecond) / totalDeposit;
+        const benifit1 = user1DepositAmount * rewardPerShare;
+        const benifit2 = user2DepositAmount * rewardPerShare;
+
+        expect(user1USDTBalanceAfter).toEqual(user1USDTBalanceBefore + benifit1);
+        expect(user2USDTBalanceAfter).toEqual(user2USDTBalanceBefore + benifit2);
     });
 });
 
