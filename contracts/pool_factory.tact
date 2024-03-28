@@ -29,14 +29,8 @@ struct PoolInfo {
     lastRewardBlock: Int as uint256;
     accRewardPerShare: Int as coins;
     lpSupply: Int as coins;
+    lpTokenAddress: Address;
 }
-
-// message(0x7362d09c) JettonTransferNotification {
-//     queryId: Int as uint64;                // arbitrary request number
-//     amount: Int as coins;                   // amount of jettons to transfer
-//     sender: Address;                        // address of the sender of the jettons
-//     forward_payload: Slice as remaining;    // optional custom payload
-// }
 
 
 struct UserInfo {
@@ -154,6 +148,7 @@ contract MasterChef with Deployable, JettonMaster {
     }
 
 
+
     override inline fun calculate_jetton_wallet_init(owner_address: Address): StateInit {
         return initOf RewardJettonWallet(owner_address, myAddress());
     }
@@ -167,7 +162,8 @@ contract MasterChef with Deployable, JettonMaster {
             allocPoint: msg.allocPoint,
             lastRewardBlock: now(),
             accRewardPerShare: 0,
-            lpSupply: 0
+            lpSupply: 0,
+            lpTokenAddress: msg.lpTokenAddress
         };
         self.pools.set(msg.lpTokenAddress,poolInfo);
     }
@@ -243,9 +239,22 @@ contract MasterChef with Deployable, JettonMaster {
         let expectedSender: Address = contractAddress(initCode);
         require(expectedSender == sender(), "unexpected sender");
 
-        // TODO: mint reward jetton to msg.beneficiary
-
-        // TODO: send principle to msg.beneficiary
+        let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
+        send(SendParameters{
+            to: pool.lpTokenAddress,
+            value: 0,
+            mode: SendRemainingValue,
+            body: JettonTransfer{
+                query_id: 0,
+                amount: msg.amount,
+                destination: msg.beneficiary,
+                response_destination: msg.beneficiary,
+                custom_payload: null,
+                forward_ton_amount: 0,
+                forward_payload: emptySlice()
+            }.toCell()
+        });
+        
     }
 
     receive(msg: Harvest) {
@@ -276,7 +285,21 @@ contract MasterChef with Deployable, JettonMaster {
         let expectedSender: Address = contractAddress(initCode);
         require(expectedSender == sender(), "unexpected sender");
 
-        // TODO: mint reward jetton to msg.beneficiary
+        send(SendParameters{
+                to: myAddress(),
+                value: 0,
+                mode: SendRemainingValue,
+                body: JettonMint{
+                    origin: myAddress(),
+                    receiver: msg.benificiary,
+                    amount: msg.reward,
+                    custom_payload: null,
+                    forward_ton_amount: 0,
+                    forward_payload: emptySlice()
+                }.toCell()
+            }
+        );
+
     }
 
     receive(msg: WithdrawAndHarvest) {
@@ -309,9 +332,38 @@ contract MasterChef with Deployable, JettonMaster {
         let expectedSender: Address = contractAddress(initCode);
         require(expectedSender == sender(), "unexpected sender");
 
-        // TODO: mint reward jetton to msg.beneficiary
+        // mint reward jetton to msg.beneficiary
+        send(SendParameters{
+                to: myAddress(),
+                value: 0,
+                mode: SendRemainingValue,
+                body: JettonMint{
+                    origin: myAddress(),
+                    receiver: msg.benificiary,
+                    amount: msg.amount,
+                    custom_payload: null,
+                    forward_ton_amount: 0,
+                    forward_payload: emptySlice()
+                }.toCell()
+            }
+        );
 
-        // TODO: send amount to msg.beneficiary
+        // Send amount to msg.beneficiary
+        let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
+        send(SendParameters{
+            to: pool.lpTokenAddress,
+            value: 0,
+            mode: SendRemainingValue,
+            body: JettonTransfer{
+                query_id: 0,
+                amount: msg.amount,
+                destination: msg.benificiary,
+                response_destination: msg.benificiary,
+                custom_payload: null,
+                forward_ton_amount: 0,
+                forward_payload: emptySlice()
+            }.toCell()
+        });
 
     }
 
@@ -366,7 +418,7 @@ contract MiniChef with Deployable {
         require(sender() == self.masterChef, "only masterChef can deposit");
         let userInfo: UserInfo = self.userInfo.get(msg.lpTokenAddress)!!;
         userInfo.amount  = userInfo.amount + msg.amount;
-        userInfo.rewardDebt = userInfo.rewardDebt + msg.rewardDebt; // TODO: ACC_PRECISION?
+        userInfo.rewardDebt = userInfo.rewardDebt + msg.rewardDebt; 
         self.userInfo.set(msg.lpTokenAddress, userInfo);
     }
     
@@ -377,7 +429,7 @@ contract MiniChef with Deployable {
         require(userInfo.amount >= msg.amount, "insufficient balance");
 
         userInfo.amount = userInfo.amount - msg.amount;
-        userInfo.rewardDebt = userInfo.rewardDebt - msg.rewardDebt; // TODO: ACC_PRECISION?
+        userInfo.rewardDebt = userInfo.rewardDebt - msg.rewardDebt; 
 
         self.userInfo.set(msg.lpTokenAddress, userInfo);
 
@@ -399,7 +451,7 @@ contract MiniChef with Deployable {
     receive(msg: HarvestInternal) {
         require(sender() == self.masterChef, "only masterChef can harvest");
         let userInfo: UserInfo = self.userInfo.get(msg.lpTokenAddress)!!;
-        let accumulatedReward: Int = userInfo.amount * msg.accRewardPerShare; // TODO: ACC_PRECISION?
+        let accumulatedReward: Int = userInfo.amount * msg.accRewardPerShare; 
         let _pendingReward: Int = accumulatedReward - userInfo.rewardDebt;
         if (_pendingReward <= 0) {
             return;
@@ -425,7 +477,7 @@ contract MiniChef with Deployable {
     receive(msg: WithdrawAndHarvestInternal) {
         require(sender() == self.masterChef, "only masterChef can harvest");
         let userInfo: UserInfo = self.userInfo.get(msg.lpTokenAddress)!!;
-        let accumulatedReward: Int = userInfo.amount * msg.accRewardPerShare; // TODO: ACC_PRECISION?
+        let accumulatedReward: Int = userInfo.amount * msg.accRewardPerShare; 
         let _pendingReward: Int = accumulatedReward - userInfo.rewardDebt;
         if (_pendingReward <= 0) {
             return;
