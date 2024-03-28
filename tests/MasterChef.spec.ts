@@ -55,10 +55,11 @@ describe('PoolFactory', () => {
 
     beforeEach(async () => {
         blockchain = await Blockchain.create();
+        blockchain.now = Math.floor(Date.now() / 1000);
         deployer = await blockchain.treasury('deployer');
         user = await blockchain.treasury('user');
-        masterChef = blockchain.openContract(await MasterChef.fromInit(deployer.address, 100n));
         usdt = blockchain.openContract(await JettonMasterUSDT.fromInit(deployer.address, beginCell().endCell()));
+        masterChef = blockchain.openContract(await MasterChef.fromInit(deployer.address, usdt.address));
         masterChefJettonWallet = blockchain.openContract(
             await JettonWalletUSDT.fromInit(masterChef.address, usdt.address),
         );
@@ -85,6 +86,31 @@ describe('PoolFactory', () => {
     it('should deploy', async () => {
         // the check is done inside beforeEach
         // blockchain and poolFactory are ready to use
+    });
+
+    it('should initialize Master Chef', async () => {
+        const rewardPerSecond = 1n * 10n ** 5n;
+        const rewardPeriod = 1000;
+        const deadline = blockchain.now!! + rewardPeriod;
+        console.log('deadline', deadline, blockchain.now!!, rewardPeriod);
+        const rewardAmount = rewardPerSecond * BigInt(rewardPeriod);
+        const initResult = await masterChefJettonWallet.send(
+            deployer.getSender(),
+            {
+                value: toNano('1.5'),
+            },
+            {
+                $$type: 'JettonTransfer',
+                query_id: 0n,
+                amount: rewardAmount,
+                destination: masterChef.address,
+                response_destination: user.address,
+                custom_payload: null,
+                forward_ton_amount: toNano('1'),
+                forward_payload: beginCell().storeCoins(rewardPerSecond).storeUint(deadline, 64).endCell(),
+            },
+        );
+        
     });
 
     it('Should add pool', async () => {

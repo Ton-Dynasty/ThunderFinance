@@ -420,16 +420,14 @@ contract MasterChef with Deployable {
 }
 
 contract MiniChef with Deployable {
-    rewardDebt: Int as coins;
+    rewardDebt: Int as coins = 0;
     owner: Address;
     userInfo: map <Address, UserInfo>;
     masterChef: Address;
     
     init(owner: Address) {
-        self.rewardDebt = 0;
         self.owner = owner; 
         self.masterChef = sender();  
-        self.userInfo = emptyMap();
     }
 
     receive(msg: UserDeposit) {
