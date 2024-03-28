@@ -1,12 +1,11 @@
 import { Kitchen } from './../build/MasterChef/tact_Kitchen';
 import { Blockchain, printTransactionFees, SandboxContract, TreasuryContract } from '@ton/sandbox';
-import { Address, beginCell, toNano } from '@ton/core';
+import { beginCell, toNano } from '@ton/core';
 import { MasterChef, PoolInfo } from '../wrappers/MasterChef';
 import { MiniChef } from '../wrappers/MiniChef';
 import { JettonWalletUSDT } from '../wrappers/JettonWallet';
 import { JettonMasterUSDT } from '../wrappers/JettonMaster';
 import '@ton/test-utils';
-import exp from 'constants';
 
 describe('MasterChef', () => {
     let blockchain: Blockchain;
@@ -247,24 +246,6 @@ describe('MasterChef', () => {
             success: true,
         });
 
-        // const deployResult = await masterChef.send(
-        //     deployer.getSender(),
-        //     {
-        //         value: toNano('0.05'),
-        //     },
-        //     {
-        //         $$type: 'Deploy',
-        //         queryId: 0n,
-        //     },
-        // );
-
-        // expect(deployResult.transactions).toHaveTransaction({
-        //     from: deployer.address,
-        //     to: masterChef.address,
-        //     deploy: true,
-        //     success: true,
-        // });
-
         const setUpResult = await setup(masterChef, masterChefJettonWallet);
         expect(setUpResult.transactions).toHaveTransaction({
             from: deployer.address,
@@ -298,7 +279,6 @@ describe('MasterChef', () => {
 
     it('Should user deposit usdt to master chef and update pool', async () => {
         await addPool(masterChef, masterChefJettonWallet);
-        let periodTime = 10;
         const userDepositAmount = 1n * 10n ** 6n;
         const periodTime = 10;
         const depositResult = await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
@@ -415,7 +395,6 @@ describe('MasterChef', () => {
         // withdraw
         blockchain.now = Math.floor(Date.now() / 1000) + periodTime;
         const withdrawResult = await withdraw(masterChef, user, masterChefJettonWallet, userWithdrawAmount);
-        printTransactionFees(withdrawResult.transactions);
         // check the depositAndWithdrawResult is sucess
         expect(withdrawResult.transactions).toHaveTransaction({
             from: user.address,
@@ -588,7 +567,7 @@ describe('Not enough reward', () => {
         deployer = await blockchain.treasury('deployer');
         user = await blockchain.treasury('user');
         usdt = blockchain.openContract(await JettonMasterUSDT.fromInit(deployer.address, beginCell().endCell()));
-        masterChef = blockchain.openContract(await MasterChef.fromInit(deployer.address));
+        masterChef = blockchain.openContract(await MasterChef.fromInit(deployer.address, 0n));
         masterChefJettonWallet = blockchain.openContract(
             await JettonWalletUSDT.fromInit(masterChef.address, usdt.address),
         );
