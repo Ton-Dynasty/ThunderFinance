@@ -1,4 +1,6 @@
 import "@stdlib/deploy";
+import "./packages/token/jetton/JettonMaster.tact";
+import "./packages/token/jetton/JettonWallet.tact";
 struct Init{
     owner: Address;
     rewardPerBlock: Int as coins;
@@ -29,12 +31,12 @@ struct PoolInfo {
     lpSupply: Int as coins;
 }
 
-message(0x7362d09c) JettonTransferNotification {
-    queryId: Int as uint64;                // arbitrary request number
-    amount: Int as coins;                   // amount of jettons to transfer
-    sender: Address;                        // address of the sender of the jettons
-    forward_payload: Slice as remaining;    // optional custom payload
-}
+// message(0x7362d09c) JettonTransferNotification {
+//     queryId: Int as uint64;                // arbitrary request number
+//     amount: Int as coins;                   // amount of jettons to transfer
+//     sender: Address;                        // address of the sender of the jettons
+//     forward_payload: Slice as remaining;    // optional custom payload
+// }
 
 
 struct UserInfo {
@@ -115,8 +117,22 @@ message WithdrawAndHarvestReply {
     amount: Int as coins;
     sender: Address;
 }
+// Tic Ton reward Token (TIC) contract
+contract RewardJettonWallet with JettonWallet {
+    balance: Int as coins = 0;
+    owner: Address;
+    jetton_master: Address;
+    init(owner: Address, jetton_master: Address){
+        self.owner = owner;
+        self.jetton_master = jetton_master;
+    }
 
-contract MasterChef with Deployable {
+    override inline fun calculate_jetton_wallet_init(owner_address: Address): StateInit {
+        return initOf RewardJettonWallet(owner_address, self.jetton_master);
+    }
+}
+
+contract MasterChef with Deployable, JettonMaster {
 
     // Pool
     owner: Address;
@@ -124,12 +140,22 @@ contract MasterChef with Deployable {
     totalAllocPoint: Int;
     rewardPerBlock: Int as coins;
     rewardDecimal: Int;
+    total_supply: Int as coins = 0;
+    mintable: Bool = true;
+    jetton_content: Cell;
+
 
     init(owner: Address, rewardPerBlock: Int) {
         self.owner = owner;
         self.totalAllocPoint = 0;
         self.rewardPerBlock = rewardPerBlock;
         self.rewardDecimal = 6;
+        self.jetton_content = emptyCell();
+    }
+
+
+    override inline fun calculate_jetton_wallet_init(owner_address: Address): StateInit {
+        return initOf RewardJettonWallet(owner_address, myAddress());
     }
 
 
@@ -174,7 +200,7 @@ contract MasterChef with Deployable {
                 value: 0,
                 mode: SendRemainingValue,
                 body: UserDeposit{
-                    queryId: msg.queryId,
+                    queryId: msg.query_id,
                     lpTokenAddress: jettonWallet,
                     amount: msg.amount,
                     rewardDebt: pool.accRewardPerShare * msg.amount
@@ -189,7 +215,7 @@ contract MasterChef with Deployable {
     receive(msg: Withdraw) {
         // check if pool exists
         require(self.pools.get(msg.lpTokenAddress) != null , "pool not exists");
-        self.updatePool(jettonWallet);
+        self.updatePool(msg.lpTokenAddress);
 
         let initCode: StateInit = self._calculateMiniChefInit(sender());
         let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
