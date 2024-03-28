@@ -1,11 +1,9 @@
 import { Blockchain, printTransactionFees, SandboxContract, TreasuryContract } from '@ton/sandbox';
 import { Address, beginCell, toNano } from '@ton/core';
 import { MasterChef } from '../wrappers/MasterChef';
-import { MiniChef } from '../wrappers/MiniChef';
 import { JettonWalletUSDT } from '../wrappers/JettonWallet';
 import { JettonMasterUSDT } from '../wrappers/JettonMaster';
 import '@ton/test-utils';
-import { Deploy } from '../build/Jetton/tact_JettonWalletUSDT';
 
 describe('PoolFactory', () => {
     let blockchain: Blockchain;
@@ -38,6 +36,52 @@ describe('PoolFactory', () => {
                 forward_payload: beginCell().endCell(),
             },
         );
+    }
+
+    async function setup(
+        masterChef: SandboxContract<MasterChef>,
+        masterChefJettonWallet: SandboxContract<JettonWalletUSDT>,
+    ) {
+        return await masterChef.send(
+            deployer.getSender(),
+            {
+                value: toNano('0.05'),
+            },
+            {
+                $$type: 'SetUp',
+                rewardWallet: masterChefJettonWallet.address,
+            },
+        );
+    }
+
+    async function initialize(
+        masterChef: SandboxContract<MasterChef>,
+        deployerJettonWallet: SandboxContract<JettonWalletUSDT>,
+        deployer: SandboxContract<TreasuryContract>,
+        rewardPerSecond = 1n * 10n ** 5n,
+        rewardPeriod = 1000,
+    ) {
+        const deadline = blockchain.now!! + rewardPeriod;
+        const rewardAmount = rewardPerSecond * BigInt(rewardPeriod);
+        const initResult = await deployerJettonWallet.send(
+            deployer.getSender(),
+            {
+                value: toNano('1.5'),
+            },
+            {
+                $$type: 'JettonTransfer',
+                query_id: 0n,
+                amount: rewardAmount,
+                destination: masterChef.address,
+                response_destination: deployer.address,
+                custom_payload: null,
+                forward_ton_amount: toNano('1'),
+                forward_payload: beginCell().storeCoins(rewardPerSecond).storeUint(deadline, 64).endCell(),
+            },
+        );
+
+        const masterChefData = await masterChef.getGetMasterChefData();
+        return masterChefData.isInitialized;
     }
 
     async function addPool(
@@ -86,24 +130,8 @@ describe('PoolFactory', () => {
             deploy: true,
             success: true,
         });
-    });
 
-    it('should deploy', async () => {
-        // the check is done inside beforeEach
-        // blockchain and poolFactory are ready to use
-    });
-
-    it('should initialize Master Chef', async () => {
-        const setUpResult = await masterChef.send(
-            deployer.getSender(),
-            {
-                value: toNano('0.05'),
-            },
-            {
-                $$type: 'SetUp',
-                rewardWallet: masterChefJettonWallet.address,
-            },
-        );
+        const setUpResult = await setup(masterChef, masterChefJettonWallet);
         expect(setUpResult.transactions).toHaveTransaction({
             from: deployer.address,
             to: masterChef.address,
@@ -111,33 +139,21 @@ describe('PoolFactory', () => {
             op: 0xec847480,
         });
 
-        //printTransactionFees(setUpResult.transactions);
-        //console.log('SetUp res---------', setUpResult);
-        //console.log('Deploy res---------');
-        const rewardPerSecond = 1n * 10n ** 5n;
-        const rewardPeriod = 1000;
-        const deadline = blockchain.now!! + rewardPeriod;
-        const rewardAmount = rewardPerSecond * BigInt(rewardPeriod);
-        const initResult = await deployerJettonWallet.send(
-            deployer.getSender(),
-            {
-                value: toNano('1.5'),
-            },
-            {
-                $$type: 'JettonTransfer',
-                query_id: 0n,
-                amount: rewardAmount,
-                destination: masterChef.address,
-                response_destination: deployer.address,
-                custom_payload: null,
-                forward_ton_amount: toNano('1'),
-                forward_payload: beginCell().storeCoins(rewardPerSecond).storeUint(deadline, 64).endCell(),
-            },
-        );
-
-        const masterChefData = await masterChef.getGetMasterChefData();
-        const isInitialized = masterChefData.isInitialized;
+        const isInitialized = await initialize(masterChef, deployerJettonWallet, deployer);
         expect(isInitialized).toBe(true);
+    });
+
+    it('should deploy', async () => {
+        // the check is done inside beforeEach
+        // blockchain and poolFactory are ready to use
+    });
+
+    it('should setup', async () => {
+        // the check is done inside beforeEach
+    });
+
+    it('should initialize Master Chef', async () => {
+        // the check is done inside beforeEach
     });
 
     // it('Should add pool', async () => {
