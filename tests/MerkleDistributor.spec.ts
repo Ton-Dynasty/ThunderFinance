@@ -94,16 +94,13 @@ class MerkleTree {
         }
         let proof = [];
         let sibling;
-        let isLeftNode = false;
         while (index > 0) {
             if (index % 2 === 0) {
                 // If the node is a left node, get the right sibling
                 sibling = this.nodes[index + 1];
-                isLeftNode = true;
             } else {
                 // If the node is a right node, get the left sibling
                 sibling = this.nodes[index - 1];
-                isLeftNode = false;
             }
             // Store the sibling
             proof.push(sibling);
