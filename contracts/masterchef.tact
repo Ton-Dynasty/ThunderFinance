@@ -1,5 +1,9 @@
 import "@stdlib/deploy";
 import "./packages/token/jetton/JettonMaster.tact";
+import "./packages/utils/data.fc";
+
+@name(build_content_cell)
+native build_content_cell(metadata_uri: Slice): Cell;
 
 message AddPool{
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
@@ -112,8 +116,13 @@ message Initialize {
 }
 
 message SetUp {
+    owner: Address;
+    seed: Int;
     rewardWallet: Address;
     rewardDecimal: Int;
+    thunderMintWallet: Address;
+    thunderMintJettonWallet: Address;
+    metaData: Slice;
 }
 
 struct MasterChefData {
@@ -132,14 +141,11 @@ message BuildMasterChef {
     owner: Address;
     thunderMintWallet: Address;
     thunderMintJettonWallet: Address;
+    rewardWallet: Address;
+    rewardDecimal: Int;
+    metaData: Slice;
 }
 
-message CreateMasterChef {
-    owner: Address;
-    seed: Int;
-    thunderMintWallet: Address;
-    thunderMintJettonWallet: Address;
-}
 
 message DeployMasterChef {
     owner: Address;
@@ -162,11 +168,14 @@ contract Kitchen with Deployable {
                 to: contractAddress(initCode),
                 value: 0,
                 mode: SendRemainingValue,
-                body: CreateMasterChef{
+                body: SetUp{
                     owner: msg.owner,
                     seed: self.seed,
                     thunderMintWallet: msg.thunderMintWallet,
-                    thunderMintJettonWallet: msg.thunderMintJettonWallet
+                    thunderMintJettonWallet: msg.thunderMintJettonWallet,
+                    rewardWallet: msg.rewardWallet,
+                    rewardDecimal: msg.rewardDecimal,
+                    metaData: msg.metaData
                 }.toCell(),
                 code: initCode.code,
                 data: initCode.data
@@ -215,6 +224,7 @@ contract MasterChef with Deployable {
     Fee: Int = 3; // 0.3%
     jettonForDevs: Int = 0;
     tonForDevs: Int = 0;
+    metaData: Cell;
 
     // initialize the contract with owner and reward jetton wallet address
     init(owner: Address, seed: Int) {
@@ -225,12 +235,8 @@ contract MasterChef with Deployable {
         self.seed = seed;
         self.thunderMintWallet = newAddress(0, 0);
         self.thunderMintJettonWallet = newAddress(0, 0);
+        self.metaData = emptyCell();
         emit(DeployMasterChef{owner: owner, seed: seed}.toCell());
-    }
-
-    receive(msg: CreateMasterChef) {
-        self.thunderMintWallet = msg.thunderMintWallet;
-        self.thunderMintJettonWallet = msg.thunderMintJettonWallet;   
     }
 
     receive(msg: SetUp) {
@@ -238,6 +244,9 @@ contract MasterChef with Deployable {
         require(self.rewardWallet == newAddress(0, 0), "reward wallet already set");
         self.rewardWallet = msg.rewardWallet;
         self.rewardDecimal = msg.rewardDecimal;
+        self.thunderMintWallet = msg.thunderMintWallet;
+        self.thunderMintJettonWallet = msg.thunderMintJettonWallet;
+        self.metaData = build_content_cell(msg.metaData);   
     }
 
     receive(msg: AddPool){
@@ -267,9 +276,9 @@ contract MasterChef with Deployable {
         if (!self.isInitialized) {
             require(ctx.sender == self.rewardWallet, "only reward jetton wallet can send message");
             require(!msg.forward_payload.dataEmpty(), "payload is empty");
-            let rewardPerSecond: Int = msg.forward_payload.loadCoins();
+            let totalReward: Int = msg.forward_payload.loadCoins();
             let deadline: Int = msg.forward_payload.loadUint(64);
-            self.handleSetup(ctx, msg.amount, deadline, rewardPerSecond);
+            self.handleSetup(ctx, msg.amount, deadline, totalReward);
             return;
         }
 
@@ -488,11 +497,11 @@ contract MasterChef with Deployable {
         require(!self.isInitialized, "contract already initialized");
     }
 
-    inline fun handleSetup(ctx: Context, amount: Int, deadline: Int, rewardPerSecond: Int) {
+    inline fun handleSetup(ctx: Context, amount: Int, deadline: Int, totalReward: Int) {
         self.requireNotInitialized();
         self.createdAt = now();
-        self.rewardPerSecond = rewardPerSecond;
-        let rewardAmount: Int = (deadline - self.createdAt) * rewardPerSecond;
+        self.rewardPerSecond = totalReward / (deadline - self.createdAt);
+        let rewardAmount: Int = totalReward;
         self.jettonForDevs = rewardAmount * self.Fee / 1000; // 0.3% fee
         // Have to transfer reward jetton and fee to the contract
         let expectedAmount: Int = rewardAmount + self.jettonForDevs;
@@ -547,6 +556,10 @@ contract MasterChef with Deployable {
     get fun getPoolInfo(lpTokenAddress: Address): PoolInfo {
         require(self.pools.get(lpTokenAddress) != null , "pool not exists");
         return self.pools.get(lpTokenAddress)!!;
+    }
+
+    get fun getMetaData(): Cell {
+        return self.metaData;
     }
 
 }

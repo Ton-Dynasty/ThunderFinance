@@ -1,24 +1,10 @@
-import { toNano, Address } from '@ton/core';
+import { toNano, Address, beginCell } from '@ton/core';
 import { Kitchen } from '../wrappers/MasterChef_Kitchen';
 import { NetworkProvider } from '@ton/blueprint';
 
 export async function run(provider: NetworkProvider) {
     const kitchen = provider.open(await Kitchen.fromInit(provider.sender().address!!));
 
-    await kitchen.send(
-        provider.sender(),
-        {
-            value: toNano('0.05'),
-        },
-        {
-            $$type: 'Deploy',
-            queryId: 0n,
-        },
-    );
-
-    await provider.waitForDeploy(kitchen.address);
-
-    // Build MasterChef
     await kitchen.send(
         provider.sender(),
         {
@@ -29,6 +15,9 @@ export async function run(provider: NetworkProvider) {
             owner: provider.sender().address!!,
             thunderMintWallet: provider.sender().address!!,
             thunderMintJettonWallet: Address.parse('kQDKblohTL9rB7SKscW9EsXeH_3xnxLdPcQkGUEz8s5VJhRE'),
+            rewardWallet: Address.parse('kQBTNMx-4M1DFTmkEiBazXTz--Gs_i5Yv9GYctwN9h-Ctv-f'),
+            rewardDecimal: 6n,
+            metaData: beginCell().storeStringTail('httpppp').endCell(),
         },
     );
 }
