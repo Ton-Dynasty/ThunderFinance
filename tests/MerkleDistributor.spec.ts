@@ -5,7 +5,7 @@ import {
     SandboxContract,
     TreasuryContract,
 } from '@ton/sandbox';
-import { Address, beginCell, Cell, Dictionary, toNano } from '@ton/core';
+import { Address, beginCell, Cell, comment, Dictionary, toNano } from '@ton/core';
 import { JettonWalletUSDT } from '../wrappers/JettonWallet';
 import { JettonMasterUSDT } from '../wrappers/JettonMaster';
 import '@ton/test-utils';
@@ -298,7 +298,6 @@ describe('MerkleDistributor', () => {
             { value: toNano('1') },
             {
                 $$type: 'Claim',
-                account: balances[1].account,
                 amount: balances[1].amount,
                 merkleProofSize: BigInt(proof.length),
                 merkleProof: dict,
@@ -337,6 +336,54 @@ describe('MerkleDistributor', () => {
         expect(claimResult.transactions).toHaveTransaction({
             from: distributorJettonWallet.address,
             to: userJettonWallet.address,
+            success: true,
+        });
+    });
+
+    it('Should not claim twice for user-1', async () => {
+        const leaf = beginCell().storeAddress(users[1].address).storeCoins(balances[1].amount).endCell().hash();
+
+        const proof = merkleTree.getHexProof(leaf);
+
+        // offchain verify proof
+        expect(merkleTree.verifyProof(leaf, proof, merkleTree.getRoot())).toBeTruthy();
+
+        let dict = Dictionary.empty(Dictionary.Keys.Uint(32), Dictionary.Values.BigUint(256));
+        for (let i = 0; i < proof.length; i++) {
+            dict.set(i, BigInt(`0x${proof[i].toString('hex')}`));
+        }
+
+        await distributor.send(
+            users[1].getSender(),
+            { value: toNano('1') },
+            {
+                $$type: 'Claim',
+                amount: balances[1].amount,
+                merkleProofSize: BigInt(proof.length),
+                merkleProof: dict,
+            },
+        );
+
+        const getAirdropTwiceResult = await distributor.send(
+            users[1].getSender(),
+            { value: toNano('1') },
+            {
+                $$type: 'Claim',
+                amount: balances[1].amount,
+                merkleProofSize: BigInt(proof.length),
+                merkleProof: dict,
+            },
+        );
+
+        expect(getAirdropTwiceResult.transactions).toHaveTransaction({
+            from: distributor.address,
+            op: 0x13579,
+            success: true,
+        });
+
+        expect(getAirdropTwiceResult.transactions).toHaveTransaction({
+            to: users[1].address,
+            body: comment('Refund'),
             success: true,
         });
     });

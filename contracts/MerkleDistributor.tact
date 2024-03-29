@@ -31,11 +31,20 @@ message(0x7654321) Setup {
 
 
 message(0x1234567) Claim {
-    account: Address;     // the address of the account to claim the coins
     amount: Int as coins; // the amount of coins to claim
     merkleProofSize: Int as uint32; // the number of elements in the merkle proof
     merkleProof: map<Int as uint32, Int as uint256>; // the merkle proof array
 }
+
+message(0x13579) IssueRequest {
+    amount: Int as coins; // the amount of jettons to issue
+}
+
+message (0x24680) IssueResponse {
+    amount: Int as coins; // the amount of jettons issued
+    receiver: Address;    // the address of the receiver
+}
+
 
 contract MerkleDistributor with Deployable {
     merkleRoot: Int as uint256;      // the merkle root of the merkle tree
@@ -61,10 +70,27 @@ contract MerkleDistributor with Deployable {
 
     // user can upload the merkle proof to claim the jettons
     receive(msg: Claim) {
+        let ctx: Context = context();
         require(self.isInitialized, "Contract is not initialized");
-        let nodeHash: Int = beginCell().storeAddress(msg.account).storeCoins(msg.amount).asSlice().hash();
+        let nodeHash: Int = beginCell().storeAddress(ctx.sender).storeCoins(msg.amount).asSlice().hash();
         let rootHash: Int = self._processProof(nodeHash, msg.merkleProofSize, msg.merkleProof);
         require(self.merkleRoot == rootHash, "Invalid merkle proof");
+        let initCode: StateInit = self._calculateIssuerInit(ctx.sender);
+        send(SendParameters{
+            to: contractAddress(initCode),
+            value: 0,
+            mode: SendRemainingValue,
+            body: IssueRequest{
+                amount: msg.amount
+            }.toCell(),
+            code: initCode.code,
+            data: initCode.data
+        });
+    }
+
+    receive(msg: IssueResponse) {
+        let expectedSender: Address = contractAddress(self._calculateIssuerInit(msg.receiver));
+        require(expectedSender == sender(), "Invalid sender");
         send(SendParameters{
             to: self.airDropJettonWallet,
             value: 0,
@@ -72,15 +98,14 @@ contract MerkleDistributor with Deployable {
             body: JettonTransfer{
                 query_id: 0,
                 amount: msg.amount,
-                destination: msg.account,
-                response_destination: msg.account,
+                destination: msg.receiver,
+                response_destination: msg.receiver,
                 custom_payload: null,
                 forward_ton_amount: 0,
                 forward_payload: emptySlice()
             }.toCell()
         });
     }
-
 
     // process and validate the merkle proof
     inline fun _processProof(nodeHash: Int, size: Int, proof: map<Int as uint32, Int as uint256>): Int {
@@ -99,6 +124,11 @@ contract MerkleDistributor with Deployable {
         return a < b ? beginCell().storeUint(a, 256).storeUint(b, 256).asSlice().hash() : beginCell().storeUint(b, 256).storeUint(a, 256).asSlice().hash();
     }
 
+    // get issuer state init
+    inline fun _calculateIssuerInit(user: Address): StateInit {
+        return initOf MerkleIssuer(myAddress(), user);
+    }
+
     // get function
     get fun getParams(): Params {
         return Params{
@@ -107,5 +137,38 @@ contract MerkleDistributor with Deployable {
             owner: self.owner,
             isInitialized: self.isInitialized
         };
+    }
+}
+
+contract MerkleIssuer {
+    distributor: Address;
+    owner: Address;
+    hasClaimed: Bool = false;
+
+    init(distributor: Address, owner: Address) {
+        self.distributor = distributor;
+        self.owner = owner;
+    }
+
+    receive(msg: IssueRequest) {
+        if (self.hasClaimed) {
+            send(SendParameters{
+                to: self.owner,
+                value: 0,
+                mode: SendRemainingValue,
+                body: "Refund".asComment()
+            });
+            return;
+        }
+        self.hasClaimed = true;
+        send(SendParameters{
+            to: self.distributor,
+            value: 0,
+            mode: SendRemainingValue,
+            body: IssueResponse{
+                amount: msg.amount,
+                receiver: self.owner
+            }.toCell()
+        });
     }
 }
