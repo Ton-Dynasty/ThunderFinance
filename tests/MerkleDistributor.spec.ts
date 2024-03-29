@@ -10,6 +10,7 @@ import { JettonWalletUSDT } from '../wrappers/JettonWallet';
 import { JettonMasterUSDT } from '../wrappers/JettonMaster';
 import '@ton/test-utils';
 import { MerkleDistributor } from '../wrappers/MerkleDistributor';
+import { AirdropFactory } from '../wrappers/AirdropFactory';
 
 type IBalance = {
     account: Address;
@@ -150,6 +151,7 @@ describe('MerkleDistributor', () => {
     let totalAirdropAmount: bigint;
     let merkleTree: MerkleTree;
     let leafs: Buffer[];
+    let airdropFactory: SandboxContract<AirdropFactory>;
 
     function packLeafNodes(balances: IBalance[]) {
         return balances.map((b) => {
@@ -200,12 +202,10 @@ describe('MerkleDistributor', () => {
         leafs = packLeafNodes(balances);
         merkleTree = new MerkleTree(leafs);
 
-        // deploy distributor contract
-        distributor = blockchain.openContract(
-            await MerkleDistributor.fromInit(BigInt('0x' + merkleTree.getRoot().toString('hex')), deployer.address),
-        );
+        // deploy airdrop factory contract
+        airdropFactory = blockchain.openContract(await AirdropFactory.fromInit(BigInt(1)));
 
-        const deployResult = await distributor.send(
+        const aridropFactoryDeployResult = await airdropFactory.send(
             deployer.getSender(),
             {
                 value: toNano('0.05'),
@@ -216,36 +216,44 @@ describe('MerkleDistributor', () => {
             },
         );
 
-        expect(deployResult.transactions).toHaveTransaction({
+        expect(aridropFactoryDeployResult.transactions).toHaveTransaction({
             from: deployer.address,
-            to: distributor.address,
+            to: airdropFactory.address,
             deploy: true,
             success: true,
         });
 
         // get distributor contract jetton wallet
+        const info = await airdropFactory.getMerkleDistributorInfo(deployer.address);
         const distributorJettonWallet = blockchain.openContract(
-            await JettonWalletUSDT.fromInit(distributor.address, usdt.address),
+            await JettonWalletUSDT.fromInit(info.address, usdt.address),
         );
-        const deployerJettonData = await deployerJettonWallet.getGetWalletData();
-        expect(deployerJettonData.balance).toEqual(totalAirdropAmount * 2n);
 
-        // setup distributor contract
-        const setupResult = await distributor.send(
+        // deploy distributor contract
+        const distributorDeployResult = await airdropFactory.send(
             deployer.getSender(),
-            { value: toNano('0.5') },
             {
-                $$type: 'Setup',
+                value: toNano('0.5'),
+            },
+            {
+                $$type: 'CreateAirdrop',
+                merkleRoot: BigInt('0x' + merkleTree.getRoot().toString('hex')),
                 airDropJettonWallet: distributorJettonWallet.address,
             },
         );
 
-        expect(setupResult.transactions).toHaveTransaction({
-            from: deployer.address,
+        distributor = blockchain.openContract(await MerkleDistributor.fromInit(deployer.address, info.seed));
+
+        expect(distributorDeployResult.transactions).toHaveTransaction({
+            from: airdropFactory.address,
             to: distributor.address,
             success: true,
+            deploy: true,
             op: 0x7654321,
         });
+
+        const deployerJettonData = await deployerJettonWallet.getGetWalletData();
+        expect(deployerJettonData.balance).toEqual(totalAirdropAmount * 2n);
 
         // send airdrop token to distributor
         await deployerJettonWallet.send(

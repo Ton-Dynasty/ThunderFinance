@@ -1,5 +1,18 @@
 import "@stdlib/deploy";
 
+struct Params {
+    merkleRoot: Int as uint256;   // the merkle root of the merkle tree
+    airDropJettonWallet: Address; // the jetton wallet for distributing the jettons
+    owner: Address;               // the owner of the contract
+    isInitialized: Bool;          // whether the contract is initialized
+}
+
+struct DeployInfo {
+    stateInit: StateInit; // the state init of the contract
+    address: Address;     // the address of the merkle distributor contract
+    seed: Int;            // the seed of the contract
+}
+
 message(0x0f8a7ea5) JettonTransfer {
     query_id: Int as uint64;                // arbitrary request number
     amount: Int as coins;                   // amount of jettons to transfer
@@ -17,18 +30,15 @@ message(0x7362d09c) JettonTransferNotification {
     forward_payload: Slice as remaining;    // optional custom payload
 }
 
-
-struct Params {
-    merkleRoot: Int as uint256;   // the merkle root of the merkle tree
-    airDropJettonWallet: Address; // the jetton wallet for distributing the jettons
-    owner: Address;               // the owner of the contract
-    isInitialized: Bool;          // whether the contract is initialized
-}
-
 message(0x7654321) Setup {
-    airDropJettonWallet: Address; // the jetton wallet for distributing the jettons
+    airDropJettonWallet: Address;   // the jetton wallet for distributing the jettons
+    merkleRoot: Int as uint256;     // the merkle root of the merkle tree
 }
 
+message(0x1) CreateAirdrop {
+    airDropJettonWallet: Address;   // the jetton wallet for distributing the jettons
+    merkleRoot: Int as uint256;     // the merkle root of the merkle tree
+}
 
 message(0x1234567) Claim {
     amount: Int as coins; // the amount of coins to claim
@@ -45,16 +55,73 @@ message (0x24680) IssueResponse {
     receiver: Address;    // the address of the receiver
 }
 
+contract AirdropFactory with Deployable {
+    owner: Address;
+    totalDeployed: Int = 0;
 
-contract MerkleDistributor with Deployable {
-    merkleRoot: Int as uint256;      // the merkle root of the merkle tree
+    init(_version: Int) {
+        self.owner = sender();
+    }
+
+    // create a new merkle distributor contract
+    receive(msg: CreateAirdrop) {
+        let stateInit: StateInit = self._calcMerkleDistributorInit(sender());
+        let addr: Address = contractAddress(stateInit);
+        self.totalDeployed += 1;
+        send(SendParameters{
+            to: addr,
+            value: 0,
+            mode: SendRemainingBalance,
+            body: Setup{
+                airDropJettonWallet: msg.airDropJettonWallet,
+                merkleRoot: msg.merkleRoot
+            }.toCell(),
+            code: stateInit.code,
+            data: stateInit.data
+        });
+    }
+
+    // owner can withdraw remaining toncoins from this contract
+    receive("withdraw") {
+        require(self.owner == sender(), "Only the owner can withdraw");
+        send(SendParameters{
+            to: self.owner,
+            value: 0,
+            mode: SendRemainingBalance,
+            body: "withdraw".asComment()
+        });
+    }
+
+    // receive any donation, just ignore it
+    receive(src: Slice) {}
+
+    inline fun _calcMerkleDistributorInit(owner: Address): StateInit {
+        return initOf MerkleDistributor(owner, self.totalDeployed);
+    }
+
+    get fun merkleDistributorInfo(owner: Address): DeployInfo {
+        let stateInit: StateInit = self._calcMerkleDistributorInit(owner);
+        let addr: Address = contractAddress(stateInit);
+        return DeployInfo{
+            stateInit: stateInit,
+            address: addr,
+            seed: self.totalDeployed
+        };
+    }
+}
+
+// WARNING: DO NOT DEPLOY THIS CONTRACT DIRECTLY, USE AirdropFactory TO DEPLOY IT
+// BECAUSE THE FIRST MESSAGE IS ASSUME TO BE Setup
+//
+// MerkleDistributor contract is used to distribute jettons to the users
+// the contract will check the merkle proof and issue the jettons to the user
+contract MerkleDistributor {
+    merkleRoot: Int as uint256 = 0;      // the merkle root of the merkle tree
     airDropJettonWallet: Address;    // the jetton wallet for distributing the jettons
     owner: Address;                  // the owner of the contract
     isInitialized: Bool = false;     // whether the contract is initialized
 
-    // use merkle root and owner address to get an unique address
-    init(merkleRoot: Int, owner: Address) {
-        self.merkleRoot = merkleRoot;
+    init(owner: Address, _seed: Int) {
         self.owner = owner;
         self.airDropJettonWallet = newAddress(0, 0);
     }
@@ -62,11 +129,10 @@ contract MerkleDistributor with Deployable {
     // only owner can setup the air drop jetton wallet
     receive(msg: Setup) {
         require(self.isInitialized == false, "Contract is already initialized");
-        require(self.owner == sender(), "Only the owner can initialize the contract");
         self.isInitialized = true;
         self.airDropJettonWallet = msg.airDropJettonWallet;
+        self.merkleRoot = msg.merkleRoot;
     }
-
 
     // user can upload the merkle proof to claim the jettons
     receive(msg: Claim) {
@@ -140,6 +206,8 @@ contract MerkleDistributor with Deployable {
     }
 }
 
+// this contract is used to check if the user has claimed the jettons
+// if the user has claimed the jettons, the contract will refund the incoming message
 contract MerkleIssuer {
     distributor: Address;
     owner: Address;
