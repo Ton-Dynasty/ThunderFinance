@@ -256,13 +256,6 @@ describe('MasterChef', () => {
             deploy: true,
             success: true,
         });
-        // build jetton content for reward token
-        // const rewardTokenJettonContent = buildJettonContent({
-        //     name: 'TicTon',
-        //     description: 'Reward token for Tic Ton Oracle',
-        //     symbol: 'TIC',
-        //     image: 'https://github.com/Ton-Dynasty/ticton-v0/blob/chore/add-comment/image/ticton.jpg?raw=true',
-        // });
         // Build the MasterChef contract from kitchen
         const masterChefResult = await kitchen.send(
             deployer.getSender(),
@@ -285,9 +278,6 @@ describe('MasterChef', () => {
             to: masterChef.address,
             success: true,
         });
-
-        const tmp = await masterChef.getGetMetaData();
-        console.log(tmp);
 
         const isInitialized = await initialize(masterChef, deployerJettonWallet, deployer, rewardPerSecond);
         expect(isInitialized).toBe(true);
