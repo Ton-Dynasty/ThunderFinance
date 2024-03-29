@@ -450,12 +450,11 @@ contract MasterChef with Deployable {
 
     // Pay the fee to the devs
     receive("Collect") {
-        require(sender() == self.thunderMintWallet, "only ThunderMint can collect");
         if (self.jettonForDevs > 0) {
             send(SendParameters{
                     to: self.rewardWallet,
                     value: self.tonForDevs,
-                    mode: SendIgnoreErrors,
+                    mode: SendRemainingValue,
                     body: JettonTransfer{
                         query_id: 0,
                         amount: self.jettonForDevs,
