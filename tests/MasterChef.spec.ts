@@ -250,7 +250,6 @@ describe('MasterChef', () => {
                 thunderMintWallet: thunderMint.address,
                 thunderMintJettonWallet: deployerJettonWallet.address,
                 rewardWallet: masterChefJettonWallet.address,
-                rewardDecimal: 6n,
                 metaData: beginCell().storeStringTail('httpppp').endCell(),
             },
         );

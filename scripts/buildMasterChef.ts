@@ -16,7 +16,6 @@ export async function run(provider: NetworkProvider) {
             thunderMintWallet: provider.sender().address!!,
             thunderMintJettonWallet: Address.parse('kQDKblohTL9rB7SKscW9EsXeH_3xnxLdPcQkGUEz8s5VJhRE'),
             rewardWallet: Address.parse('kQBTNMx-4M1DFTmkEiBazXTz--Gs_i5Yv9GYctwN9h-Ctv-f'),
-            rewardDecimal: 6n,
             metaData: beginCell().storeStringTail('httpppp').endCell(),
         },
     );

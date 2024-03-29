@@ -119,7 +119,6 @@ message SetUp {
     owner: Address;
     seed: Int;
     rewardWallet: Address;
-    rewardDecimal: Int;
     thunderMintWallet: Address;
     thunderMintJettonWallet: Address;
     metaData: Slice;
@@ -142,7 +141,6 @@ message BuildMasterChef {
     thunderMintWallet: Address;
     thunderMintJettonWallet: Address;
     rewardWallet: Address;
-    rewardDecimal: Int;
     metaData: Slice;
 }
 
@@ -153,6 +151,7 @@ message DeployMasterChef {
 }
 
 const THUNDER_FEE: Int = ton("0.01"); // User have to pay the fee to ThunderMint
+const ACC_PRECISION: Int = 1000000;
 
 contract Kitchen with Deployable {
     owner: Address;
@@ -174,7 +173,6 @@ contract Kitchen with Deployable {
                     thunderMintWallet: msg.thunderMintWallet,
                     thunderMintJettonWallet: msg.thunderMintJettonWallet,
                     rewardWallet: msg.rewardWallet,
-                    rewardDecimal: msg.rewardDecimal,
                     metaData: msg.metaData
                 }.toCell(),
                 code: initCode.code,
@@ -212,7 +210,6 @@ contract MasterChef with Deployable {
 
     // for reward jetton
     rewardWallet: Address;
-    rewardDecimal: Int;
     rewardPerSecond: Int as coins = 0;
     createdAt: Int as uint64 = 0;
     deadline: Int as uint64 = 0;
@@ -231,7 +228,6 @@ contract MasterChef with Deployable {
         self.owner = owner;
         self.isInitialized = false;
         self.rewardWallet = newAddress(0, 0);
-        self.rewardDecimal = 6;
         self.seed = seed;
         self.thunderMintWallet = newAddress(0, 0);
         self.thunderMintJettonWallet = newAddress(0, 0);
@@ -243,7 +239,6 @@ contract MasterChef with Deployable {
         self.requireNotInitialized();
         require(self.rewardWallet == newAddress(0, 0), "reward wallet already set");
         self.rewardWallet = msg.rewardWallet;
-        self.rewardDecimal = msg.rewardDecimal;
         self.thunderMintWallet = msg.thunderMintWallet;
         self.thunderMintJettonWallet = msg.thunderMintJettonWallet;
         self.metaData = build_content_cell(msg.metaData);   
@@ -336,7 +331,7 @@ contract MasterChef with Deployable {
                     queryId: msg.queryId,
                     lpTokenAddress: msg.lpTokenAddress,
                     amount: msg.amount,
-                    rewardDebt: pool.accRewardPerShare * msg.amount / pow(10, 6),
+                    rewardDebt: pool.accRewardPerShare * msg.amount / ACC_PRECISION,
                     beneficiary: msg.beneficiary,
                     sender: sender()
                 }.toCell(),
@@ -417,46 +412,6 @@ contract MasterChef with Deployable {
         );
 
     }
-
-    receive(msg: WithdrawAndHarvestReply) {
-        let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
-        let expectedSender: Address = contractAddress(initCode);
-        require(expectedSender == sender(), "unexpected sender");
-
-        // mint reward jetton to msg.beneficiary
-        send(SendParameters{
-                to: myAddress(),
-                value: 0,
-                mode: SendRemainingValue,
-                body: JettonMint{
-                    origin: myAddress(),
-                    receiver: msg.beneficiary,
-                    amount: msg.amount,
-                    custom_payload: null,
-                    forward_ton_amount: 0,
-                    forward_payload: emptySlice()
-                }.toCell()
-            }
-        );
-
-        // Send amount to msg.beneficiary
-        let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
-        send(SendParameters{
-            to: pool.lpTokenAddress,
-            value: 0,
-            mode: SendRemainingValue,
-            body: JettonTransfer{
-                query_id: 0,
-                amount: msg.amount,
-                destination: msg.beneficiary,
-                response_destination: msg.beneficiary,
-                custom_payload: null,
-                forward_ton_amount: 0,
-                forward_payload: emptySlice()
-            }.toCell()
-        });
-    }
-
     // Pay the fee to the devs
     receive("Collect") {
         if (self.jettonForDevs > 0) {
@@ -520,7 +475,7 @@ contract MasterChef with Deployable {
 
         if (pool.lpSupply > 0 ) {
             let reward: Int = (now - pool.lastRewardBlock) * self.rewardPerSecond;
-            let rewardAmount: Int = pow(10, 6) * reward * pool.allocPoint / self.totalAllocPoint;
+            let rewardAmount: Int = ACC_PRECISION * reward * pool.allocPoint / self.totalAllocPoint;
             pool.accRewardPerShare = pool.accRewardPerShare + (rewardAmount / pool.lpSupply);
         } 
         pool.lastRewardBlock = now;
@@ -616,7 +571,7 @@ contract MiniChef with Deployable {
     receive(msg: HarvestInternal) {
         require(sender() == self.masterChef, "only masterChef can harvest");
         let userInfo: UserInfo = self.userInfo.get(msg.lpTokenAddress)!!;
-        let accumulatedReward: Int = userInfo.amount * msg.accRewardPerShare / pow(10, 6); 
+        let accumulatedReward: Int = userInfo.amount * msg.accRewardPerShare / ACC_PRECISION; 
         let _pendingReward: Int = accumulatedReward - userInfo.rewardDebt;
         if (_pendingReward <= 0) {
             return;
@@ -646,60 +601,3 @@ contract MiniChef with Deployable {
 
 }
 
-
-// Master Chef
-// receive(msg: WithdrawAndHarvest) {
-//     self.requireInitialized();
-//     // check if pool exists
-//     require(self.pools.get(msg.lpTokenAddress) != null , "pool not exists");
-
-//     let initCode: StateInit = self._calculateMiniChefInit(sender());
-//     let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
-//     send(SendParameters{
-//             to: contractAddress(initCode),
-//             value: 0,
-//             mode: SendRemainingValue,
-//             bounce: true,
-//             body: WithdrawAndHarvestInternal{
-//                 queryId: msg.queryId,
-//                 lpTokenAddress: msg.lpTokenAddress,
-//                 amount: msg.amount,
-//                 accRewardPerShare: pool.accRewardPerShare,
-//                 beneficiary: msg.beneficiary,
-//                 sender: sender()
-//             }.toCell(),
-//             code: initCode.code,
-//             data: initCode.data
-//         }
-//     );
-// }
-
-// Mini Chef
-// receive(msg: WithdrawAndHarvestInternal) {
-//     require(sender() == self.masterChef, "only masterChef can harvest");
-//     let userInfo: UserInfo = self.userInfo.get(msg.lpTokenAddress)!!;
-//     let accumulatedReward: Int = userInfo.amount * msg.accRewardPerShare; 
-//     let _pendingReward: Int = accumulatedReward - userInfo.rewardDebt;
-//     if (_pendingReward <= 0) {
-//         return;
-//     }
-//     userInfo.rewardDebt = accumulatedReward - msg.amount * msg.accRewardPerShare;
-//     userInfo.amount = userInfo.amount - msg.amount;
-//     self.userInfo.set(msg.lpTokenAddress, userInfo);
-
-//     // Send WithdrawAndHarvestReply to MasterChef
-//     send(SendParameters{
-//         to: self.masterChef,
-//         value: 0,
-//         mode: SendRemainingValue,
-//         body: WithdrawAndHarvestReply{
-//             queryId: msg.queryId,
-//             lpTokenAddress: msg.lpTokenAddress,
-//             reward: _pendingReward,
-//             amount: msg.amount,
-//             sender: self.owner,
-//             beneficiary: msg.beneficiary
-//         }.toCell()
-//     });
-
-// }
