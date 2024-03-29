@@ -155,7 +155,7 @@ contract MerkleIssuer {
             send(SendParameters{
                 to: self.owner,
                 value: 0,
-                mode: SendRemainingValue,
+                mode: SendRemainingValue + SendIgnoreErrors,
                 body: "Refund".asComment()
             });
             return;
