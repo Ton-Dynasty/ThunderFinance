@@ -11,135 +11,10 @@ import { JettonMasterUSDT } from '../wrappers/JettonMaster';
 import '@ton/test-utils';
 import { MerkleDistributor } from '../wrappers/MerkleDistributor';
 import { AirdropFactory } from '../wrappers/AirdropFactory';
-
-type IBalance = {
-    account: Address;
-    amount: bigint;
-};
+import { MerkleTree, IBalance, hashLeafNodes, packProof } from '../utils/MerkleTree';
 
 const DECIMALS = BigInt(10 ** 6);
 const NUMBER_OF_RECEIPIENT = 2000;
-
-class MerkleTree {
-    nodes: Buffer[];
-
-    constructor(leafs: Buffer[]) {
-        // pad to power of 2
-        const power = Math.ceil(Math.log2(leafs.length));
-        for (let i = leafs.length; i < Math.pow(2, power); i++) {
-            leafs.push(beginCell().storeUint(i, 256).endCell().hash());
-        }
-
-        // sort leafs, lower hash first
-        leafs = leafs.sort((a, b) => {
-            return a.compare(b);
-        });
-
-        // Initialize the nodes array with the leaves
-        this.nodes = [...leafs];
-
-        // Build the tree
-        let currentLevelNodes = leafs;
-        while (currentLevelNodes.length > 1) {
-            let nextLevelNodes = [];
-            for (let i = 0; i < currentLevelNodes.length; i += 2) {
-                // Combine each pair of nodes and hash them together
-                let leftNode = currentLevelNodes[i];
-                let rightNode = currentLevelNodes[i + 1];
-                let combinedHash = this.hashTwoNodes(leftNode, rightNode);
-                nextLevelNodes.push(combinedHash);
-            }
-            // Append the next level nodes to the full list of nodes
-            this.nodes = [...nextLevelNodes, ...this.nodes];
-            // Prepare for the next iteration
-            currentLevelNodes = nextLevelNodes;
-        }
-    }
-
-    getRoot() {
-        return this.nodes[0];
-    }
-
-    hashTwoNodes(left: Buffer, right: Buffer) {
-        // smaller hash first
-        if (left.compare(right) > 0) {
-            const temp = left;
-            left = right;
-            right = temp;
-        }
-        // turn buffer to int
-        const leftInt = BigInt('0x' + left.toString('hex'));
-        const rightInt = BigInt('0x' + right.toString('hex'));
-        return beginCell().storeUint(leftInt, 256).storeUint(rightInt, 256).endCell().hash();
-    }
-
-    binarySearch(targetLeaf: Buffer) {
-        let left = 0;
-        let right = this.nodes.length - 1;
-
-        while (left <= right) {
-            const mid = Math.floor((left + right) / 2);
-            const comparisonResult = targetLeaf.compare(this.nodes[mid]);
-
-            if (comparisonResult === 0) {
-                // Found the target
-                return mid;
-            } else if (comparisonResult < 0) {
-                // Target is less than mid, discard the right half
-                right = mid - 1;
-            } else {
-                // Target is more than mid, discard the left half
-                left = mid + 1;
-            }
-        }
-
-        // Target not found
-        return -1;
-    }
-
-    getHexProof(leaf: Buffer) {
-        let index = this.binarySearch(leaf);
-        if (index === -1) {
-            throw new Error('Leaf not found');
-        }
-        let proof = [];
-        let sibling;
-        while (index > 0) {
-            if (index % 2 !== 0) {
-                // If the node is a left node, get the right sibling
-                sibling = this.nodes[index + 1];
-            } else {
-                // If the node is a right node, get the left sibling
-                sibling = this.nodes[index - 1];
-            }
-            // Store the sibling
-            proof.push(sibling);
-            // Move up the tree
-            index = Math.floor((index - 1) / 2);
-        }
-        return proof;
-    }
-
-    verifyProof(leaf: Buffer, proof: Buffer[], root: Buffer) {
-        let computedHash = leaf;
-        console.log(
-            'proofs',
-            proof.map((p) => BigInt('0x' + p.toString('hex'))),
-        );
-        console.log('target leaf', BigInt('0x' + leaf.toString('hex')));
-        for (let sibling of proof) {
-            computedHash = this.hashTwoNodes(computedHash, sibling);
-            console.log('- calculation', BigInt('0x' + computedHash.toString('hex')));
-        }
-
-        console.log(
-            'nodes',
-            this.nodes.map((n) => n.toString('hex')),
-        );
-        console.log('root', root.toString('hex'));
-        return computedHash.compare(root) === 0;
-    }
-}
 
 describe('MerkleDistributor', () => {
     let blockchain: Blockchain;
@@ -152,12 +27,6 @@ describe('MerkleDistributor', () => {
     let merkleTree: MerkleTree;
     let leafs: Buffer[];
     let airdropFactory: SandboxContract<AirdropFactory>;
-
-    function packLeafNodes(balances: IBalance[]) {
-        return balances.map((b) => {
-            return beginCell().storeAddress(b.account).storeCoins(b.amount).endCell().hash();
-        });
-    }
 
     beforeEach(async () => {
         blockchain = await Blockchain.create();
@@ -199,7 +68,7 @@ describe('MerkleDistributor', () => {
         );
 
         // create merkle tree
-        leafs = packLeafNodes(balances);
+        leafs = hashLeafNodes(balances);
         merkleTree = new MerkleTree(leafs);
 
         // deploy airdrop factory contract
@@ -296,10 +165,7 @@ describe('MerkleDistributor', () => {
         // offchain verify proof
         expect(merkleTree.verifyProof(leaf, proof, merkleTree.getRoot())).toBeTruthy();
 
-        let dict = Dictionary.empty(Dictionary.Keys.Uint(32), Dictionary.Values.BigUint(256));
-        for (let i = 0; i < proof.length; i++) {
-            dict.set(i, BigInt(`0x${proof[i].toString('hex')}`));
-        }
+        let dict = packProof(proof);
 
         const claimResult = await distributor.send(
             users[1].getSender(),
@@ -356,10 +222,7 @@ describe('MerkleDistributor', () => {
         // offchain verify proof
         expect(merkleTree.verifyProof(leaf, proof, merkleTree.getRoot())).toBeTruthy();
 
-        let dict = Dictionary.empty(Dictionary.Keys.Uint(32), Dictionary.Values.BigUint(256));
-        for (let i = 0; i < proof.length; i++) {
-            dict.set(i, BigInt(`0x${proof[i].toString('hex')}`));
-        }
+        let dict = packProof(proof);
 
         await distributor.send(
             users[1].getSender(),
