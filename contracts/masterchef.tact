@@ -276,9 +276,9 @@ contract MasterChef with Deployable {
         if (!self.isInitialized) {
             require(ctx.sender == self.rewardWallet, "only reward jetton wallet can send message");
             require(!msg.forward_payload.dataEmpty(), "payload is empty");
-            let rewardPerSecond: Int = msg.forward_payload.loadCoins();
+            let totalReward: Int = msg.forward_payload.loadCoins();
             let deadline: Int = msg.forward_payload.loadUint(64);
-            self.handleSetup(ctx, msg.amount, deadline, rewardPerSecond);
+            self.handleSetup(ctx, msg.amount, deadline, totalReward);
             return;
         }
 
@@ -497,11 +497,11 @@ contract MasterChef with Deployable {
         require(!self.isInitialized, "contract already initialized");
     }
 
-    inline fun handleSetup(ctx: Context, amount: Int, deadline: Int, rewardPerSecond: Int) {
+    inline fun handleSetup(ctx: Context, amount: Int, deadline: Int, totalReward: Int) {
         self.requireNotInitialized();
         self.createdAt = now();
-        self.rewardPerSecond = rewardPerSecond;
-        let rewardAmount: Int = (deadline - self.createdAt) * rewardPerSecond;
+        self.rewardPerSecond = totalReward / (deadline - self.createdAt);
+        let rewardAmount: Int = totalReward;
         self.jettonForDevs = rewardAmount * self.Fee / 1000; // 0.3% fee
         // Have to transfer reward jetton and fee to the contract
         let expectedAmount: Int = rewardAmount + self.jettonForDevs;
