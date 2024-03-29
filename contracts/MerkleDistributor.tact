@@ -219,6 +219,7 @@ contract MerkleIssuer {
     }
 
     receive(msg: IssueRequest) {
+        require(self.distributor == sender(), "Invalid sender");
         if (self.hasClaimed) {
             send(SendParameters{
                 to: self.owner,
