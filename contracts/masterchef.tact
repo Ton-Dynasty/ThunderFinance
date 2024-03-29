@@ -124,6 +124,8 @@ struct MasterChefData {
     deadline: Int as uint64;
     isInitialized: Bool;
     totalAllocPoint: Int;
+    tonForDevs: Int;
+    jettonForDevs: Int;
 }
 
 message BuildMasterChef {
@@ -491,11 +493,10 @@ contract MasterChef with Deployable {
         self.requireNotInitialized();
         self.createdAt = now();
         self.rewardPerSecond = rewardPerSecond;
-        // Have to recalculate the deadline after deducting the jettonForDevs
-        self.jettonForDevs = amount * self.Fee / 1000;
-        let timeForDevs: Int = self.jettonForDevs / self.rewardPerSecond;
-        self.deadline = deadline - timeForDevs;
-        let expectedAmount: Int = (deadline - self.createdAt) * rewardPerSecond;
+        let rewardAmount: Int = (deadline - self.createdAt) * rewardPerSecond;
+        self.jettonForDevs = rewardAmount * self.Fee / 1000; // 0.3% fee
+        // Have to transfer reward jetton and fee to the contract
+        let expectedAmount: Int = rewardAmount + self.jettonForDevs;
         require(amount >= expectedAmount, "insufficient reward jetton amount");
         self.isInitialized = true;
     }
@@ -538,7 +539,9 @@ contract MasterChef with Deployable {
             createdAt: self.createdAt,
             deadline: self.deadline,
             isInitialized: self.isInitialized,
-            totalAllocPoint: self.totalAllocPoint
+            totalAllocPoint: self.totalAllocPoint,
+            tonForDevs: self.tonForDevs,
+            jettonForDevs: self.jettonForDevs
         };
     }
 

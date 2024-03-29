@@ -72,6 +72,7 @@ describe('MasterChef', () => {
     ) {
         const deadline = blockchain.now!! + rewardPeriod;
         const rewardAmount = rewardPerSecond * BigInt(rewardPeriod);
+        const feeAmont = (rewardAmount * 3n) / 1000n;
         const initResult = await deployerJettonWallet.send(
             deployer.getSender(),
             {
@@ -80,7 +81,7 @@ describe('MasterChef', () => {
             {
                 $$type: 'JettonTransfer',
                 query_id: 0n,
-                amount: rewardAmount,
+                amount: rewardAmount + feeAmont,
                 destination: masterChef.address,
                 response_destination: deployer.address,
                 custom_payload: null,
@@ -89,7 +90,30 @@ describe('MasterChef', () => {
             },
         );
 
+        // Deployer should send JettonTransfer to his wallet
+        expect(initResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: deployerJettonWallet.address,
+            success: true,
+        });
+
+        // deployerJettonWallet send jetton to MasterChef JettonWallet
+        expect(initResult.transactions).toHaveTransaction({
+            from: deployerJettonWallet.address,
+            to: masterChefJettonWallet.address,
+            success: true,
+        });
+
+        // MasterChef should send JettonNotify to MasterChef
+        expect(initResult.transactions).toHaveTransaction({
+            from: masterChefJettonWallet.address,
+            to: masterChef.address,
+            success: true,
+        });
+
         const masterChefData = await masterChef.getGetMasterChefData();
+        // Make sure that jetton For ThunderMint is recorded
+        expect(masterChefData.jettonForDevs).toEqual((rewardAmount * 3n) / 1000n);
         return masterChefData.isInitialized;
     }
 
@@ -518,6 +542,31 @@ describe('MasterChef', () => {
 
         expect(user1USDTBalanceAfter).toEqual(user1USDTBalanceBefore + benifit1);
         expect(user2USDTBalanceAfter).toEqual(user2USDTBalanceBefore + benifit2);
+    });
+
+    it('should ThunderMint can collect the Fees from projcet party and users', async () => {
+        const userDepositAmount = 1n * 10n ** 6n;
+        const userWithdrawAmount = 5n * 10n ** 5n;
+        const periodTime = 10;
+        const userJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(user.address, usdt.address));
+        // deposit first
+        await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
+        // get the balance of usdt before withdraw
+        const userUSDTBalanceBefore = (await userJettonWallet.getGetWalletData()).balance;
+
+        // withdraw
+        blockchain.now!! += periodTime;
+        const withdrawResult = await withdraw(masterChef, user, masterChefJettonWallet, userWithdrawAmount);
+        // check the depositAndWithdrawResult is sucess
+        expect(withdrawResult.transactions).toHaveTransaction({
+            from: user.address,
+            to: masterChef.address,
+            success: true,
+            op: 0x097bb407,
+        });
+        const masterChefData = await masterChef.getGetMasterChefData();
+        // Make sure that tonForDevs is recorded
+        expect(masterChefData.tonForDevs).toEqual(10000000n); // We only withraw 1 time, so the fee is 0.1 TON
     });
 });
 
