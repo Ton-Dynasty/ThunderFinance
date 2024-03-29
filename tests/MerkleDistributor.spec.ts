@@ -1,5 +1,11 @@
-import { Blockchain, printTransactionFees, SandboxContract, TreasuryContract } from '@ton/sandbox';
-import { Address, beginCell, Cell, toNano } from '@ton/core';
+import {
+    Blockchain,
+    prettyLogTransactions,
+    printTransactionFees,
+    SandboxContract,
+    TreasuryContract,
+} from '@ton/sandbox';
+import { Address, beginCell, Cell, Dictionary, toNano } from '@ton/core';
 import { JettonWalletUSDT } from '../wrappers/JettonWallet';
 import { JettonMasterUSDT } from '../wrappers/JettonMaster';
 import '@ton/test-utils';
@@ -11,22 +17,28 @@ type IBalance = {
 };
 
 const DECIMALS = BigInt(10 ** 6);
+const NUMBER_OF_RECEIPIENT = 2000;
 
 class MerkleTree {
     nodes: Buffer[];
 
-    constructor(leaves: Buffer[]) {
-        // Check if leaves length is a power of 2
-        const isPowerOfTwo = leaves.length && (leaves.length & (leaves.length - 1)) === 0;
-        if (!isPowerOfTwo) {
-            throw new Error('Invalid number of nodes: Must be a power of 2.');
+    constructor(leafs: Buffer[]) {
+        // pad to power of 2
+        const power = Math.ceil(Math.log2(leafs.length));
+        for (let i = leafs.length; i < Math.pow(2, power); i++) {
+            leafs.push(beginCell().storeUint(i, 256).endCell().hash());
         }
 
+        // sort leafs, lower hash first
+        leafs = leafs.sort((a, b) => {
+            return a.compare(b);
+        });
+
         // Initialize the nodes array with the leaves
-        this.nodes = [...leaves]; // Make a shallow copy of leaves to preserve original array
+        this.nodes = [...leafs];
 
         // Build the tree
-        let currentLevelNodes = leaves;
+        let currentLevelNodes = leafs;
         while (currentLevelNodes.length > 1) {
             let nextLevelNodes = [];
             for (let i = 0; i < currentLevelNodes.length; i += 2) {
@@ -41,10 +53,6 @@ class MerkleTree {
             // Prepare for the next iteration
             currentLevelNodes = nextLevelNodes;
         }
-        console.log(
-            'Tree nodes: ',
-            this.nodes.map((n) => n.toString('hex')),
-        );
     }
 
     getRoot() {
@@ -52,8 +60,9 @@ class MerkleTree {
     }
 
     hashTwoNodes(left: Buffer, right: Buffer) {
-        if (left > right) {
-            let temp = left;
+        // smaller hash first
+        if (left.compare(right) > 0) {
+            const temp = left;
             left = right;
             right = temp;
         }
@@ -95,7 +104,7 @@ class MerkleTree {
         let proof = [];
         let sibling;
         while (index > 0) {
-            if (index % 2 === 0) {
+            if (index % 2 !== 0) {
                 // If the node is a left node, get the right sibling
                 sibling = this.nodes[index + 1];
             } else {
@@ -109,6 +118,26 @@ class MerkleTree {
         }
         return proof;
     }
+
+    verifyProof(leaf: Buffer, proof: Buffer[], root: Buffer) {
+        let computedHash = leaf;
+        console.log(
+            'proofs',
+            proof.map((p) => BigInt('0x' + p.toString('hex'))),
+        );
+        console.log('target leaf', BigInt('0x' + leaf.toString('hex')));
+        for (let sibling of proof) {
+            computedHash = this.hashTwoNodes(computedHash, sibling);
+            console.log('- calculation', BigInt('0x' + computedHash.toString('hex')));
+        }
+
+        console.log(
+            'nodes',
+            this.nodes.map((n) => n.toString('hex')),
+        );
+        console.log('root', root.toString('hex'));
+        return computedHash.compare(root) === 0;
+    }
 }
 
 describe('MerkleDistributor', () => {
@@ -120,22 +149,12 @@ describe('MerkleDistributor', () => {
     let balances: IBalance[];
     let totalAirdropAmount: bigint;
     let merkleTree: MerkleTree;
+    let leafs: Buffer[];
 
     function packLeafNodes(balances: IBalance[]) {
-        let nodes = balances.map((b) => {
+        return balances.map((b) => {
             return beginCell().storeAddress(b.account).storeCoins(b.amount).endCell().hash();
         });
-        // print node 0
-        console.log('Node 0: ', nodes[0].toString('hex'));
-        // print node 1
-        console.log('Node 1: ', nodes[1].toString('hex'));
-        // pad to power of 2, use log
-        const power = Math.ceil(Math.log2(balances.length));
-        for (let i = balances.length; i < Math.pow(2, power); i++) {
-            nodes.push(beginCell().endCell().hash());
-        }
-        console.log('Length of nodes: ', nodes.length);
-        return nodes;
     }
 
     beforeEach(async () => {
@@ -146,7 +165,7 @@ describe('MerkleDistributor', () => {
         totalAirdropAmount = 0n;
         users = [];
         balances = [];
-        for (let i = 0; i < 6; i++) {
+        for (let i = 0; i < NUMBER_OF_RECEIPIENT; i++) {
             let _amount = BigInt(i + 1) * DECIMALS;
             users.push(await blockchain.treasury(`user-${i}`));
             balances.push({
@@ -158,15 +177,32 @@ describe('MerkleDistributor', () => {
 
         // mint airdrop token
         usdt = blockchain.openContract(await JettonMasterUSDT.fromInit(deployer.address, beginCell().endCell()));
-        await usdt.send(deployer.getSender(), { value: toNano('1') }, 'Mint:1');
+        await usdt.send(
+            deployer.getSender(),
+            { value: toNano('1') },
+            {
+                $$type: 'JettonMint',
+                amount: totalAirdropAmount * 2n,
+                origin: deployer.address,
+                receiver: deployer.address,
+                custom_payload: beginCell().endCell(),
+                forward_payload: beginCell().endCell(),
+                forward_ton_amount: 0n,
+            },
+        );
+
+        // deployer usdt wallet
+        const deployerJettonWallet = blockchain.openContract(
+            await JettonWalletUSDT.fromInit(deployer.address, usdt.address),
+        );
 
         // create merkle tree
-        const nodes = packLeafNodes(balances);
-        merkleTree = new MerkleTree(nodes);
+        leafs = packLeafNodes(balances);
+        merkleTree = new MerkleTree(leafs);
 
-        // open distributor contract
+        // deploy distributor contract
         distributor = blockchain.openContract(
-            await MerkleDistributor.fromInit(BigInt('0x' + merkleTree.getRoot().toString('hex'))),
+            await MerkleDistributor.fromInit(BigInt('0x' + merkleTree.getRoot().toString('hex')), deployer.address),
         );
 
         const deployResult = await distributor.send(
@@ -180,54 +216,118 @@ describe('MerkleDistributor', () => {
             },
         );
 
-        // send airdrop token to distributor
-        const deployerJettonWallet = blockchain.openContract(
-            await JettonWalletUSDT.fromInit(deployer.address, usdt.address),
-        );
-        deployerJettonWallet.send(
-            deployer.getSender(),
-            { value: toNano('1') },
-            {
-                $$type: 'JettonTransfer',
-                query_id: 1n,
-                amount: totalAirdropAmount,
-                destination: distributor.address,
-                response_destination: distributor.address,
-                forward_payload: beginCell().storeUint(1, 1).endCell(),
-                forward_ton_amount: 0n,
-                custom_payload: beginCell().endCell(),
-            },
-        );
-
         expect(deployResult.transactions).toHaveTransaction({
             from: deployer.address,
             to: distributor.address,
             deploy: true,
             success: true,
         });
+
+        // get distributor contract jetton wallet
+        const distributorJettonWallet = blockchain.openContract(
+            await JettonWalletUSDT.fromInit(distributor.address, usdt.address),
+        );
+        const deployerJettonData = await deployerJettonWallet.getGetWalletData();
+        expect(deployerJettonData.balance).toEqual(totalAirdropAmount * 2n);
+
+        // setup distributor contract
+        const setupResult = await distributor.send(
+            deployer.getSender(),
+            { value: toNano('0.5') },
+            {
+                $$type: 'Setup',
+                airDropJettonWallet: distributorJettonWallet.address,
+            },
+        );
+
+        expect(setupResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: distributor.address,
+            success: true,
+            op: 0x7654321,
+        });
+
+        // send airdrop token to distributor
+        await deployerJettonWallet.send(
+            deployer.getSender(),
+            { value: toNano('10') },
+            {
+                $$type: 'JettonTransfer',
+                query_id: 1n,
+                amount: totalAirdropAmount,
+                destination: distributor.address,
+                response_destination: deployer.address,
+                forward_payload: beginCell().endCell(),
+                forward_ton_amount: 0n,
+                custom_payload: beginCell().endCell(),
+            },
+        );
+
+        // check balance of distributor contract
+        const distributorJettonData = await distributorJettonWallet.getGetWalletData();
+        expect(distributorJettonData.balance).toEqual(totalAirdropAmount);
     });
 
     it('Should test deploy', async () => {});
 
     it('Should claim airdrop for user-1', async () => {
-        const leaf = packLeafNodes(balances);
-        console.log("All leaves",leaf.map(l=>l.toString('hex')))
-        const proof = merkleTree.getHexProof(leaf[1]);
-        const merkleProof = beginCell();
-        merkleProof.storeUint(proof.length, 32);
-        console.log('Proof length: ', proof.length);
+        const leaf = beginCell().storeAddress(users[1].address).storeCoins(balances[1].amount).endCell().hash();
+
+        const proof = merkleTree.getHexProof(leaf);
+
+        // offchain verify proof
+        expect(merkleTree.verifyProof(leaf, proof, merkleTree.getRoot())).toBeTruthy();
+
+        let dict = Dictionary.empty(Dictionary.Keys.Uint(32), Dictionary.Values.BigUint(256));
         for (let i = 0; i < proof.length; i++) {
-            merkleProof.storeUint(BigInt(`0x${proof[i].toString('hex')}`), 256);
+            dict.set(i, BigInt(`0x${proof[i].toString('hex')}`));
         }
-        await distributor.send(
+
+        const claimResult = await distributor.send(
             users[1].getSender(),
-            { value: toNano('0.5') },
+            { value: toNano('1') },
             {
                 $$type: 'Claim',
                 account: balances[1].account,
                 amount: balances[1].amount,
-                merkleProof: merkleProof.endCell(),
+                merkleProofSize: BigInt(proof.length),
+                merkleProof: dict,
             },
         );
+
+        console.log('user address', users[1].address);
+        console.log('distributor address', distributor.address);
+
+        prettyLogTransactions(claimResult.transactions);
+
+        // get distributor contract jetton wallet
+        const distributorJettonWallet = blockchain.openContract(
+            await JettonWalletUSDT.fromInit(distributor.address, usdt.address),
+        );
+
+        // get user-1 jetton wallet
+        const userJettonWallet = blockchain.openContract(
+            await JettonWalletUSDT.fromInit(users[1].address, usdt.address),
+        );
+
+        expect(claimResult.transactions).toHaveTransaction({
+            from: users[1].address,
+            to: distributor.address,
+            success: true,
+            op: 0x1234567,
+        });
+
+        expect(claimResult.transactions).toHaveTransaction({
+            from: distributor.address,
+            to: distributorJettonWallet.address,
+            success: true,
+            op: 0x0f8a7ea5,
+        });
+
+        expect(claimResult.transactions).toHaveTransaction({
+            from: distributorJettonWallet.address,
+            to: userJettonWallet.address,
+            success: true,
+        });
     });
 });

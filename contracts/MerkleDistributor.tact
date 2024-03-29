@@ -18,76 +18,103 @@ message(0x7362d09c) JettonTransferNotification {
 }
 
 
-message Claim {
-    account: Address; // the address of the account to claim the coins
+struct Params {
+    merkleRoot: Int as uint256;   // the merkle root of the merkle tree
+    airDropJettonWallet: Address; // the jetton wallet for distributing the jettons
+    owner: Address;               // the owner of the contract
+    totalSupply: Int as coins;    // total supply of the air drop jettons
+    isInitialized: Bool;          // whether the contract is initialized
+}
+
+message(0x7654321) Setup {
+    airDropJettonWallet: Address; // the jetton wallet for distributing the jettons
+}
+
+
+message(0x1234567) Claim {
+    account: Address;     // the address of the account to claim the coins
     amount: Int as coins; // the amount of coins to claim
-    // The first element is the number of proof elements in uint32, the rest are the proof elements in Cell
-    // For each cell, they should be packed by beginCell().storeUint(..., 256).storeUint(..., 256)...endCell();
-    merkleProof: Slice; 
+    merkleProofSize: Int as uint32; // the number of elements in the merkle proof
+    merkleProof: map<Int as uint32, Int as uint256>; // the merkle proof array
 }
 
 contract MerkleDistributor with Deployable {
-    merkleRoot: Int as uint256;
-    airDropJettonWallet: Address;
-    isInitialized: Bool = false;
-    owner: Address;
+    merkleRoot: Int as uint256;      // the merkle root of the merkle tree
+    airDropJettonWallet: Address;    // the jetton wallet for distributing the jettons
+    owner: Address;                  // the owner of the contract
+    totalSupply: Int as coins = 0;   // total supply of the air drop jettons
+    isInitialized: Bool = false;     // whether the contract is initialized
 
-    init(merkleRoot: Int) {
+    // use merkle root and owner address to get an unique address
+    init(merkleRoot: Int, owner: Address) {
         self.merkleRoot = merkleRoot;
-        self.owner = sender();
+        self.owner = owner;
         self.airDropJettonWallet = newAddress(0, 0);
     }
 
-    receive(msg: JettonTransferNotification) {
-        // if notification cames from sender and the forward_paload is uint with value 1
-        // then set the contract as initialized
+    // only owner can setup the air drop jetton wallet
+    receive(msg: Setup) {
         require(self.isInitialized == false, "Contract is already initialized");
-        if (msg.sender == self.owner) {
-            let value: Int = msg.forward_payload.loadUint(1);
-            if (value == 1) {
-                self.isInitialized = true;
-                self.airDropJettonWallet = sender();
-            }
-        }
+        require(self.owner == sender(), "Only the owner can initialize the contract");
+        self.isInitialized = true;
+        self.airDropJettonWallet = msg.airDropJettonWallet;
     }
 
+
+    // accumulate the total supply of the jettons when receiving the jetton transfer notification
+    receive(msg: JettonTransferNotification) {
+        self.totalSupply += msg.amount;
+    }
+
+    // user can upload the merkle proof to claim the jettons
     receive(msg: Claim) {
         require(self.isInitialized, "Contract is not initialized");
         let nodeHash: Int = beginCell().storeAddress(msg.account).storeCoins(msg.amount).asSlice().hash();
-        let rootHash: Int = self._processProof(nodeHash, msg.merkleProof);
-        if (rootHash == self.merkleRoot) {
-            send(SendParameters{
-                to: self.airDropJettonWallet,
-                value: 0,
-                mode: SendRemainingValue,
-                body: JettonTransfer{
-                    query_id: 0,
-                    amount: msg.amount,
-                    destination: msg.account,
-                    response_destination: msg.account,
-                    custom_payload: null,
-                    forward_ton_amount: 0,
-                    forward_payload: emptySlice()
-                }.toCell()
-            });
-        }
+        let rootHash: Int = self._processProof(nodeHash, msg.merkleProofSize, msg.merkleProof);
+        require(self.merkleRoot == rootHash, "Invalid merkle proof");
+        send(SendParameters{
+            to: self.airDropJettonWallet,
+            value: 0,
+            mode: SendRemainingValue,
+            body: JettonTransfer{
+                query_id: 0,
+                amount: msg.amount,
+                destination: msg.account,
+                response_destination: msg.account,
+                custom_payload: null,
+                forward_ton_amount: 0,
+                forward_payload: emptySlice()
+            }.toCell()
+        });
     }
 
 
-    inline fun _processProof(nodeHash: Int, proof: Slice): Int {
-        let length: Int = proof.loadUint(32);
-        let remain: Slice = proof.loadRef().asSlice();
+    // process and validate the merkle proof
+    inline fun _processProof(nodeHash: Int, size: Int, proof: map<Int as uint32, Int as uint256>): Int {
         let index: Int = 0;
         let computedHash: Int = nodeHash;
-        while (index < length) {
-            let elem: Int = remain.loadUint(256);
+        while (index < size) {
+            let elem: Int = proof.get(index)!!;
             computedHash = self._hashPair(computedHash, elem);
+            dump(computedHash);
             index += 1;
         }
         return computedHash;
     }
 
+    // the smallest hash should be the first argument when hashing pair of hashes
     inline fun _hashPair(a: Int, b: Int): Int {
         return a < b ? beginCell().storeUint(a, 256).storeUint(b, 256).asSlice().hash() : beginCell().storeUint(b, 256).storeUint(a, 256).asSlice().hash();
+    }
+
+    // get function
+    get fun getParams(): Params {
+        return Params{
+            merkleRoot: self.merkleRoot,
+            airDropJettonWallet: self.airDropJettonWallet,
+            owner: self.owner,
+            totalSupply: self.totalSupply,
+            isInitialized: self.isInitialized
+        };
     }
 }
