@@ -22,7 +22,6 @@ struct Params {
     merkleRoot: Int as uint256;   // the merkle root of the merkle tree
     airDropJettonWallet: Address; // the jetton wallet for distributing the jettons
     owner: Address;               // the owner of the contract
-    totalSupply: Int as coins;    // total supply of the air drop jettons
     isInitialized: Bool;          // whether the contract is initialized
 }
 
@@ -42,7 +41,6 @@ contract MerkleDistributor with Deployable {
     merkleRoot: Int as uint256;      // the merkle root of the merkle tree
     airDropJettonWallet: Address;    // the jetton wallet for distributing the jettons
     owner: Address;                  // the owner of the contract
-    totalSupply: Int as coins = 0;   // total supply of the air drop jettons
     isInitialized: Bool = false;     // whether the contract is initialized
 
     // use merkle root and owner address to get an unique address
@@ -60,11 +58,6 @@ contract MerkleDistributor with Deployable {
         self.airDropJettonWallet = msg.airDropJettonWallet;
     }
 
-
-    // accumulate the total supply of the jettons when receiving the jetton transfer notification
-    receive(msg: JettonTransferNotification) {
-        self.totalSupply += msg.amount;
-    }
 
     // user can upload the merkle proof to claim the jettons
     receive(msg: Claim) {
@@ -96,7 +89,6 @@ contract MerkleDistributor with Deployable {
         while (index < size) {
             let elem: Int = proof.get(index)!!;
             computedHash = self._hashPair(computedHash, elem);
-            dump(computedHash);
             index += 1;
         }
         return computedHash;
@@ -113,7 +105,6 @@ contract MerkleDistributor with Deployable {
             merkleRoot: self.merkleRoot,
             airDropJettonWallet: self.airDropJettonWallet,
             owner: self.owner,
-            totalSupply: self.totalSupply,
             isInitialized: self.isInitialized
         };
     }

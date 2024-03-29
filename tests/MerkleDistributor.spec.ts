@@ -270,6 +270,16 @@ describe('MerkleDistributor', () => {
 
     it('Should test deploy', async () => {});
 
+    it('Should get params of distributor contract', async () => {
+        const distributorParams = await distributor.getGetParams();
+        const distributorJettonWallet = blockchain.openContract(
+            await JettonWalletUSDT.fromInit(distributor.address, usdt.address),
+        );
+        expect(distributorParams.owner.toString()).toEqual(deployer.address.toString());
+        expect(distributorParams.airDropJettonWallet.toString()).toEqual(distributorJettonWallet.address.toString());
+        expect(distributorParams.merkleRoot).toEqual(BigInt('0x' + merkleTree.getRoot().toString('hex')));
+    });
+
     it('Should claim airdrop for user-1', async () => {
         const leaf = beginCell().storeAddress(users[1].address).storeCoins(balances[1].amount).endCell().hash();
 
