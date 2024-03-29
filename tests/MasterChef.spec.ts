@@ -46,22 +46,22 @@ describe('MasterChef', () => {
         );
     }
 
-    async function setup(
-        masterChef: SandboxContract<MasterChef>,
-        masterChefJettonWallet: SandboxContract<JettonWalletUSDT>,
-    ) {
-        return await masterChef.send(
-            deployer.getSender(),
-            {
-                value: toNano('0.05'),
-            },
-            {
-                $$type: 'SetUp',
-                rewardWallet: masterChefJettonWallet.address,
-                rewardDecimal: 6n,
-            },
-        );
-    }
+    // async function setup(
+    //     masterChef: SandboxContract<MasterChef>,
+    //     masterChefJettonWallet: SandboxContract<JettonWalletUSDT>,
+    // ) {
+    //     return await masterChef.send(
+    //         deployer.getSender(),
+    //         {
+    //             value: toNano('0.05'),
+    //         },
+    //         {
+    //             $$type: 'SetUp',
+    //             rewardWallet: masterChefJettonWallet.address,
+    //             rewardDecimal: 6n,
+    //         },
+    //     );
+    // }
 
     async function initialize(
         masterChef: SandboxContract<MasterChef>,
@@ -256,7 +256,13 @@ describe('MasterChef', () => {
             deploy: true,
             success: true,
         });
-
+        // build jetton content for reward token
+        // const rewardTokenJettonContent = buildJettonContent({
+        //     name: 'TicTon',
+        //     description: 'Reward token for Tic Ton Oracle',
+        //     symbol: 'TIC',
+        //     image: 'https://github.com/Ton-Dynasty/ticton-v0/blob/chore/add-comment/image/ticton.jpg?raw=true',
+        // });
         // Build the MasterChef contract from kitchen
         const masterChefResult = await kitchen.send(
             deployer.getSender(),
@@ -268,6 +274,9 @@ describe('MasterChef', () => {
                 owner: deployer.address,
                 thunderMintWallet: thunderMint.address,
                 thunderMintJettonWallet: deployerJettonWallet.address,
+                rewardWallet: masterChefJettonWallet.address,
+                rewardDecimal: 6n,
+                metaData: beginCell().storeStringTail('httpppp').endCell(),
             },
         );
 
@@ -277,13 +286,8 @@ describe('MasterChef', () => {
             success: true,
         });
 
-        const setUpResult = await setup(masterChef, masterChefJettonWallet);
-        expect(setUpResult.transactions).toHaveTransaction({
-            from: deployer.address,
-            to: masterChef.address,
-            success: true,
-            op: 0xb2d7f2a9,
-        });
+        const tmp = await masterChef.getGetMetaData();
+        console.log(tmp);
 
         const isInitialized = await initialize(masterChef, deployerJettonWallet, deployer, rewardPerSecond);
         expect(isInitialized).toBe(true);
@@ -654,22 +658,22 @@ describe('Not enough reward', () => {
         );
     }
 
-    async function setup(
-        masterChef: SandboxContract<MasterChef>,
-        masterChefJettonWallet: SandboxContract<JettonWalletUSDT>,
-    ) {
-        return await masterChef.send(
-            deployer.getSender(),
-            {
-                value: toNano('0.05'),
-            },
-            {
-                $$type: 'SetUp',
-                rewardWallet: masterChefJettonWallet.address,
-                rewardDecimal: 6n,
-            },
-        );
-    }
+    // async function setup(
+    //     masterChef: SandboxContract<MasterChef>,
+    //     masterChefJettonWallet: SandboxContract<JettonWalletUSDT>,
+    // ) {
+    //     return await masterChef.send(
+    //         deployer.getSender(),
+    //         {
+    //             value: toNano('0.05'),
+    //         },
+    //         {
+    //             $$type: 'SetUp',
+    //             rewardWallet: masterChefJettonWallet.address,
+    //             rewardDecimal: 6n,
+    //         },
+    //     );
+    // }
 
     async function initialize(
         masterChef: SandboxContract<MasterChef>,
@@ -732,14 +736,6 @@ describe('Not enough reward', () => {
             to: masterChef.address,
             deploy: true,
             success: true,
-        });
-
-        const setUpResult = await setup(masterChef, masterChefJettonWallet);
-        expect(setUpResult.transactions).toHaveTransaction({
-            from: deployer.address,
-            to: masterChef.address,
-            success: true,
-            op: 0xb2d7f2a9,
         });
     });
 
