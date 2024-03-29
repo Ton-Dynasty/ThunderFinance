@@ -94,14 +94,21 @@ class MerkleTree {
         }
         let proof = [];
         let sibling;
-        for (let i = 0; i < this.nodes.length - 1; i++) {
+        let isLeftNode = false;
+        while (index > 0) {
             if (index % 2 === 0) {
-                sibling = this.nodes[i + 1];
+                // If the node is a left node, get the right sibling
+                sibling = this.nodes[index + 1];
+                isLeftNode = true;
             } else {
-                sibling = this.nodes[i - 1];
+                // If the node is a right node, get the left sibling
+                sibling = this.nodes[index - 1];
+                isLeftNode = false;
             }
-            index = index / 2;
+            // Store the sibling
             proof.push(sibling);
+            // Move up the tree
+            index = Math.floor((index - 1) / 2);
         }
         return proof;
     }
@@ -142,7 +149,7 @@ describe('MerkleDistributor', () => {
         totalAirdropAmount = 0n;
         users = [];
         balances = [];
-        for (let i = 0; i < 2; i++) {
+        for (let i = 0; i < 6; i++) {
             let _amount = BigInt(i + 1) * DECIMALS;
             users.push(await blockchain.treasury(`user-${i}`));
             balances.push({
@@ -207,13 +214,11 @@ describe('MerkleDistributor', () => {
 
     it('Should claim airdrop for user-1', async () => {
         const leaf = packLeafNodes(balances);
-        console.log(
-            'Leaf 1: ',
-            leaf.map((l) => l.toString('hex')),
-        );
+        console.log("All leaves",leaf.map(l=>l.toString('hex')))
         const proof = merkleTree.getHexProof(leaf[1]);
         const merkleProof = beginCell();
         merkleProof.storeUint(proof.length, 32);
+        console.log('Proof length: ', proof.length);
         for (let i = 0; i < proof.length; i++) {
             merkleProof.storeUint(BigInt(`0x${proof[i].toString('hex')}`), 256);
         }
