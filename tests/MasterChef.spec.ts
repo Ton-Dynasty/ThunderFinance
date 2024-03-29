@@ -16,8 +16,8 @@ describe('MasterChef', () => {
     let miniChef: SandboxContract<MiniChef>;
     let usdt: SandboxContract<JettonMasterUSDT>;
     let masterChefJettonWallet: SandboxContract<JettonWalletUSDT>;
-    let thunderMintJettonWallet: SandboxContract<JettonWalletUSDT>;
     let deployerJettonWallet: SandboxContract<JettonWalletUSDT>;
+    let thunderMintJettonWallet: SandboxContract<JettonWalletUSDT>;
     let kitchen: SandboxContract<Kitchen>;
     let rewardPerSecond: bigint;
     let seed: bigint;
@@ -233,18 +233,17 @@ describe('MasterChef', () => {
         masterChefJettonWallet = blockchain.openContract(
             await JettonWalletUSDT.fromInit(masterChef.address, usdt.address),
         );
-        thunderMintJettonWallet = blockchain.openContract(
-            await JettonWalletUSDT.fromInit(thunderMint.address, usdt.address),
-        );
         rewardPerSecond = 1n * 10n ** 5n;
 
         await usdt.send(deployer.getSender(), { value: toNano('1') }, 'Mint:1');
         deployerJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(deployer.address, usdt.address));
-
+        thunderMintJettonWallet = blockchain.openContract(
+            await JettonWalletUSDT.fromInit(thunderMint.address, usdt.address),
+        );
         const kitcherResult = await kitchen.send(
             deployer.getSender(),
             {
-                value: toNano('0.05'),
+                value: toNano('0.5'),
             },
             {
                 $$type: 'Deploy',
@@ -267,8 +266,8 @@ describe('MasterChef', () => {
             {
                 $$type: 'BuildMasterChef',
                 owner: deployer.address,
-                thunderMintWallet: thunderMintJettonWallet.address,
-                thunderMintJettonWallet: thunderMintJettonWallet.address,
+                thunderMintWallet: thunderMint.address,
+                thunderMintJettonWallet: deployerJettonWallet.address,
             },
         );
 
@@ -551,8 +550,6 @@ describe('MasterChef', () => {
         const userJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(user.address, usdt.address));
         // deposit first
         await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
-        // get the balance of usdt before withdraw
-        const userUSDTBalanceBefore = (await userJettonWallet.getGetWalletData()).balance;
 
         // withdraw
         blockchain.now!! += periodTime;
@@ -564,9 +561,61 @@ describe('MasterChef', () => {
             success: true,
             op: 0x097bb407,
         });
+        const masterChefDataAfterWithdraw = await masterChef.getGetMasterChefData();
+        // Make sure that tonForDevs is recorded after user withdraw
+        expect(masterChefDataAfterWithdraw.tonForDevs).toEqual(10000000n); // Withdraw's fee is 0.1 TON
+
+        // Update time to periodTime, so that we can harvest
+        blockchain.now!! += periodTime;
+        // User send Harvest to MasterChef
+        await harvest(masterChef, user, masterChefJettonWallet);
+        const masterChefDataAfterHarvest = await masterChef.getGetMasterChefData();
+        expect(masterChefDataAfterHarvest.tonForDevs).toEqual(20000000n); // Harvest's fee is 0.1 TON and add Withdraw's fee = 0.2 TON
+
+        // Send Collect Msg to MasterChef
+        let thunderMintTonBefore = await thunderMint.getBalance();
+        //let thunderJettonBefore = (await thunderMintJettonWallet.getGetWalletData()).balance;
+        let count = 5n;
+        // Increase fees for devs
+        for (let i = 0; i < count; i++) {
+            await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
+            // withdraw
+            blockchain.now!! += periodTime;
+            await withdraw(masterChef, user, masterChefJettonWallet, userWithdrawAmount);
+        }
         const masterChefData = await masterChef.getGetMasterChefData();
-        // Make sure that tonForDevs is recorded
-        expect(masterChefData.tonForDevs).toEqual(10000000n); // We only withraw 1 time, so the fee is 0.1 TON
+        const collectResult = await masterChef.send(deployer.getSender(), { value: toNano('1') }, 'Collect');
+        let thunderMintTonAfter = await thunderMint.getBalance();
+        let thunderJettonAfter = (await thunderMintJettonWallet.getGetWalletData()).balance;
+        let diffTON = thunderMintTonAfter - thunderMintTonBefore;
+
+        // Check if the MasterChef send TON to ThunderMint
+        expect(diffTON).toBeGreaterThan(0);
+        expect(thunderMintTonAfter).toBeGreaterThanOrEqual(masterChefData.tonForDevs);
+
+        // Check if the MasterChef send Reward jetton to ThunderMint
+        expect(thunderJettonAfter).toEqual(masterChefData.jettonForDevs);
+
+        expect(collectResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: masterChef.address,
+            success: true,
+        });
+        expect(collectResult.transactions).toHaveTransaction({
+            from: masterChef.address,
+            to: masterChefJettonWallet.address,
+            success: true,
+        });
+        expect(collectResult.transactions).toHaveTransaction({
+            from: masterChefJettonWallet.address,
+            to: thunderMintJettonWallet.address,
+            success: true,
+        });
+        expect(collectResult.transactions).toHaveTransaction({
+            from: thunderMintJettonWallet.address,
+            to: thunderMint.address,
+            success: true,
+        });
     });
 });
 
