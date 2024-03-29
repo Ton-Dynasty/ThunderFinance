@@ -11,10 +11,12 @@ describe('MasterChef', () => {
     let blockchain: Blockchain;
     let deployer: SandboxContract<TreasuryContract>;
     let user: SandboxContract<TreasuryContract>;
+    let thunderMint: SandboxContract<TreasuryContract>;
     let masterChef: SandboxContract<MasterChef>;
     let miniChef: SandboxContract<MiniChef>;
     let usdt: SandboxContract<JettonMasterUSDT>;
     let masterChefJettonWallet: SandboxContract<JettonWalletUSDT>;
+    let thunderMintJettonWallet: SandboxContract<JettonWalletUSDT>;
     let deployerJettonWallet: SandboxContract<JettonWalletUSDT>;
     let kitchen: SandboxContract<Kitchen>;
     let rewardPerSecond: bigint;
@@ -200,11 +202,15 @@ describe('MasterChef', () => {
         blockchain.now = Math.floor(Date.now() / 1000);
         deployer = await blockchain.treasury('deployer');
         user = await blockchain.treasury('user');
+        thunderMint = await blockchain.treasury('thunderMint');
         kitchen = await blockchain.openContract(await Kitchen.fromInit(deployer.address));
         usdt = blockchain.openContract(await JettonMasterUSDT.fromInit(deployer.address, beginCell().endCell()));
         masterChef = blockchain.openContract(await MasterChef.fromInit(deployer.address, seed));
         masterChefJettonWallet = blockchain.openContract(
             await JettonWalletUSDT.fromInit(masterChef.address, usdt.address),
+        );
+        thunderMintJettonWallet = blockchain.openContract(
+            await JettonWalletUSDT.fromInit(thunderMint.address, usdt.address),
         );
         rewardPerSecond = 1n * 10n ** 5n;
 
@@ -237,6 +243,8 @@ describe('MasterChef', () => {
             {
                 $$type: 'BuildMasterChef',
                 owner: deployer.address,
+                thunderMintWallet: thunderMintJettonWallet.address,
+                thunderMintJettonWallet: thunderMintJettonWallet.address,
             },
         );
 
