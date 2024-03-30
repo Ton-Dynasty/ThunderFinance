@@ -13,7 +13,6 @@ import { MerkleDistributor } from '../wrappers/MerkleDistributor';
 import { AirdropFactory } from '../wrappers/AirdropFactory';
 import { MerkleTree, IBalance, hashLeafNodes, packProof } from '../utils/MerkleTree';
 import { PublicDistributor } from '../build/MerkleDistributor/tact_PublicDistributor';
-import exp from 'constants';
 
 const DECIMALS = BigInt(10 ** 6);
 const NUMBER_OF_RECEIPIENT = 2000;
@@ -112,6 +111,7 @@ describe('Airdrop Factory - Merkle Distributor', () => {
                 merkleRoot: BigInt('0x' + merkleTree.getRoot().toString('hex')),
                 airDropJettonWallet: distributorJettonWallet.address,
                 seed: seed,
+                metadataUri: beginCell().storeStringTail('https://').endCell(),
             },
         );
 
@@ -122,7 +122,6 @@ describe('Airdrop Factory - Merkle Distributor', () => {
             to: distributor.address,
             success: true,
             deploy: true,
-            op: 0x7654321,
         });
 
         const deployerJettonData = await deployerJettonWallet.getGetWalletData();
@@ -344,6 +343,7 @@ describe('Airdrop Factory - Public Distributor', () => {
                 jettonPerDrop: jettonPerDrop,
                 airDropJettonWallet: distributorJettonWallet.address,
                 seed: seed,
+                metadataUri: beginCell().storeStringTail('https://').endCell(),
             },
         );
 
