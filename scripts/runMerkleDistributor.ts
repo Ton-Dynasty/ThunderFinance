@@ -5,14 +5,16 @@ import { IBalance, MerkleTree, hashLeafNodes, packBalance, packProof } from '../
 import { MerkleDistributor } from '../wrappers/MerkleDistributor';
 import { JettonMasterUSDT } from '../wrappers/JettonMaster';
 import { JettonWalletUSDT } from '../wrappers/JettonWallet';
+import { loadDeployment, updateDeployment } from '../utils/helper';
 
 export async function run(provider: NetworkProvider) {
-    const factoryAddress = Address.parse('EQBx6RIJiom-Us6KlJxwWucuHOEbwZSxmB4lp2B6-4zmJmdx');
-    const usdtAddress = Address.parse('kQB1jlLbl_nQE4Y-1-9_HT-8IZgiCn5u7uC3bVueOC6KJq6R');
+    const deployInfo = await loadDeployment();
+    const factoryAddress = Address.parse(deployInfo.AirdropFactory);
+    const usdtAddress = Address.parse(deployInfo.USDT);
 
     console.log('Sender address', provider.sender().address!!);
 
-    const seed = BigInt(`0x${beginCell().storeUint(Date.now(), 32).endCell().hash()}`);
+    const seed = BigInt(`0x${beginCell().storeUint(Date.now(), 128).endCell().hash().toString('hex')}`);
 
     // open factory contract
     const factory = provider.open(AirdropFactory.fromAddress(factoryAddress));
@@ -36,7 +38,7 @@ export async function run(provider: NetworkProvider) {
     await factory.send(
         provider.sender(),
         {
-            value: toNano('0.05'),
+            value: toNano('1'),
         },
         {
             $$type: 'CreateAirdropPrivate',
@@ -48,19 +50,32 @@ export async function run(provider: NetworkProvider) {
     );
     await provider.waitForDeploy(factory.address);
 
+    if (await provider.isContractDeployed(info.address)) {
+        await updateDeployment('MerkleDistributor', info.address.toString());
+    }
+
+    // mint usdt (uncomment if needed)
+    // await usdt.send(
+    //     provider.sender(),
+    //     {
+    //         value: toNano('1'),
+    //     },
+    //     'Mint:1',
+    // );
+
     // transfer usdt to distributor
     const myJettonWallet = provider.open(await JettonWalletUSDT.fromInit(provider.sender().address!!, usdt.address));
     await myJettonWallet.send(
         provider.sender(),
-        { value: toNano('0.5') },
+        { value: toNano('1') },
         {
             $$type: 'JettonTransfer',
             query_id: BigInt(1),
-            amount: BigInt(100 * 10 ** 6),
+            amount: airdropList.reduce((acc, item) => acc + item.amount, 0n),
             destination: info.address,
             custom_payload: null,
             response_destination: provider.sender().address!!,
-            forward_ton_amount: BigInt(0),
+            forward_ton_amount: toNano('0.1'),
             forward_payload: beginCell().endCell(),
         },
     );
@@ -75,7 +90,7 @@ export async function run(provider: NetworkProvider) {
     await distributor.send(
         provider.sender(),
         {
-            value: toNano('0.5'),
+            value: toNano('1'),
         },
         {
             $$type: 'Claim',

@@ -1,5 +1,16 @@
 import { promises as fs } from 'fs';
 
+export async function loadDeployment() {
+    try {
+        const filePath = './deployments/deployment.json';
+        const data = await fs.readFile(filePath, 'utf8');
+        return JSON.parse(data);
+    } catch (error) {
+        console.error('Error reading JSON file:', error);
+        return {};
+    }
+}
+
 export async function updateDeployment(key: string, value: any): Promise<void> {
     try {
         // mkdir
