@@ -283,6 +283,18 @@ describe('MasterChef', () => {
         expect(poolData.lpTokenAddress.toString()).toBe(masterChefJettonWallet.address.toString());
     });
 
+    it('Should revert if owner add pool and its total allocate point exceeds 10000', async () => {
+        const allocPoint = 10001n;
+        const addPoolResult = await addPool(masterChef, masterChefJettonWallet, allocPoint);
+        // Send AddPool to MasterChef
+        expect(addPoolResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: masterChef.address,
+            success: false,
+            exitCode: 25081, // total alloc point exceeds 10000
+        });
+    });
+
     it('Should user deposit usdt to master chef and update pool', async () => {
         await addPool(masterChef, masterChefJettonWallet);
         const userDepositAmount = 1n * 10n ** 6n;

@@ -248,6 +248,7 @@ contract MasterChef with Deployable {
         self.requireInitialized();
         require(sender() == self.owner, "only owner can add pool");
         require(self.pools.get(msg.lpTokenAddress) == null , "pool already exist");
+        require(self.totalAllocPoint + msg.allocPoint <= 10000, "total alloc point exceeds 10000");
         self.totalAllocPoint = self.totalAllocPoint + msg.allocPoint;
         let poolInfo: PoolInfo = PoolInfo{
             allocPoint: msg.allocPoint,
