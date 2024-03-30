@@ -178,7 +178,6 @@ describe('MasterChef', () => {
                 lpTokenAddress: masterChefJettonWallet.address,
                 amount: userWithdrawAmount,
                 sender: user.address,
-                rewardDebt: 0n,
                 beneficiary: user.address,
             },
         );
@@ -475,7 +474,7 @@ describe('MasterChef', () => {
             from: user.address,
             to: masterChef.address,
             success: false,
-            op: 0x997b0dff,
+            op: 0xdc4c8b1a,
             exitCode: 33311, //unexpected sender
         });
     });
