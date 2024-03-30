@@ -172,7 +172,6 @@ describe('MasterChef', () => {
     beforeEach(async () => {
         // Init the blockchain
         blockchain = await Blockchain.create();
-        seed = 0n;
         blockchain.now = Math.floor(Date.now() / 1000);
 
         // Characters
@@ -183,6 +182,7 @@ describe('MasterChef', () => {
         // Contracts
         kitchen = await blockchain.openContract(await Kitchen.fromInit(deployer.address)); // MasterChef Factory
         usdt = blockchain.openContract(await JettonMasterUSDT.fromInit(deployer.address, beginCell().endCell())); // Reward token and LP token
+        seed = BigInt(`0x${beginCell().storeUint(Date.now(), 64).endCell().hash().toString('hex')}`); // Seed for MasterChef
         masterChef = blockchain.openContract(await MasterChef.fromInit(deployer.address, seed)); // MasterChef contract
         masterChefJettonWallet = blockchain.openContract(
             await JettonWalletUSDT.fromInit(masterChef.address, usdt.address),
@@ -219,6 +219,7 @@ describe('MasterChef', () => {
             {
                 $$type: 'BuildMasterChef',
                 owner: deployer.address,
+                seed: seed,
                 thunderMintWallet: thunderMint.address,
                 thunderMintJettonWallet: deployerJettonWallet.address,
                 rewardWallet: masterChefJettonWallet.address,

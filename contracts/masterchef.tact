@@ -91,7 +91,6 @@ message Initialize {
 
 message SetUp {
     owner: Address; // Owner of the MasterChef
-    seed: Int; // Seed for the MasterChef
     rewardWallet: Address; // MasterChef Wallet address for reward jetton
     thunderMintWallet: Address; // ThunderMint Wallet address to collect the fee in TON
     thunderMintJettonWallet: Address; // ThunderMint Wallet address to collect the fee in Jetton
@@ -109,10 +108,12 @@ struct MasterChefData {
     tonForDevs: Int; // TON for ThunderMint
     jettonForDevs: Int; // Jetton for ThunderMint
     pools: map<Address, PoolInfo>; // Pool Info
+    metaData: Cell; // MetaData for the MasterChef
 }
 
 message BuildMasterChef {
     owner: Address; // Owner of the MasterChef
+    seed: Int as uint256; // Seed for the MasterChef
     thunderMintWallet: Address; // ThunderMint Wallet address to collect the fee in TON
     thunderMintJettonWallet: Address; // ThunderMint Wallet address to collect the fee in Jetton
     rewardWallet: Address; // MasterChef Wallet address for reward jetton
@@ -131,22 +132,19 @@ const ACC_PRECISION: Int = 1000000; // Precision for the accumulated reward per 
 // Kithcen Contract (MasterChef Factory) is used to deploy the MasterChef
 contract Kitchen with Deployable {
     owner: Address;
-    seed: Int;
     init(owner: Address) {
         self.owner = owner;
-        self.seed = 0;
     }
 
     // Deploy MasterChef
     receive(msg: BuildMasterChef) {
-        let initCode: StateInit = self._calculateMasterChef(msg.owner,self.seed);
+        let initCode: StateInit = self._calculateMasterChef(msg.owner,msg.seed);
         send(SendParameters{
                 to: contractAddress(initCode),
                 value: 0,
                 mode: SendRemainingValue,
                 body: SetUp{
                     owner: msg.owner,
-                    seed: self.seed,
                     thunderMintWallet: msg.thunderMintWallet,
                     thunderMintJettonWallet: msg.thunderMintJettonWallet,
                     rewardWallet: msg.rewardWallet,
@@ -156,7 +154,6 @@ contract Kitchen with Deployable {
                 data: initCode.data
             }
         );
-        self.seed = self.seed + 1;
     }
 
     inline fun _calculateMasterChef(owner: Address, seed: Int): StateInit {
@@ -168,11 +165,6 @@ contract Kitchen with Deployable {
     get fun getMasterChefAddress(owner: Address, seed: Int): Address {
         let initCode: StateInit = self._calculateMasterChef(owner, seed);
         return contractAddress(initCode);
-    }
-
-    // Get Seed count
-    get fun getSeed(): Int {
-        return self.seed;
     }
 }
 
@@ -187,7 +179,6 @@ contract MasterChef with Deployable {
     totalAllocPoint: Int = 0;
     createdAt: Int as uint64 = 0;
     deadline: Int as uint64 = 0;
-    seed: Int;
     metaData: Cell;
 
     // for reward jetton
@@ -203,15 +194,14 @@ contract MasterChef with Deployable {
     tonForDevs: Int = 0;
 
     // initialize the contract with owner and reward jetton wallet address
-    init(owner: Address, seed: Int) {
+    init(owner: Address, _seed: Int) {
         self.owner = owner;
         self.isInitialized = false;
         self.rewardWallet = newAddress(0, 0);
-        self.seed = seed;
         self.thunderMintWallet = newAddress(0, 0);
         self.thunderMintJettonWallet = newAddress(0, 0);
         self.metaData = emptyCell();
-        emit(DeployMasterChef{owner: owner, seed: seed}.toCell());
+        emit(DeployMasterChef{owner: owner, seed: _seed}.toCell());
     }
 
     // Kitchen contract will send this message to initialize the MasterChef
@@ -501,7 +491,8 @@ contract MasterChef with Deployable {
             totalAllocPoint: self.totalAllocPoint,
             tonForDevs: self.tonForDevs,
             jettonForDevs: self.jettonForDevs,
-            pools: self.pools
+            pools: self.pools,
+            metaData: self.metaData
         };
     }
 
