@@ -599,5 +599,15 @@ contract MiniChef with Deployable {
         return self.userInfo.get(lpTokenAddress)!!;
     }
 
+    // Get Owner of the MiniChef
+    get fun getOwner(): Address {
+        return self.owner;
+    }
+
+    // Get MasterChef Address
+    get fun getMasterChef(): Address {
+        return self.masterChef;
+    }
+
 }
 
