@@ -410,9 +410,10 @@ describe('Airdrop Factory - Public Distributor', () => {
         const userJettonWallet = blockchain.openContract(
             await JettonWalletUSDT.fromInit(users[1].address, usdt.address),
         );
-
+        let remainDropBefore = (await distributor.getGetParams()).remainingDrops;
         const claimResult = await distributor.send(users[1].getSender(), { value: toNano('1') }, 'claim');
-
+        let remainDropAfter = (await distributor.getGetParams()).remainingDrops;
+        expect(remainDropBefore - 1n).toEqual(remainDropAfter);
         expect(claimResult.transactions).toHaveTransaction({
             from: users[1].address,
             to: distributor.address,
@@ -442,11 +443,16 @@ describe('Airdrop Factory - Public Distributor', () => {
             await JettonWalletUSDT.fromInit(users[1].address, usdt.address),
         );
 
+        let remainDropBefore = (await distributor.getGetParams()).remainingDrops;
         await distributor.send(users[1].getSender(), { value: toNano('1') }, 'claim');
+        let remainDropAfter = (await distributor.getGetParams()).remainingDrops;
+        expect(remainDropBefore - 1n).toEqual(remainDropAfter);
 
         const userJettonAfter1 = (await userJettonWallet.getGetWalletData()).balance;
 
         const getAirdropTwiceResult = await distributor.send(users[1].getSender(), { value: toNano('1') }, 'claim');
+        let remainDropAfterClaim2rd = (await distributor.getGetParams()).remainingDrops;
+        expect(remainDropAfterClaim2rd).toEqual(remainDropAfter);
 
         const userJettonAfter2 = (await userJettonWallet.getGetWalletData()).balance;
 
