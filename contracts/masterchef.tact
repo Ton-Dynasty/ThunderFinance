@@ -123,7 +123,7 @@ message BuildMasterChef {
 // Event: Deploy MasterChef
 message DeployMasterChef {
     owner: Address; // Owner of the MasterChef
-    seed: Int; // Seed for the MasterChef
+    seed: Int as uint256; // Seed for the MasterChef
 }
 
 const THUNDER_FEE: Int = ton("0.01"); // User have to pay the fee to ThunderMint
