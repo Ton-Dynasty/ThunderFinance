@@ -108,6 +108,7 @@ struct MasterChefData {
     totalAllocPoint: Int; // Total allocation point
     tonForDevs: Int; // TON for ThunderMint
     jettonForDevs: Int; // Jetton for ThunderMint
+    pools: map<Address, PoolInfo>; // Pool Info
 }
 
 message BuildMasterChef {
@@ -499,7 +500,8 @@ contract MasterChef with Deployable {
             isInitialized: self.isInitialized,
             totalAllocPoint: self.totalAllocPoint,
             tonForDevs: self.tonForDevs,
-            jettonForDevs: self.jettonForDevs
+            jettonForDevs: self.jettonForDevs,
+            pools: self.pools
         };
     }
 
