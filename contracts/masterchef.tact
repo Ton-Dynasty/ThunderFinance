@@ -6,6 +6,29 @@ import "./packages/utils/data.fc";
 @name(build_content_cell)
 native build_content_cell(metadata_uri: Slice): Cell;
 
+// Messages
+// For Kithcen Contract
+message(0x89265822) BuildMasterChef {
+    owner: Address; // Owner of the MasterChef
+    seed: Int as uint256; // Seed for the MasterChef
+    thunderMintWallet: Address; // ThunderMint Wallet address to collect the fee in TON
+    thunderMintJettonWallet: Address; // ThunderMint Wallet address to collect the fee in Jetton
+    mcRewardJettonWallet: Address; // MasterChef Wallet address for reward jetton
+    metaData: Slice; // MetaData for the MasterChef
+}
+
+// For MasterChef Contract
+message(0xc1c45a7c) Initialize {
+    rewardJettonContent: Cell; // jetton content for reward token
+}
+
+message(0xf6cf7e6c) SetUp {
+    owner: Address; // Owner of the MasterChef
+    mcRewardJettonWallet: Address; // MasterChef Wallet address for reward jetton
+    thunderMintWallet: Address; // ThunderMint Wallet address to collect the fee in TON
+    thunderMintJettonWallet: Address; // ThunderMint Wallet address to collect the fee in Jetton
+    metaData: Slice; // MetaData for the MasterChef
+}
 message(0x4b7d1ae4) AddPool{
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
     allocPoint: Int; // How many allocation points assigned to this pool. (Total Allocation Point must be less than or equal to 10000)
@@ -15,44 +38,11 @@ message(0x5e653b7f) UpdatePool {
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
 }
 
-message(0x6ba1d82e) UserDeposit {
-    queryId: Int as uint64;
-    lpTokenAddress: Address; // Pool Factory LP token Wallet address
-    amount: Int as coins; // Amount of LP token user sended to the pool
-    rewardDebt: Int; // Users new reward debt after deposit
-}
-
-struct PoolInfo {
-    allocPoint: Int; // How many allocation points assigned to this pool. (Total Allocation Point must be less than or equal to 10000)
-    lastRewardBlock: Int as uint256; // Last block number that reward distribution occurs
-    accRewardPerShare: Int as coins; // Accumulated reward per share
-    lpSupply: Int as coins; // Total amount of LP token that user deposited in the pool
-    lpTokenAddress: Address; // Pool Factory LP token Wallet address
-}
-
-
-struct UserInfo {
-    amount: Int as coins; // How many LP tokens the user has provided
-    rewardDebt: Int; // Reward user received
-}
-
-
 message(0x097bb407) Withdraw {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
     amount: Int as coins; // Amount of LP token user want to withdraw
     beneficiary: Address; // The one who will receive the LP token
-}
-
-
-
-message(0x81732891) WithdrawInternal {
-    queryId: Int as uint64;
-    lpTokenAddress: Address; // Pool Factory LP token Wallet address
-    amount: Int as coins; // Amount of LP token user want to withdraw
-    rewardDebt: Int; // Users new reward debt after withdraw
-    beneficiary: Address; // The one who will receive the LP token
-    sender: Address; // The one who withdrawed the LP token
 }
 
 message(0xdc4c8b1a)WithdrawInternalReply {
@@ -69,13 +59,6 @@ message(0x8839dc49) Harvest {
     beneficiary: Address; // the one who will receive the reward
 }
 
-message(0x925d0240) HarvestInternal {
-    queryId: Int as uint64;
-    lpTokenAddress: Address; // Pool Factory LP token Wallet address
-    beneficiary: Address; // the one who will receive the reward
-    accRewardPerShare: Int as coins; // New accumulated reward per share after harvest
-}
-
 message(0x952bcd19) HarvestInternalReply {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
@@ -84,17 +67,49 @@ message(0x952bcd19) HarvestInternalReply {
     sender: Address; // The one who harvested the reward
 }
 
-
-message(0xc1c45a7c) Initialize {
-    rewardJettonContent: Cell; // jetton content for reward token
+// For MiniChef Contract
+message(0x6ba1d82e) UserDeposit {
+    queryId: Int as uint64;
+    lpTokenAddress: Address; // Pool Factory LP token Wallet address
+    amount: Int as coins; // Amount of LP token user sended to the pool
+    rewardDebt: Int; // Users new reward debt after deposit
 }
 
-message(0xf6cf7e6c) SetUp {
+message(0x81732891) WithdrawInternal {
+    queryId: Int as uint64;
+    lpTokenAddress: Address; // Pool Factory LP token Wallet address
+    amount: Int as coins; // Amount of LP token user want to withdraw
+    rewardDebt: Int; // Users new reward debt after withdraw
+    beneficiary: Address; // The one who will receive the LP token
+    sender: Address; // The one who withdrawed the LP token
+}
+
+message(0x925d0240) HarvestInternal {
+    queryId: Int as uint64;
+    lpTokenAddress: Address; // Pool Factory LP token Wallet address
+    beneficiary: Address; // the one who will receive the reward
+    accRewardPerShare: Int as coins; // New accumulated reward per share after harvest
+}
+
+// Event: Deploy MasterChef
+message(0xd1a0507d) DeployMasterChef {
     owner: Address; // Owner of the MasterChef
-    mcRewardJettonWallet: Address; // MasterChef Wallet address for reward jetton
-    thunderMintWallet: Address; // ThunderMint Wallet address to collect the fee in TON
-    thunderMintJettonWallet: Address; // ThunderMint Wallet address to collect the fee in Jetton
-    metaData: Slice; // MetaData for the MasterChef
+    seed: Int as uint256; // Seed for the MasterChef
+}
+
+// Structs
+
+struct PoolInfo {
+    allocPoint: Int; // How many allocation points assigned to this pool. (Total Allocation Point must be less than or equal to 10000)
+    lastRewardBlock: Int as uint256; // Last block number that reward distribution occurs
+    accRewardPerShare: Int as coins; // Accumulated reward per share
+    lpSupply: Int as coins; // Total amount of LP token that user deposited in the pool
+    lpTokenAddress: Address; // Pool Factory LP token Wallet address
+}
+
+struct UserInfo {
+    amount: Int as coins; // How many LP tokens the user has provided
+    rewardDebt: Int; // Reward user received
 }
 
 struct MasterChefData {
@@ -109,21 +124,6 @@ struct MasterChefData {
     jettonForDevs: Int; // Jetton for ThunderMint
     pools: map<Address, PoolInfo>; // Pool Info
     metaData: Cell; // MetaData for the MasterChef
-}
-
-message(0x89265822) BuildMasterChef {
-    owner: Address; // Owner of the MasterChef
-    seed: Int as uint256; // Seed for the MasterChef
-    thunderMintWallet: Address; // ThunderMint Wallet address to collect the fee in TON
-    thunderMintJettonWallet: Address; // ThunderMint Wallet address to collect the fee in Jetton
-    mcRewardJettonWallet: Address; // MasterChef Wallet address for reward jetton
-    metaData: Slice; // MetaData for the MasterChef
-}
-
-// Event: Deploy MasterChef
-message(0xd1a0507d) DeployMasterChef {
-    owner: Address; // Owner of the MasterChef
-    seed: Int as uint256; // Seed for the MasterChef
 }
 
 const THUNDER_FEE: Int = ton("0.01"); // User have to pay the fee to ThunderMint
@@ -156,6 +156,8 @@ contract Kitchen with Deployable {
         );
     }
 
+    // Internal Functions //
+    // Calculate MasterChef init code
     inline fun _calculateMasterChef(owner: Address, seed: Int): StateInit {
         return initOf MasterChef(owner,seed);
     }
