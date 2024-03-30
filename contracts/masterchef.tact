@@ -2,47 +2,46 @@ import "@stdlib/deploy";
 import "./packages/token/jetton/JettonMaster.tact";
 import "./packages/utils/data.fc";
 
+// This function is used to build the content(meta data) cell for the MasterChef
 @name(build_content_cell)
 native build_content_cell(metadata_uri: Slice): Cell;
 
 message AddPool{
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
-    allocPoint: Int;
+    allocPoint: Int; // How many allocation points assigned to this pool. (Total Allocation Point must be less than or equal to 10000)
 }
 
 message UpdatePool {
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
 }
 
-
-// Create User Pool 
 message UserDeposit {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
-    amount: Int as coins;
-    rewardDebt: Int;
+    amount: Int as coins; // Amount of LP token user sended to the pool
+    rewardDebt: Int; // Users new reward debt after deposit
 }
 
 struct PoolInfo {
-    allocPoint: Int;
-    lastRewardBlock: Int as uint256;
-    accRewardPerShare: Int as coins;
-    lpSupply: Int as coins;
-    lpTokenAddress: Address;
+    allocPoint: Int; // How many allocation points assigned to this pool. (Total Allocation Point must be less than or equal to 10000)
+    lastRewardBlock: Int as uint256; // Last block number that reward distribution occurs
+    accRewardPerShare: Int as coins; // Accumulated reward per share
+    lpSupply: Int as coins; // Total amount of LP token that user deposited in the pool
+    lpTokenAddress: Address; // Pool Factory LP token Wallet address
 }
 
 
 struct UserInfo {
-    amount: Int as coins;
-    rewardDebt: Int;
+    amount: Int as coins; // How many LP tokens the user has provided
+    rewardDebt: Int; // Reward user received
 }
 
 
 message Withdraw {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
-    amount: Int as coins;
-    beneficiary: Address;
+    amount: Int as coins; // Amount of LP token user want to withdraw
+    beneficiary: Address; // The one who will receive the LP token
 }
 
 
@@ -50,19 +49,18 @@ message Withdraw {
 message WithdrawInternal {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
-    amount: Int as coins;
-    rewardDebt: Int;
-    beneficiary: Address;
-    sender: Address;
+    amount: Int as coins; // Amount of LP token user want to withdraw
+    rewardDebt: Int; // Users new reward debt after withdraw
+    beneficiary: Address; // The one who will receive the LP token
+    sender: Address; // The one who withdrawed the LP token
 }
 
 message WithdrawInternalReply {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
-    amount: Int as coins;
-    sender: Address;
-    rewardDebt: Int;
-    beneficiary: Address;
+    amount: Int as coins; // Amount of LP token user want to withdraw
+    sender: Address; // The one who withdrawed the LP token
+    beneficiary: Address; // The one who will receive the LP token
 }
 
 message Harvest {
@@ -75,84 +73,61 @@ message HarvestInternal {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
     beneficiary: Address; // the one who will receive the reward
-    accRewardPerShare: Int as coins;
+    accRewardPerShare: Int as coins; // New accumulated reward per share after harvest
 }
 
 message HarvestInternalReply {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
     beneficiary: Address; // the one who will receive the reward
-    reward: Int as coins;
-    sender: Address;
+    reward: Int as coins; // Amount of reward user will receive
+    sender: Address; // The one who harvested the reward
 }
 
-message WithdrawAndHarvest {
-    queryId: Int as uint64;
-    lpTokenAddress: Address; // Pool Factory LP token Wallet address
-    amount: Int as coins;
-    beneficiary: Address;
-}
-
-message WithdrawAndHarvestInternal {
-    queryId: Int as uint64;
-    lpTokenAddress: Address; // Pool Factory LP token Wallet address
-    amount: Int as coins;
-    accRewardPerShare: Int as coins;
-    beneficiary: Address;
-    sender: Address;
-}
-
-message WithdrawAndHarvestReply {
-    queryId: Int as uint64;
-    lpTokenAddress: Address; // Pool Factory LP token Wallet address
-    beneficiary: Address; // the one who will receive the reward
-    reward: Int as coins;
-    amount: Int as coins;
-    sender: Address;
-}
 
 message Initialize {
     rewardJettonContent: Cell; // jetton content for reward token
 }
 
 message SetUp {
-    owner: Address;
-    seed: Int;
-    rewardWallet: Address;
-    thunderMintWallet: Address;
-    thunderMintJettonWallet: Address;
-    metaData: Slice;
+    owner: Address; // Owner of the MasterChef
+    seed: Int; // Seed for the MasterChef
+    rewardWallet: Address; // MasterChef Wallet address for reward jetton
+    thunderMintWallet: Address; // ThunderMint Wallet address to collect the fee in TON
+    thunderMintJettonWallet: Address; // ThunderMint Wallet address to collect the fee in Jetton
+    metaData: Slice; // MetaData for the MasterChef
 }
 
 struct MasterChefData {
-    owner: Address;
-    rewardWallet: Address;
-    rewardPerSecond: Int as coins;
-    createdAt: Int as uint64;
-    deadline: Int as uint64;
-    isInitialized: Bool;
-    totalAllocPoint: Int;
-    tonForDevs: Int;
-    jettonForDevs: Int;
+    owner: Address; // Owner of the MasterChef
+    rewardWallet: Address; // MasterChef Wallet address for reward jetton
+    rewardPerSecond: Int as coins; // Reward per second
+    createdAt: Int as uint64; // MasterChef Created at block number
+    deadline: Int as uint64; // MasterChef distribution deadline
+    isInitialized: Bool; // MasterChef is initialized or not
+    totalAllocPoint: Int; // Total allocation point
+    tonForDevs: Int; // TON for ThunderMint
+    jettonForDevs: Int; // Jetton for ThunderMint
 }
 
 message BuildMasterChef {
-    owner: Address;
-    thunderMintWallet: Address;
-    thunderMintJettonWallet: Address;
-    rewardWallet: Address;
-    metaData: Slice;
+    owner: Address; // Owner of the MasterChef
+    thunderMintWallet: Address; // ThunderMint Wallet address to collect the fee in TON
+    thunderMintJettonWallet: Address; // ThunderMint Wallet address to collect the fee in Jetton
+    rewardWallet: Address; // MasterChef Wallet address for reward jetton
+    metaData: Slice; // MetaData for the MasterChef
 }
 
-
+// Event: Deploy MasterChef
 message DeployMasterChef {
-    owner: Address;
-    seed: Int;
+    owner: Address; // Owner of the MasterChef
+    seed: Int; // Seed for the MasterChef
 }
 
 const THUNDER_FEE: Int = ton("0.01"); // User have to pay the fee to ThunderMint
-const ACC_PRECISION: Int = 1000000;
+const ACC_PRECISION: Int = 1000000; // Precision for the accumulated reward per share
 
+// Kithcen Contract (MasterChef Factory) is used to deploy the MasterChef
 contract Kitchen with Deployable {
     owner: Address;
     seed: Int;
@@ -161,6 +136,7 @@ contract Kitchen with Deployable {
         self.seed = 0;
     }
 
+    // Deploy MasterChef
     receive(msg: BuildMasterChef) {
         let initCode: StateInit = self._calculateMasterChef(msg.owner,self.seed);
         send(SendParameters{
@@ -186,8 +162,8 @@ contract Kitchen with Deployable {
         return initOf MasterChef(owner,seed);
     }
 
-    // Get Methods
-    // Get alarm address by alarm index
+    // Get Methods //
+    // Get masterChef address by its owner and seed
     get fun getMasterChefAddress(owner: Address, seed: Int): Address {
         let initCode: StateInit = self._calculateMasterChef(owner, seed);
         return contractAddress(initCode);
@@ -199,21 +175,24 @@ contract Kitchen with Deployable {
     }
 }
 
+// MasterChef Contract: Users deposit, withdraw and harvest their LP tokens in this contract
 contract MasterChef with Deployable {
     // State
     isInitialized: Bool = false;
 
-    // Pool
+    // Pool Info
     owner: Address;
     pools: map<Address, PoolInfo>;
     totalAllocPoint: Int = 0;
+    createdAt: Int as uint64 = 0;
+    deadline: Int as uint64 = 0;
+    seed: Int;
+    metaData: Cell;
 
     // for reward jetton
     rewardWallet: Address;
     rewardPerSecond: Int as coins = 0;
-    createdAt: Int as uint64 = 0;
-    deadline: Int as uint64 = 0;
-    seed: Int;
+
 
     // For ThunderMint
     thunderMintWallet: Address;
@@ -221,7 +200,6 @@ contract MasterChef with Deployable {
     Fee: Int = 3; // 0.3%
     jettonForDevs: Int = 0;
     tonForDevs: Int = 0;
-    metaData: Cell;
 
     // initialize the contract with owner and reward jetton wallet address
     init(owner: Address, seed: Int) {
@@ -235,6 +213,7 @@ contract MasterChef with Deployable {
         emit(DeployMasterChef{owner: owner, seed: seed}.toCell());
     }
 
+    // Kitchen contract will send this message to initialize the MasterChef
     receive(msg: SetUp) {
         self.requireNotInitialized();
         require(self.rewardWallet == newAddress(0, 0), "reward wallet already set");
@@ -244,10 +223,12 @@ contract MasterChef with Deployable {
         self.metaData = build_content_cell(msg.metaData);   
     }
 
+    // Owner send AddPool message to add a new pool
     receive(msg: AddPool){
         self.requireInitialized();
         require(sender() == self.owner, "only owner can add pool");
         require(self.pools.get(msg.lpTokenAddress) == null , "pool already exist");
+        require(self.totalAllocPoint + msg.allocPoint <= 10000, "total alloc point exceeds 10000");
         self.totalAllocPoint = self.totalAllocPoint + msg.allocPoint;
         let poolInfo: PoolInfo = PoolInfo{
             allocPoint: msg.allocPoint,
@@ -259,11 +240,14 @@ contract MasterChef with Deployable {
         self.pools.set(msg.lpTokenAddress,poolInfo);
     }
 
+    // Anyone can send this message to update the pool, recalculate the reward per share
     receive (msg: UpdatePool) {
         self.requireInitialized();
         self.updatePool(msg.lpTokenAddress);
     }
     
+    // Owner has to send Reward Jetton to the MasterChef first, so that MasterChef can distribute the reward to the users
+    // Users send JettonTransferNotification to the MasterChef to deposit their LP tokens
     receive(msg: JettonTransferNotification) {
         // context sender is from different kind of jetton wallet 
         let ctx: Context = context();
@@ -310,7 +294,7 @@ contract MasterChef with Deployable {
         );
     }
 
-
+    // User can send this message to withdraw their LP tokens
     receive(msg: Withdraw) {
         self.requireInitialized();
         let ctx: Context = context();
@@ -341,6 +325,7 @@ contract MasterChef with Deployable {
         );
     }
 
+    // MiniChef will send this message to ask MasterChef to withdraw LP tokens
     receive(msg: WithdrawInternalReply) {
         let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
         let expectedSender: Address = contractAddress(initCode);
@@ -364,6 +349,7 @@ contract MasterChef with Deployable {
         
     }
 
+    // User can send this message to harvest their reward
     receive(msg: Harvest) {
         self.requireInitialized();
         require(self.pools.get(msg.lpTokenAddress) != null , "pool not exists");
@@ -391,6 +377,7 @@ contract MasterChef with Deployable {
 
     }
 
+    // MiniChef will send this message to ask MasterChef to send reward
     receive(msg: HarvestInternalReply) {
         let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
         let expectedSender: Address = contractAddress(initCode);
@@ -412,8 +399,10 @@ contract MasterChef with Deployable {
         );
 
     }
+
     // Pay the fee to the devs
     receive("Collect") {
+        // Reward jetton for devs can only be sent to ThunderMint once
         if (self.jettonForDevs > 0) {
             send(SendParameters{
                     to: self.rewardWallet,
@@ -443,15 +432,19 @@ contract MasterChef with Deployable {
         self.tonForDevs = 0;
     }
 
-    // Internal Functions
+    // Internal Functions //
+
+    // Check if the contract is initialized
     inline fun requireInitialized() {
         require(self.isInitialized, "contract not initialized");
     }
 
+    // Check if the contract is not initialized
     inline fun requireNotInitialized() {
         require(!self.isInitialized, "contract already initialized");
     }
 
+    // Handle the setup message which is used to initialize the contract
     inline fun handleSetup(ctx: Context, amount: Int, deadline: Int, totalReward: Int) {
         self.requireNotInitialized();
         self.createdAt = now();
@@ -464,7 +457,7 @@ contract MasterChef with Deployable {
         self.isInitialized = true;
     }
 
-
+    // Update the pool, recalculate the reward per share
     fun updatePool(lpTokenAddress: Address) {
         require(self.pools.get(lpTokenAddress) != null , "pool not exists");
         let pool: PoolInfo = self.pools.get(lpTokenAddress)!!;
@@ -482,18 +475,20 @@ contract MasterChef with Deployable {
         self.pools.set(lpTokenAddress, pool);
     }
 
+    // Calculate MiniChef init code
     inline fun _calculateMiniChefInit(userAddress: Address): StateInit {
         return initOf MiniChef(userAddress);
     }
 
-    // Get Methods
+    // Get Methods // 
 
-    // Get alarm address by alarm index
+    // Get minichef address by user address
     get fun getMiniChefAddress(userAddress: Address): Address {
         let initCode: StateInit = self._calculateMiniChefInit(userAddress);
         return contractAddress(initCode);
     }
 
+    // Get MasterChef Data
     get fun getMasterChefData(): MasterChefData {
         return MasterChefData{
             owner: self.owner,
@@ -508,15 +503,16 @@ contract MasterChef with Deployable {
         };
     }
 
+    // Get Pool Info
     get fun getPoolInfo(lpTokenAddress: Address): PoolInfo {
         require(self.pools.get(lpTokenAddress) != null , "pool not exists");
         return self.pools.get(lpTokenAddress)!!;
     }
 
+    // Get MetaData
     get fun getMetaData(): Cell {
         return self.metaData;
     }
-
 }
 
 contract MiniChef with Deployable {
@@ -531,6 +527,7 @@ contract MiniChef with Deployable {
         self.rewardDebt = 0;
     }
 
+    // MasterChef will send this message to MiniChef to record the deposit at user info
     receive(msg: UserDeposit) {
         require(sender() == self.masterChef, "only masterChef can deposit");
         if(self.userInfo.get(msg.lpTokenAddress) == null) {
@@ -543,6 +540,7 @@ contract MiniChef with Deployable {
     }
     
 
+    // MasterChef will send this message to MiniChef to comfrim the withdraw and send WithdrawInternalReply to MasterChef to complete the withdraw
     receive(msg: WithdrawInternal) {
         require(sender() == self.masterChef, "only masterChef can withdraw");
         let userInfo: UserInfo = self.userInfo.get(msg.lpTokenAddress)!!;
@@ -562,12 +560,12 @@ contract MiniChef with Deployable {
                 lpTokenAddress: msg.lpTokenAddress,
                 amount: msg.amount,
                 sender: msg.sender,
-                rewardDebt: userInfo.rewardDebt,
                 beneficiary: msg.beneficiary
             }.toCell()
         });
     }
 
+    // MasterChef will send this message to MiniChef to comfrim the harvest and send HarvestInternalReply to MasterChef to complete the harvest
     receive(msg: HarvestInternal) {
         require(sender() == self.masterChef, "only masterChef can harvest");
         let userInfo: UserInfo = self.userInfo.get(msg.lpTokenAddress)!!;
@@ -593,10 +591,22 @@ contract MiniChef with Deployable {
         });
     
     }
-    // Get Methods
+    // Get Methods // 
+
+    // Get User Info
     get fun getUserInfo(lpTokenAddress: Address): UserInfo {
         require(self.userInfo.get(lpTokenAddress) != null , "user not exists");
         return self.userInfo.get(lpTokenAddress)!!;
+    }
+
+    // Get Owner of the MiniChef
+    get fun getOwner(): Address {
+        return self.owner;
+    }
+
+    // Get MasterChef Address
+    get fun getMasterChef(): Address {
+        return self.masterChef;
     }
 
 }
