@@ -6,16 +6,16 @@ import "./packages/utils/data.fc";
 @name(build_content_cell)
 native build_content_cell(metadata_uri: Slice): Cell;
 
-message AddPool{
+message(0x4b7d1ae4) AddPool{
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
     allocPoint: Int; // How many allocation points assigned to this pool. (Total Allocation Point must be less than or equal to 10000)
 }
 
-message UpdatePool {
+message(0x5e653b7f) UpdatePool {
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
 }
 
-message UserDeposit {
+message(0x6ba1d82e) UserDeposit {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
     amount: Int as coins; // Amount of LP token user sended to the pool
@@ -37,7 +37,7 @@ struct UserInfo {
 }
 
 
-message Withdraw {
+message(0x097bb407) Withdraw {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
     amount: Int as coins; // Amount of LP token user want to withdraw
@@ -46,7 +46,7 @@ message Withdraw {
 
 
 
-message WithdrawInternal {
+message(0x81732891) WithdrawInternal {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
     amount: Int as coins; // Amount of LP token user want to withdraw
@@ -55,7 +55,7 @@ message WithdrawInternal {
     sender: Address; // The one who withdrawed the LP token
 }
 
-message WithdrawInternalReply {
+message(0xdc4c8b1a)WithdrawInternalReply {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
     amount: Int as coins; // Amount of LP token user want to withdraw
@@ -63,20 +63,20 @@ message WithdrawInternalReply {
     beneficiary: Address; // The one who will receive the LP token
 }
 
-message Harvest {
+message(0x8839dc49) Harvest {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
     beneficiary: Address; // the one who will receive the reward
 }
 
-message HarvestInternal {
+message(0x925d0240) HarvestInternal {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
     beneficiary: Address; // the one who will receive the reward
     accRewardPerShare: Int as coins; // New accumulated reward per share after harvest
 }
 
-message HarvestInternalReply {
+message(0x952bcd19) HarvestInternalReply {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
     beneficiary: Address; // the one who will receive the reward
@@ -85,11 +85,11 @@ message HarvestInternalReply {
 }
 
 
-message Initialize {
+message(0xc1c45a7c) Initialize {
     rewardJettonContent: Cell; // jetton content for reward token
 }
 
-message SetUp {
+message(0xf6cf7e6c) SetUp {
     owner: Address; // Owner of the MasterChef
     rewardWallet: Address; // MasterChef Wallet address for reward jetton
     thunderMintWallet: Address; // ThunderMint Wallet address to collect the fee in TON
@@ -111,7 +111,7 @@ struct MasterChefData {
     metaData: Cell; // MetaData for the MasterChef
 }
 
-message BuildMasterChef {
+message(0x89265822) BuildMasterChef {
     owner: Address; // Owner of the MasterChef
     seed: Int as uint256; // Seed for the MasterChef
     thunderMintWallet: Address; // ThunderMint Wallet address to collect the fee in TON
@@ -121,7 +121,7 @@ message BuildMasterChef {
 }
 
 // Event: Deploy MasterChef
-message DeployMasterChef {
+message(0xd1a0507d) DeployMasterChef {
     owner: Address; // Owner of the MasterChef
     seed: Int; // Seed for the MasterChef
 }
