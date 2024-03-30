@@ -204,6 +204,7 @@ describe('MasterChef', () => {
                 queryId: 0n,
             },
         );
+
         expect(kitcherResult.transactions).toHaveTransaction({
             from: deployer.address,
             to: kitchen.address,
@@ -567,26 +568,31 @@ describe('MasterChef', () => {
 
         // Check if the MasterChef send TON to ThunderMint
         expect(diffTON).toBeGreaterThan(0);
+        // Check if the MasterChef send TON for Devs to ThunderMint
         expect(thunderMintTonAfter).toBeGreaterThanOrEqual(masterChefData.tonForDevs);
 
         // Check if the MasterChef send Reward jetton to ThunderMint
         expect(thunderJettonAfter).toEqual(masterChefData.jettonForDevs);
 
+        // Check if deployer send Collect msg to MasterChef
         expect(collectResult.transactions).toHaveTransaction({
             from: deployer.address,
             to: masterChef.address,
             success: true,
         });
+        // Check if MasterChef send JettonTransfer to MasterChef Reward JettonWallet
         expect(collectResult.transactions).toHaveTransaction({
             from: masterChef.address,
             to: masterChefJettonWallet.address,
             success: true,
         });
+        // Check if MasterChef send Jetton to ThunderMint JettonWallet
         expect(collectResult.transactions).toHaveTransaction({
             from: masterChefJettonWallet.address,
             to: thunderMintJettonWallet.address,
             success: true,
         });
+        // Check if ThunderMint send JettonNotify to ThunderMint
         expect(collectResult.transactions).toHaveTransaction({
             from: thunderMintJettonWallet.address,
             to: thunderMint.address,
