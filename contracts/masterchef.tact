@@ -2,6 +2,7 @@ import "@stdlib/deploy";
 import "./packages/token/jetton/JettonMaster.tact";
 import "./packages/utils/data.fc";
 
+// This function is used to build the content(meta data) cell for the MasterChef
 @name(build_content_cell)
 native build_content_cell(metadata_uri: Slice): Cell;
 
@@ -119,13 +120,14 @@ message BuildMasterChef {
 
 // Event: Deploy MasterChef
 message DeployMasterChef {
-    owner: Address;
-    seed: Int;
+    owner: Address; // Owner of the MasterChef
+    seed: Int; // Seed for the MasterChef
 }
 
 const THUNDER_FEE: Int = ton("0.01"); // User have to pay the fee to ThunderMint
 const ACC_PRECISION: Int = 1000000; // Precision for the accumulated reward per share
 
+// Kithcen Contract (MasterChef Factory) is used to deploy the MasterChef
 contract Kitchen with Deployable {
     owner: Address;
     seed: Int;
@@ -134,6 +136,7 @@ contract Kitchen with Deployable {
         self.seed = 0;
     }
 
+    // Deploy MasterChef
     receive(msg: BuildMasterChef) {
         let initCode: StateInit = self._calculateMasterChef(msg.owner,self.seed);
         send(SendParameters{
@@ -159,8 +162,8 @@ contract Kitchen with Deployable {
         return initOf MasterChef(owner,seed);
     }
 
-    // Get Methods
-    // Get alarm address by alarm index
+    // Get Methods //
+    // Get masterChef address by its owner and seed
     get fun getMasterChefAddress(owner: Address, seed: Int): Address {
         let initCode: StateInit = self._calculateMasterChef(owner, seed);
         return contractAddress(initCode);
@@ -172,21 +175,24 @@ contract Kitchen with Deployable {
     }
 }
 
+// MasterChef Contract: Users deposit, withdraw and harvest their LP tokens in this contract
 contract MasterChef with Deployable {
     // State
     isInitialized: Bool = false;
 
-    // Pool
+    // Pool Info
     owner: Address;
     pools: map<Address, PoolInfo>;
     totalAllocPoint: Int = 0;
+    createdAt: Int as uint64 = 0;
+    deadline: Int as uint64 = 0;
+    seed: Int;
+    metaData: Cell;
 
     // for reward jetton
     rewardWallet: Address;
     rewardPerSecond: Int as coins = 0;
-    createdAt: Int as uint64 = 0;
-    deadline: Int as uint64 = 0;
-    seed: Int;
+
 
     // For ThunderMint
     thunderMintWallet: Address;
@@ -194,7 +200,6 @@ contract MasterChef with Deployable {
     Fee: Int = 3; // 0.3%
     jettonForDevs: Int = 0;
     tonForDevs: Int = 0;
-    metaData: Cell;
 
     // initialize the contract with owner and reward jetton wallet address
     init(owner: Address, seed: Int) {
@@ -208,6 +213,7 @@ contract MasterChef with Deployable {
         emit(DeployMasterChef{owner: owner, seed: seed}.toCell());
     }
 
+    // Kitchen contract will send this message to initialize the MasterChef
     receive(msg: SetUp) {
         self.requireNotInitialized();
         require(self.rewardWallet == newAddress(0, 0), "reward wallet already set");
@@ -217,6 +223,7 @@ contract MasterChef with Deployable {
         self.metaData = build_content_cell(msg.metaData);   
     }
 
+    // Owner send AddPool message to add a new pool
     receive(msg: AddPool){
         self.requireInitialized();
         require(sender() == self.owner, "only owner can add pool");
@@ -233,11 +240,14 @@ contract MasterChef with Deployable {
         self.pools.set(msg.lpTokenAddress,poolInfo);
     }
 
+    // Anyone can send this message to update the pool, recalculate the reward per share
     receive (msg: UpdatePool) {
         self.requireInitialized();
         self.updatePool(msg.lpTokenAddress);
     }
     
+    // Owner has to send Reward Jetton to the MasterChef first, so that MasterChef can distribute the reward to the users
+    // Users send JettonTransferNotification to the MasterChef to deposit their LP tokens
     receive(msg: JettonTransferNotification) {
         // context sender is from different kind of jetton wallet 
         let ctx: Context = context();
@@ -284,7 +294,7 @@ contract MasterChef with Deployable {
         );
     }
 
-
+    // User can send this message to withdraw their LP tokens
     receive(msg: Withdraw) {
         self.requireInitialized();
         let ctx: Context = context();
@@ -315,6 +325,7 @@ contract MasterChef with Deployable {
         );
     }
 
+    // MiniChef will send this message to ask MasterChef to withdraw LP tokens
     receive(msg: WithdrawInternalReply) {
         let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
         let expectedSender: Address = contractAddress(initCode);
@@ -338,6 +349,7 @@ contract MasterChef with Deployable {
         
     }
 
+    // User can send this message to harvest their reward
     receive(msg: Harvest) {
         self.requireInitialized();
         require(self.pools.get(msg.lpTokenAddress) != null , "pool not exists");
@@ -365,6 +377,7 @@ contract MasterChef with Deployable {
 
     }
 
+    // MiniChef will send this message to ask MasterChef to send reward
     receive(msg: HarvestInternalReply) {
         let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
         let expectedSender: Address = contractAddress(initCode);
@@ -386,8 +399,10 @@ contract MasterChef with Deployable {
         );
 
     }
+
     // Pay the fee to the devs
     receive("Collect") {
+        // Reward jetton for devs can only be sent to ThunderMint once
         if (self.jettonForDevs > 0) {
             send(SendParameters{
                     to: self.rewardWallet,
@@ -417,15 +432,19 @@ contract MasterChef with Deployable {
         self.tonForDevs = 0;
     }
 
-    // Internal Functions
+    // Internal Functions //
+
+    // Check if the contract is initialized
     inline fun requireInitialized() {
         require(self.isInitialized, "contract not initialized");
     }
 
+    // Check if the contract is not initialized
     inline fun requireNotInitialized() {
         require(!self.isInitialized, "contract already initialized");
     }
 
+    // Handle the setup message which is used to initialize the contract
     inline fun handleSetup(ctx: Context, amount: Int, deadline: Int, totalReward: Int) {
         self.requireNotInitialized();
         self.createdAt = now();
@@ -438,7 +457,7 @@ contract MasterChef with Deployable {
         self.isInitialized = true;
     }
 
-
+    // Update the pool, recalculate the reward per share
     fun updatePool(lpTokenAddress: Address) {
         require(self.pools.get(lpTokenAddress) != null , "pool not exists");
         let pool: PoolInfo = self.pools.get(lpTokenAddress)!!;
@@ -456,18 +475,20 @@ contract MasterChef with Deployable {
         self.pools.set(lpTokenAddress, pool);
     }
 
+    // Calculate MiniChef init code
     inline fun _calculateMiniChefInit(userAddress: Address): StateInit {
         return initOf MiniChef(userAddress);
     }
 
-    // Get Methods
+    // Get Methods // 
 
-    // Get alarm address by alarm index
+    // Get minichef address by user address
     get fun getMiniChefAddress(userAddress: Address): Address {
         let initCode: StateInit = self._calculateMiniChefInit(userAddress);
         return contractAddress(initCode);
     }
 
+    // Get MasterChef Data
     get fun getMasterChefData(): MasterChefData {
         return MasterChefData{
             owner: self.owner,
@@ -482,15 +503,16 @@ contract MasterChef with Deployable {
         };
     }
 
+    // Get Pool Info
     get fun getPoolInfo(lpTokenAddress: Address): PoolInfo {
         require(self.pools.get(lpTokenAddress) != null , "pool not exists");
         return self.pools.get(lpTokenAddress)!!;
     }
 
+    // Get MetaData
     get fun getMetaData(): Cell {
         return self.metaData;
     }
-
 }
 
 contract MiniChef with Deployable {
@@ -505,6 +527,7 @@ contract MiniChef with Deployable {
         self.rewardDebt = 0;
     }
 
+    // MasterChef will send this message to MiniChef to record the deposit at user info
     receive(msg: UserDeposit) {
         require(sender() == self.masterChef, "only masterChef can deposit");
         if(self.userInfo.get(msg.lpTokenAddress) == null) {
@@ -517,6 +540,7 @@ contract MiniChef with Deployable {
     }
     
 
+    // MasterChef will send this message to MiniChef to comfrim the withdraw and send WithdrawInternalReply to MasterChef to complete the withdraw
     receive(msg: WithdrawInternal) {
         require(sender() == self.masterChef, "only masterChef can withdraw");
         let userInfo: UserInfo = self.userInfo.get(msg.lpTokenAddress)!!;
@@ -541,6 +565,7 @@ contract MiniChef with Deployable {
         });
     }
 
+    // MasterChef will send this message to MiniChef to comfrim the harvest and send HarvestInternalReply to MasterChef to complete the harvest
     receive(msg: HarvestInternal) {
         require(sender() == self.masterChef, "only masterChef can harvest");
         let userInfo: UserInfo = self.userInfo.get(msg.lpTokenAddress)!!;
@@ -566,7 +591,9 @@ contract MiniChef with Deployable {
         });
     
     }
-    // Get Methods
+    // Get Methods // 
+
+    // Get User Info
     get fun getUserInfo(lpTokenAddress: Address): UserInfo {
         require(self.userInfo.get(lpTokenAddress) != null , "user not exists");
         return self.userInfo.get(lpTokenAddress)!!;
