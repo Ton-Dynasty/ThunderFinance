@@ -1,6 +1,7 @@
-import { toNano, Address } from '@ton/core';
+import { toNano } from '@ton/core';
 import { NetworkProvider } from '@ton/blueprint';
 import { AirdropFactory } from '../wrappers/AirdropFactory';
+import { updateDeployment } from '../utils/helper';
 
 function randBigInt(): bigint {
     return BigInt(Math.floor(Math.random() * 1000000000000000));
@@ -21,4 +22,8 @@ export async function run(provider: NetworkProvider) {
     );
 
     await provider.waitForDeploy(factory.address);
+
+    if (await provider.isContractDeployed(factory.address)) {
+        await updateDeployment('AirdropFactory', factory.address.toString());
+    }
 }

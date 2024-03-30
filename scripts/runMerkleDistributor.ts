@@ -4,19 +4,19 @@ import { AirdropFactory } from '../wrappers/AirdropFactory';
 import { IBalance, MerkleTree, hashLeafNodes, packBalance, packProof } from '../utils/MerkleTree';
 import { MerkleDistributor } from '../wrappers/MerkleDistributor';
 import { JettonMasterUSDT } from '../wrappers/JettonMaster';
-import { JettonWallet } from '@ton/ton';
 import { JettonWalletUSDT } from '../wrappers/JettonWallet';
 
 export async function run(provider: NetworkProvider) {
-    const factoryAddress = Address.parse('0QBTjxADbfKiuUKjEcB0x0dGsNB09Lt_Gunn4i4nJcRadInZ');
+    const factoryAddress = Address.parse('EQBx6RIJiom-Us6KlJxwWucuHOEbwZSxmB4lp2B6-4zmJmdx');
     const usdtAddress = Address.parse('kQB1jlLbl_nQE4Y-1-9_HT-8IZgiCn5u7uC3bVueOC6KJq6R');
 
     console.log('Sender address', provider.sender().address!!);
 
+    const seed = BigInt(`0x${beginCell().storeUint(Date.now(), 32).endCell().hash()}`);
+
     // open factory contract
     const factory = provider.open(AirdropFactory.fromAddress(factoryAddress));
-    const info = await factory.getMerkleDistributorInfo(provider.sender().address!!);
-    console.log('Info', info.address, info.seed);
+    const info = await factory.getMerkleDistributorInfo(provider.sender().address!!, seed);
 
     const usdt = provider.open(JettonMasterUSDT.fromAddress(usdtAddress));
 
@@ -39,9 +39,11 @@ export async function run(provider: NetworkProvider) {
             value: toNano('0.05'),
         },
         {
-            $$type: 'CreateAirdrop',
+            $$type: 'CreateAirdropPrivate',
             airDropJettonWallet: distributorJettonWallet.address,
             merkleRoot: merkleRoot,
+            seed: seed,
+            metadataUri: beginCell().storeStringTail('https://example.com').endCell(),
         },
     );
     await provider.waitForDeploy(factory.address);
