@@ -14,7 +14,12 @@ export function hashLeafNodes(balances: IBalance[]) {
 export class MerkleTree {
     nodes: Buffer[];
 
-    constructor(hashedLeafNodes: Buffer[]) {
+    constructor(hashedLeafNodes: Buffer[], forceInitialize: boolean = false) {
+        if (forceInitialize) {
+            // TODO: check if the length is power of 2
+            this.nodes = hashedLeafNodes;
+            return;
+        }
         // pad to power of 2
         const power = Math.ceil(Math.log2(hashedLeafNodes.length));
         for (let i = hashedLeafNodes.length; i < Math.pow(2, power); i++) {
@@ -45,6 +50,11 @@ export class MerkleTree {
             // Prepare for the next iteration
             currentLevelNodes = nextLevelNodes;
         }
+    }
+
+    // static
+    public static fromLeafs(hashedLeafNodes: Buffer[]) {
+        return new MerkleTree(hashedLeafNodes, true);
     }
 
     getRoot() {

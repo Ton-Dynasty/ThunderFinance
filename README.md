@@ -1,4 +1,11 @@
-# SoulBlaze
+# ThunderMint Contracts
+
+## Deployments
+
+### MerkleDistributor
+1. deployAirdropFactory
+2. deployMerkeDistributor
+3. claimMerkleDistributor
 
 ## Project structure
 

@@ -1,14 +1,11 @@
-import { toNano } from '@ton/core';
+import { beginCell, toNano } from '@ton/core';
 import { NetworkProvider } from '@ton/blueprint';
 import { AirdropFactory } from '../wrappers/AirdropFactory';
 import { updateDeployment } from '../utils/helper';
 
-function randBigInt(): bigint {
-    return BigInt(Math.floor(Math.random() * 1000000000000000));
-}
-
 export async function run(provider: NetworkProvider) {
-    const factory = provider.open(await AirdropFactory.fromInit(randBigInt()));
+    const seed = BigInt(`0x${beginCell().storeUint(Date.now(), 64).endCell().hash().toString("hex")}`);
+    const factory = provider.open(await AirdropFactory.fromInit(seed));
 
     await factory.send(
         provider.sender(),

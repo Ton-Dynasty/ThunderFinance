@@ -179,6 +179,12 @@ contract PublicDistributor {
         self.totalDrops = msg.totalDrops;
         self.jettonPerDrop = msg.jettonPerDrop;
         self.metadata = build_content_cell(msg.metadataUri);
+        send(SendParameters{
+            to: self.owner,
+            value: 0,
+            mode: SendRemainingValue,
+            body: "created".asComment()
+        });
     }
 
     receive(msg: JettonTransferNotification) {
@@ -265,6 +271,12 @@ contract MerkleDistributor {
         self.airDropJettonWallet = msg.airDropJettonWallet;
         self.merkleRoot = msg.merkleRoot;
         self.metadata = build_content_cell(msg.metadataUri);
+        send(SendParameters{
+            to: self.owner,
+            value: 0,
+            mode: SendRemainingValue,
+            body: "created".asComment()
+        });
     }
 
     // user can upload the merkle proof to claim the jettons

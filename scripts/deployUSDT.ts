@@ -4,7 +4,10 @@ import { JettonMasterUSDT } from '../wrappers/JettonMaster';
 import { updateDeployment } from '../utils/helper';
 
 export async function run(provider: NetworkProvider) {
-    const usdt = provider.open(await JettonMasterUSDT.fromInit(provider.sender().address!!, beginCell().endCell()));
+    // use static usdt address with decimals 6
+    const usdt = provider.open(
+        JettonMasterUSDT.fromAddress(Address.parse('kQBqSpvo4S87mX9tjHaG4zhYZeORhVhMapBJpnMZ64jhrP-A')),
+    );
     await usdt.send(
         provider.sender(),
         {
