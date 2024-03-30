@@ -91,7 +91,7 @@ message(0xc1c45a7c) Initialize {
 
 message(0xf6cf7e6c) SetUp {
     owner: Address; // Owner of the MasterChef
-    rewardWallet: Address; // MasterChef Wallet address for reward jetton
+    mcRewardJettonWallet: Address; // MasterChef Wallet address for reward jetton
     thunderMintWallet: Address; // ThunderMint Wallet address to collect the fee in TON
     thunderMintJettonWallet: Address; // ThunderMint Wallet address to collect the fee in Jetton
     metaData: Slice; // MetaData for the MasterChef
@@ -99,7 +99,7 @@ message(0xf6cf7e6c) SetUp {
 
 struct MasterChefData {
     owner: Address; // Owner of the MasterChef
-    rewardWallet: Address; // MasterChef Wallet address for reward jetton
+    mcRewardJettonWallet: Address; // MasterChef Wallet address for reward jetton
     rewardPerSecond: Int as coins; // Reward per second
     createdAt: Int as uint64; // MasterChef Created at block number
     deadline: Int as uint64; // MasterChef distribution deadline
@@ -116,7 +116,7 @@ message(0x89265822) BuildMasterChef {
     seed: Int as uint256; // Seed for the MasterChef
     thunderMintWallet: Address; // ThunderMint Wallet address to collect the fee in TON
     thunderMintJettonWallet: Address; // ThunderMint Wallet address to collect the fee in Jetton
-    rewardWallet: Address; // MasterChef Wallet address for reward jetton
+    mcRewardJettonWallet: Address; // MasterChef Wallet address for reward jetton
     metaData: Slice; // MetaData for the MasterChef
 }
 
@@ -147,7 +147,7 @@ contract Kitchen with Deployable {
                     owner: msg.owner,
                     thunderMintWallet: msg.thunderMintWallet,
                     thunderMintJettonWallet: msg.thunderMintJettonWallet,
-                    rewardWallet: msg.rewardWallet,
+                    mcRewardJettonWallet: msg.mcRewardJettonWallet,
                     metaData: msg.metaData
                 }.toCell(),
                 code: initCode.code,
@@ -182,7 +182,7 @@ contract MasterChef with Deployable {
     metaData: Cell;
 
     // for reward jetton
-    rewardWallet: Address;
+    mcRewardJettonWallet: Address;
     rewardPerSecond: Int as coins = 0;
 
 
@@ -197,7 +197,7 @@ contract MasterChef with Deployable {
     init(owner: Address, _seed: Int) {
         self.owner = owner;
         self.isInitialized = false;
-        self.rewardWallet = newAddress(0, 0);
+        self.mcRewardJettonWallet = newAddress(0, 0);
         self.thunderMintWallet = newAddress(0, 0);
         self.thunderMintJettonWallet = newAddress(0, 0);
         self.metaData = emptyCell();
@@ -207,8 +207,8 @@ contract MasterChef with Deployable {
     // Kitchen contract will send this message to initialize the MasterChef
     receive(msg: SetUp) {
         self.requireNotInitialized();
-        require(self.rewardWallet == newAddress(0, 0), "reward wallet already set");
-        self.rewardWallet = msg.rewardWallet;
+        require(self.mcRewardJettonWallet == newAddress(0, 0), "reward wallet already set");
+        self.mcRewardJettonWallet = msg.mcRewardJettonWallet;
         self.thunderMintWallet = msg.thunderMintWallet;
         self.thunderMintJettonWallet = msg.thunderMintJettonWallet;
         self.metaData = build_content_cell(msg.metaData);   
@@ -244,7 +244,7 @@ contract MasterChef with Deployable {
         let ctx: Context = context();
         // If not initialized, only accept reward jetton with Setup message payload
         if (!self.isInitialized) {
-            require(ctx.sender == self.rewardWallet, "only reward jetton wallet can send message");
+            require(ctx.sender == self.mcRewardJettonWallet, "only reward jetton wallet can send message");
             require(!msg.forward_payload.dataEmpty(), "payload is empty");
             let totalReward: Int = msg.forward_payload.loadCoins();
             let deadline: Int = msg.forward_payload.loadUint(64);
@@ -374,7 +374,7 @@ contract MasterChef with Deployable {
         let expectedSender: Address = contractAddress(initCode);
         require(expectedSender == sender(), "unexpected sender");
         send(SendParameters{
-                to: self.rewardWallet,
+                to: self.mcRewardJettonWallet,
                 value: 0,
                 mode: SendRemainingValue,
                 body: JettonTransfer{
@@ -396,7 +396,7 @@ contract MasterChef with Deployable {
         // Reward jetton for devs can only be sent to ThunderMint once
         if (self.jettonForDevs > 0) {
             send(SendParameters{
-                    to: self.rewardWallet,
+                    to: self.mcRewardJettonWallet,
                     value: self.tonForDevs,
                     mode: SendRemainingValue,
                     body: JettonTransfer{
@@ -483,7 +483,7 @@ contract MasterChef with Deployable {
     get fun getMasterChefData(): MasterChefData {
         return MasterChefData{
             owner: self.owner,
-            rewardWallet: self.rewardWallet,
+            mcRewardJettonWallet: self.mcRewardJettonWallet,
             rewardPerSecond: self.rewardPerSecond,
             createdAt: self.createdAt,
             deadline: self.deadline,

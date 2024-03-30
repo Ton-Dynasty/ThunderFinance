@@ -27,7 +27,7 @@ export async function run(provider: NetworkProvider) {
             seed: seed,
             thunderMintWallet: provider.sender().address!!,
             thunderMintJettonWallet: senderUSDTWallet.address, // owner jettonWallet
-            rewardWallet: masterchefUSDTWallet.address,
+            mcRewardJettonWallet: masterchefUSDTWallet.address,
             metaData: beginCell().storeStringTail('httpppp').endCell(),
         },
     );
@@ -42,17 +42,16 @@ export async function run(provider: NetworkProvider) {
         provider.sender(),
         {
             value: toNano('1'),
-            
         },
         {
-            $$type: "JettonTransfer",
+            $$type: 'JettonTransfer',
             query_id: 0n,
-            amount: totalReward * 1003n / 1000n, 
+            amount: (totalReward * 1003n) / 1000n,
             destination: masterchefAddress,
             response_destination: provider.sender().address!!,
             custom_payload: null,
             forward_ton_amount: toNano('0.1'),
             forward_payload: beginCell().storeCoins(totalReward).storeUint(deadline, 64).endCell(),
-        }
-    )
+        },
+    );
 }

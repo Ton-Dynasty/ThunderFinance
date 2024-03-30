@@ -222,7 +222,7 @@ describe('MasterChef', () => {
                 seed: seed,
                 thunderMintWallet: thunderMint.address,
                 thunderMintJettonWallet: deployerJettonWallet.address,
-                rewardWallet: masterChefJettonWallet.address,
+                mcRewardJettonWallet: masterChefJettonWallet.address,
                 metaData: beginCell().storeStringTail('httpppp').endCell(),
             },
         );
