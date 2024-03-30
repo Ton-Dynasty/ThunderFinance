@@ -192,6 +192,7 @@ contract PublicDistributor {
         require(self.isInitialized, "Contract is not initialized");
         let expectedSender: Address = contractAddress(self._calculateIssuerInit(msg.receiver));
         require(expectedSender == sender(), "Invalid sender");
+        self.remainingDrops -= 1;
         send(SendParameters{
             to: self.airDropJettonWallet,
             value: 0,
@@ -208,15 +209,11 @@ contract PublicDistributor {
         });
     }
 
-    bounced(src: IssueRequest) {
-        self.remainingDrops += 1;
-    }
 
     receive("claim"){
         require(self.isInitialized, "Contract is not initialized");
         require(self.remainingDrops > 0, "No more drops available");
         let initCode: StateInit = self._calculateIssuerInit(sender());
-        self.totalDrops -= 1;
         send(SendParameters{
             to: contractAddress(initCode),
             value: 0,
@@ -234,7 +231,7 @@ contract PublicDistributor {
             airDropJettonWallet: self.airDropJettonWallet,
             totalDrops: self.totalDrops,
             jettonPerDrop: self.jettonPerDrop,
-            remainingDrops: self.totalDrops,
+            remainingDrops: self.remainingDrops,
             isInitialized: self.isInitialized,
             owner: self.owner,
             contentCell: self.metadata
