@@ -1,6 +1,7 @@
 import { toNano, Address, beginCell } from '@ton/core';
 import { NetworkProvider } from '@ton/blueprint';
 import { JettonMasterUSDT } from '../wrappers/JettonMaster';
+import { JettonWalletUSDT } from '../wrappers/JettonWallet';
 import { loadDeployment, updateDeployment } from '../utils/helper';
 
 export async function run(provider: NetworkProvider) {

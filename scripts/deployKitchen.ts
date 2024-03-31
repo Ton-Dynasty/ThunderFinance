@@ -4,7 +4,7 @@ import { NetworkProvider } from '@ton/blueprint';
 import { updateDeployment } from '../utils/helper';
 
 export async function run(provider: NetworkProvider) {
-    const kitchen = provider.open(await Kitchen.fromInit(provider.sender().address!!));
+    const kitchen = provider.open(await Kitchen.fromInit(provider.sender().address!!, 0n));
 
     await kitchen.send(
         provider.sender(),

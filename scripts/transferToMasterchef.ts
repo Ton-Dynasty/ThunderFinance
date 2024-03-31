@@ -14,28 +14,26 @@ export async function run(provider: NetworkProvider) {
     const senderUSDTWallet = provider.open(JettonWalletUSDT.fromAddress(senderUSDTWalletAddress));
     console.log('senderUSDTWallet', (await senderUSDTWallet.getGetWalletData()).balance);
     const seed = BigInt(`0x${beginCell().storeUint(Date.now(), 64).endCell().hash().toString('hex')}`);
-    const masterchefAddress = await kitchen.getGetMasterChefAddress(provider.sender().address!!, seed);
-    const mcUSDTWalletAddress = await usdt.getGetWalletAddress(masterchefAddress);
-    const masterchefUSDTWallet = provider.open(await JettonWalletUSDT.fromAddress(mcUSDTWalletAddress));
+    const masterchefAddress = Address.parse(deployment.MasterChef);
+    console.log('masterchefAddress', masterchefAddress.toString());
 
-    await kitchen.send(
+    const totalReward = 50n * 10n ** 6n;
+    const deadline = Math.floor(Date.now() / 1000) + 60 * 60;
+    console.log('Date.now()', Date.now());
+    await senderUSDTWallet.send(
         provider.sender(),
         {
-            value: toNano('0.5'),
+            value: toNano('1'),
         },
         {
-            $$type: 'BuildMasterChef',
-            owner: provider.sender().address!!,
-            seed: seed,
-            thunderMintWallet: provider.sender().address!!,
-            thunderMintJettonWallet: senderUSDTWallet.address, // owner jettonWallet
-            mcRewardJettonWallet: masterchefUSDTWallet.address,
-            metaData: beginCell().storeStringTail('httpppp').endCell(),
+            $$type: 'JettonTransfer',
+            query_id: 0n,
+            amount: (totalReward * 1003n) / 1000n,
+            destination: masterchefAddress,
+            response_destination: provider.sender().address!!,
+            custom_payload: null,
+            forward_ton_amount: toNano('0.1'),
+            forward_payload: beginCell().storeCoins(totalReward).storeUint(deadline, 64).endCell(),
         },
     );
-    await provider.waitForDeploy(masterchefAddress);
-    if (!(await provider.isContractDeployed(masterchefAddress))) {
-        return;
-    }
-    await updateDeployment('MasterChef', masterchefAddress.toString());
 }
