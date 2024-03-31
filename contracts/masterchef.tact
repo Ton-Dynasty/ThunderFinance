@@ -248,6 +248,7 @@ contract MasterChef with Deployable {
         if (!self.isInitialized) {
             require(ctx.sender == self.mcRewardJettonWallet, "only reward jetton wallet can send message");
             require(!msg.forward_payload.dataEmpty(), "payload is empty");
+            require(msg.sender == self.owner, "only owner can send setup message");
             let totalReward: Int = msg.forward_payload.loadCoins();
             let deadline: Int = msg.forward_payload.loadUint(64);
             self.handleSetup(ctx, msg.amount, deadline, totalReward);
