@@ -180,7 +180,7 @@ describe('MasterChef', () => {
         thunderMint = await blockchain.treasury('thunderMint'); // Dev team who receives the fees
 
         // Contracts
-        kitchen = await blockchain.openContract(await Kitchen.fromInit(deployer.address)); // MasterChef Factory
+        kitchen = await blockchain.openContract(await Kitchen.fromInit(deployer.address, 0n)); // MasterChef Factory
         usdt = blockchain.openContract(await JettonMasterUSDT.fromInit(deployer.address, beginCell().endCell())); // Reward token and LP token
         seed = BigInt(`0x${beginCell().storeUint(Date.now(), 64).endCell().hash().toString('hex')}`); // Seed for MasterChef
         masterChef = blockchain.openContract(await MasterChef.fromInit(deployer.address, seed)); // MasterChef contract
@@ -281,7 +281,7 @@ describe('MasterChef', () => {
             success: true,
         });
 
-        miniChef = blockchain.openContract(await MiniChef.fromInit(user.address));
+        miniChef = blockchain.openContract(await MiniChef.fromInit(user.address, masterChef.address));
         // check if masterchef send userDeposit to minichef
         expect(depositResult.transactions).toHaveTransaction({
             from: masterChef.address,
@@ -322,7 +322,7 @@ describe('MasterChef', () => {
     it('Should deposit and harvest', async () => {
         await addPool(masterChef, masterChefJettonWallet);
         const userDepositAmount = 1n * 10n ** 6n;
-        const periodTime = 10;
+        const periodTime = 1000;
         await depositJetton(usdt, user, masterChef, userDepositAmount);
         // Update time to periodTime, so that we can harvest
         blockchain.now!! += periodTime;
@@ -340,7 +340,7 @@ describe('MasterChef', () => {
         });
 
         // Check if the MasterChef send HarvestInternal to MiniChef
-        miniChef = blockchain.openContract(await MiniChef.fromInit(user.address));
+        miniChef = blockchain.openContract(await MiniChef.fromInit(user.address, masterChef.address));
         expect(harvestResult.transactions).toHaveTransaction({
             from: masterChef.address,
             to: miniChef.address,

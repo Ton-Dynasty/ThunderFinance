@@ -124,6 +124,7 @@ struct MasterChefData {
     jettonForDevs: Int; // Jetton for ThunderMint
     pools: map<Address, PoolInfo>; // Pool Info
     metaData: Cell; // MetaData for the MasterChef
+    totalReward: Int; // Total reward
 }
 
 const THUNDER_FEE: Int = ton("0.01"); // User have to pay the fee to ThunderMint
@@ -132,8 +133,10 @@ const ACC_PRECISION: Int = 1000000; // Precision for the accumulated reward per 
 // Kithcen Contract (MasterChef Factory) is used to deploy the MasterChef
 contract Kitchen with Deployable {
     owner: Address;
-    init(owner: Address) {
-        self.owner = owner;
+    version: Int;
+    init(_owner: Address, _version: Int) {
+        self.owner = _owner;
+        self.version = _version;
     }
 
     // Deploy MasterChef
@@ -186,6 +189,7 @@ contract MasterChef with Deployable {
     // for reward jetton
     mcRewardJettonWallet: Address;
     rewardPerSecond: Int as coins = 0;
+    totalReward: Int = 0;
 
 
     // For ThunderMint
@@ -442,12 +446,15 @@ contract MasterChef with Deployable {
     inline fun handleSetup(ctx: Context, amount: Int, deadline: Int, totalReward: Int) {
         self.requireNotInitialized();
         self.createdAt = now();
+        self.deadline = deadline;
         self.rewardPerSecond = totalReward / (deadline - self.createdAt);
+        require(self.rewardPerSecond > 0, "reward per second must be greater than 0");
         let rewardAmount: Int = totalReward;
         self.jettonForDevs = rewardAmount * self.Fee / 1000; // 0.3% fee
         // Have to transfer reward jetton and fee to the contract
         let expectedAmount: Int = rewardAmount + self.jettonForDevs;
         require(amount >= expectedAmount, "insufficient reward jetton amount");
+        self.totalReward = rewardAmount;
         self.isInitialized = true;
     }
 
@@ -471,7 +478,7 @@ contract MasterChef with Deployable {
 
     // Calculate MiniChef init code
     inline fun _calculateMiniChefInit(userAddress: Address): StateInit {
-        return initOf MiniChef(userAddress);
+        return initOf MiniChef(userAddress,myAddress());
     }
 
     // Get Methods // 
@@ -495,7 +502,8 @@ contract MasterChef with Deployable {
             tonForDevs: self.tonForDevs,
             jettonForDevs: self.jettonForDevs,
             pools: self.pools,
-            metaData: self.metaData
+            metaData: self.metaData,
+            totalReward: self.totalReward
         };
     }
 
@@ -517,9 +525,9 @@ contract MiniChef with Deployable {
     userInfo: map <Address, UserInfo>;
     masterChef: Address;
     
-    init(owner: Address) {
+    init(owner: Address, masterchef: Address) {
         self.owner = owner; 
-        self.masterChef = sender();  
+        self.masterChef = masterchef;  
         self.rewardDebt = 0;
     }
 
@@ -606,4 +614,3 @@ contract MiniChef with Deployable {
     }
 
 }
-
