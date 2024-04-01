@@ -669,8 +669,8 @@ describe('MasterChef', () => {
 
     // @ipromise2324
     // TODO: add update pool after deadline test
-    // TODO: add deposit after withdraw test
-    // TODO: add withdraw after harvest test
-    // TODO: add harvest after deposit test
+    // TODO: add deposit after deadline test
+    // TODO: add withdraw after deadline test
+    // TODO: add harvest after deadline test
     // TODO: add mutiple pool test
 });
