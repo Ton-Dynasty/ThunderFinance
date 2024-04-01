@@ -465,6 +465,10 @@ contract MasterChef with Deployable {
         require(self.pools.get(lpTokenAddress) != null , "pool not exists");
         let pool: PoolInfo = self.pools.get(lpTokenAddress)!!;
         let now: Int = now();
+        // If the deadline is passed, set now to deadline, so that no more reward will be distributed
+        if (now > self.deadline) {
+            now = self.deadline;
+        }
         if (now <= pool.lastRewardBlock){
             return;
         }
