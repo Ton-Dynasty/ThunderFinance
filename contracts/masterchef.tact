@@ -15,6 +15,8 @@ message(0x89265822) BuildMasterChef {
     thunderMintJettonWallet: Address; // ThunderMint Wallet address to collect the fee in Jetton
     mcRewardJettonWallet: Address; // MasterChef Wallet address for reward jetton
     metaData: Slice; // MetaData for the MasterChef
+    totalReward: Int as coins; // Total reward for the MasterChef
+    deadline: Int as uint64; // MasterChef distribution deadline
 }
 
 // For MasterChef Contract
@@ -28,6 +30,8 @@ message(0xf6cf7e6c) SetUp {
     thunderMintWallet: Address; // ThunderMint Wallet address to collect the fee in TON
     thunderMintJettonWallet: Address; // ThunderMint Wallet address to collect the fee in Jetton
     metaData: Slice; // MetaData for the MasterChef
+    totalReward: Int as coins; // Total reward for the MasterChef
+    deadline: Int as uint64; // MasterChef distribution deadline
 }
 message(0x4b7d1ae4) AddPool{
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
@@ -151,7 +155,9 @@ contract Kitchen with Deployable {
                     thunderMintWallet: msg.thunderMintWallet,
                     thunderMintJettonWallet: msg.thunderMintJettonWallet,
                     mcRewardJettonWallet: msg.mcRewardJettonWallet,
-                    metaData: msg.metaData
+                    metaData: msg.metaData,
+                    totalReward: msg.totalReward,
+                    deadline: msg.deadline
                 }.toCell(),
                 code: initCode.code,
                 data: initCode.data
@@ -217,7 +223,9 @@ contract MasterChef with Deployable {
         self.mcRewardJettonWallet = msg.mcRewardJettonWallet;
         self.thunderMintWallet = msg.thunderMintWallet;
         self.thunderMintJettonWallet = msg.thunderMintJettonWallet;
-        self.metaData = build_content_cell(msg.metaData);   
+        self.metaData = build_content_cell(msg.metaData);
+        self.totalReward = msg.totalReward;
+        self.deadline = msg.deadline;
     }
 
     // Owner send AddPool message to add a new pool
@@ -251,11 +259,8 @@ contract MasterChef with Deployable {
         // If not initialized, only accept reward jetton with Setup message payload
         if (!self.isInitialized) {
             require(ctx.sender == self.mcRewardJettonWallet, "only reward jetton wallet can send message");
-            require(!msg.forward_payload.dataEmpty(), "payload is empty");
             require(msg.sender == self.owner, "only owner can send setup message");
-            let totalReward: Int = msg.forward_payload.loadCoins();
-            let deadline: Int = msg.forward_payload.loadUint(64);
-            self.handleSetup(ctx, msg.amount, deadline, totalReward);
+            self.handleSetup(ctx, msg.amount);
             return;
         }
 
@@ -443,18 +448,15 @@ contract MasterChef with Deployable {
     }
 
     // Handle the setup message which is used to initialize the contract
-    inline fun handleSetup(ctx: Context, amount: Int, deadline: Int, totalReward: Int) {
+    inline fun handleSetup(ctx: Context, amount: Int) {
         self.requireNotInitialized();
         self.createdAt = now();
-        self.deadline = deadline;
-        self.rewardPerSecond = totalReward / (deadline - self.createdAt);
+        self.rewardPerSecond = self.totalReward / (self.deadline - self.createdAt);
         require(self.rewardPerSecond > 0, "reward per second must be greater than 0");
-        let rewardAmount: Int = totalReward;
-        self.jettonForDevs = rewardAmount * self.Fee / 1000; // 0.3% fee
+        self.jettonForDevs = self.totalReward * self.Fee / 1000; // 0.3% fee
         // Have to transfer reward jetton and fee to the contract
-        let expectedAmount: Int = rewardAmount + self.jettonForDevs;
+        let expectedAmount: Int = self.totalReward + self.jettonForDevs;
         require(amount >= expectedAmount, "insufficient reward jetton amount");
-        self.totalReward = rewardAmount;
         self.isInitialized = true;
     }
 
@@ -463,6 +465,10 @@ contract MasterChef with Deployable {
         require(self.pools.get(lpTokenAddress) != null , "pool not exists");
         let pool: PoolInfo = self.pools.get(lpTokenAddress)!!;
         let now: Int = now();
+        // If the deadline is passed, set now to deadline, so that no more reward will be distributed
+        if (now > self.deadline) {
+            now = self.deadline;
+        }
         if (now <= pool.lastRewardBlock){
             return;
         }

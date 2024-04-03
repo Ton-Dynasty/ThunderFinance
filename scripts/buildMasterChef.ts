@@ -17,6 +17,8 @@ export async function run(provider: NetworkProvider) {
     const masterchefAddress = await kitchen.getGetMasterChefAddress(provider.sender().address!!, seed);
     const mcUSDTWalletAddress = await usdt.getGetWalletAddress(masterchefAddress);
     const masterchefUSDTWallet = provider.open(await JettonWalletUSDT.fromAddress(mcUSDTWalletAddress));
+    const totalReward = 50n * 10n ** 6n;
+    const deadline = BigInt(Math.floor(Date.now() / 1000) + 60 * 60);
 
     await kitchen.send(
         provider.sender(),
@@ -31,6 +33,8 @@ export async function run(provider: NetworkProvider) {
             thunderMintJettonWallet: senderUSDTWallet.address, // owner jettonWallet
             mcRewardJettonWallet: masterchefUSDTWallet.address,
             metaData: beginCell().storeStringTail('httpppp').endCell(),
+            deadline: deadline,
+            totalReward: totalReward,
         },
     );
     await provider.waitForDeploy(masterchefAddress);

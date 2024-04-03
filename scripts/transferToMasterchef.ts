@@ -18,7 +18,6 @@ export async function run(provider: NetworkProvider) {
     console.log('masterchefAddress', masterchefAddress.toString());
 
     const totalReward = 50n * 10n ** 6n;
-    const deadline = Math.floor(Date.now() / 1000) + 60 * 60;
     console.log('Date.now()', Date.now());
     await senderUSDTWallet.send(
         provider.sender(),
@@ -33,7 +32,7 @@ export async function run(provider: NetworkProvider) {
             response_destination: provider.sender().address!!,
             custom_payload: null,
             forward_ton_amount: toNano('0.1'),
-            forward_payload: beginCell().storeCoins(totalReward).storeUint(deadline, 64).endCell(),
+            forward_payload: beginCell().endCell(),
         },
     );
 }
