@@ -289,7 +289,7 @@ contract MasterChef with Deployable {
                     queryId: msg.query_id,
                     lpTokenAddress: ctx.sender,
                     amount: msg.amount,
-                    rewardDebt: pool.accRewardPerShare * msg.amount
+                    rewardDebt: pool.accRewardPerShare * msg.amount / ACC_PRECISION
                 }.toCell(),
                 code: initCode.code,
                 data: initCode.data
