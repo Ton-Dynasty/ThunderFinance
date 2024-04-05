@@ -312,8 +312,7 @@ contract MasterChef with Deployable {
         send(SendParameters{
                 to: contractAddress(initCode),
                 value: remainTon,
-                mode: SendIgnoreErrors,
-                bounce: true,
+                mode: 0,
                 body: WithdrawInternal{
                     queryId: msg.queryId,
                     lpTokenAddress: msg.lpTokenAddress,
@@ -365,8 +364,7 @@ contract MasterChef with Deployable {
         send(SendParameters{
                 to: contractAddress(initCode),
                 value: remainTon,
-                mode: SendIgnoreErrors,
-                bounce: true,
+                mode: 0,
                 body: HarvestInternal{
                     queryId: msg.queryId,
                     lpTokenAddress: msg.lpTokenAddress,
@@ -429,7 +427,7 @@ contract MasterChef with Deployable {
         send(SendParameters{
             to: self.thunderMintWallet, 
             value: self.tonForDevs,
-            mode: SendIgnoreErrors, 
+            mode: 0, 
             body: "Fees For Devs".asComment()
         });
         self.tonForDevs = 0;
