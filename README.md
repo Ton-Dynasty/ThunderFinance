@@ -17,7 +17,7 @@ Welcome to Thunder Mint, the revolutionary platform that empowers project creato
 ThunderMint Contracts aims to resolve key issues in the TON blockchain's DeFi ecosystem by providing innovative solutions for liquidity and secure smart contract development.
 
 
-## Pool Factory Architecture
+## Thunder Mint Architecture
 
 ![ThunderMint Architecture](Architecture.png)
 
