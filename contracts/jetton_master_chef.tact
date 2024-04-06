@@ -60,7 +60,7 @@ contract JettonMasterChef with Deployable, MasterChef {
         if (!self.isInitialized) {
             require(ctx.sender == self.mcRewardJettonWallet, "only reward jetton wallet can send message");
             require(msg.sender == self.owner, "only owner can send setup message");
-            self.handleSetup(ctx, msg.amount);
+            self.handleSetup(ctx, msg.amount, msg.sender);
             return;
         }
 
@@ -154,7 +154,7 @@ contract JettonMasterChef with Deployable, MasterChef {
     // Internal Functions //
 
     // Handle the setup message which is used to initialize the contract
-    inline fun handleSetup(ctx: Context, amount: Int) {
+    inline fun handleSetup(ctx: Context, amount: Int, sender: Address) {
         self.requireNotInitialized();
         self.createdAt = now();
         self.rewardPerSecond = self.totalReward / (self.deadline - self.createdAt);
@@ -164,6 +164,25 @@ contract JettonMasterChef with Deployable, MasterChef {
         let expectedAmount: Int = self.totalReward + self.jettonForDevs;
         require(amount >= expectedAmount, "insufficient reward jetton amount");
         self.isInitialized = true;
+
+        // Send the remaining jetton back to the sender
+        let remainingJetton: Int = amount - expectedAmount;
+        if (remainingJetton > 0) {
+            send(SendParameters{
+                    to: self.mcRewardJettonWallet,
+                    value: 0,
+                    mode: SendRemainingValue,
+                    body: JettonTransfer{
+                        query_id: 0,
+                        amount: remainingJetton ,
+                        destination: sender,
+                        response_destination: sender,
+                        custom_payload: null,
+                        forward_ton_amount: 0,
+                        forward_payload: emptySlice()
+                }.toCell()
+            });
+        }
     }
 
     // Get MasterChef Data

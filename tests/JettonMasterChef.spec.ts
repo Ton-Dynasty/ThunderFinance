@@ -54,7 +54,9 @@ describe('MasterChef', () => {
         deployerJettonWallet: SandboxContract<JettonWalletUSDT>,
         deployer: SandboxContract<TreasuryContract>,
     ) {
+        const ownerBalanceBefore = (await deployerJettonWallet.getGetWalletData()).balance;
         const feeAmont = (totalReward * 3n) / 1000n;
+        const extraAmount = 2000000n;
         const initResult = await deployerJettonWallet.send(
             deployer.getSender(),
             {
@@ -63,7 +65,7 @@ describe('MasterChef', () => {
             {
                 $$type: 'JettonTransfer',
                 query_id: 0n,
-                amount: totalReward + feeAmont,
+                amount: totalReward + feeAmont + extraAmount,
                 destination: masterChef.address,
                 response_destination: deployer.address,
                 custom_payload: null,
@@ -71,6 +73,9 @@ describe('MasterChef', () => {
                 forward_payload: beginCell().endCell(),
             },
         );
+        const ownerBalanceAfter = (await deployerJettonWallet.getGetWalletData()).balance;
+        // Eexpect Masterchef gave the extra amount to the owner
+        expect(ownerBalanceBefore - ownerBalanceAfter).toBe(totalReward + feeAmont);
         rewardPerSecond = await (await masterChef.getGetJettonMasterChefData()).rewardPerSecond;
 
         // Deployer should send JettonTransfer to his wallet
