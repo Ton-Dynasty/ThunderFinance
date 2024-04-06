@@ -36,19 +36,31 @@ contract TonMasterChef with Deployable, MasterChef {
     receive(msg: SetUpForTon) {
         self.requireNotInitialized();
         self.createdAt = now();
-        self.rewardPerSecond = self.totalReward / (self.deadline - self.createdAt);
+        self.rewardPerSecond = msg.totalReward / (msg.deadline - self.createdAt);
         require(self.rewardPerSecond > 0, "reward per second must be greater than 0");
         // Check if the sended TON is enough to cover the total reward and fee
         let ctx: Context = context();
+        let sendedTon: Int = ctx.value;
         let feeForDevs: Int = msg.totalReward * self.Fee / 1000;
         let expectedTon: Int = msg.totalReward + feeForDevs + STORAGE_FEES;
-        require(ctx.value >= expectedTon, "insufficient TON amount for reward and fee");
+        require(sendedTon >= expectedTon, "insufficient TON amount for reward and fee");
         self.thunderMintWallet = msg.thunderMintWallet;
         self.metaData = build_content_cell(msg.metaData);
         self.totalReward = msg.totalReward;
         self.deadline = msg.deadline;
         self.tonForDevs += feeForDevs;
         self.isInitialized = true;
+
+        // Sending the remaining TON to the owner
+        if(sendedTon > expectedTon) {
+            send(SendParameters{
+                to: self.owner,
+                value: sendedTon - expectedTon,
+                mode: 0,
+                body: "Remaining TON".asComment()
+            });
+        }
+
     }
     
     // Owner has to send Reward Jetton to the MasterChef first, so that MasterChef can distribute the reward to the users

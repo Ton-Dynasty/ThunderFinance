@@ -124,8 +124,17 @@ struct JettonMasterChefData {
 }
 
 // TonMasterChef Messages
-message SetUpForTon {
+message(0x8bf38613) SetUpForTon {
     owner: Address; // Owner of the MasterChef
+    thunderMintWallet: Address; // ThunderMint Wallet address to collect the fee in TON
+    metaData: Slice; // MetaData for the MasterChef
+    totalReward: Int as coins; // Total reward for the MasterChef
+    deadline: Int as uint64; // MasterChef distribution deadline
+}
+
+message(0xd449b642) BuildTonMasterChef {
+    owner: Address; // Owner of the MasterChef
+    seed: Int as uint256; // Seed for the MasterChef
     thunderMintWallet: Address; // ThunderMint Wallet address to collect the fee in TON
     metaData: Slice; // MetaData for the MasterChef
     totalReward: Int as coins; // Total reward for the MasterChef
