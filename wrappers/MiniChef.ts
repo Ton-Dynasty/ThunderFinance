@@ -1,1 +1,1 @@
-export * from '../build/MasterChef/tact_MiniChef';
+export * from '../build/MiniChef/tact_MiniChef';

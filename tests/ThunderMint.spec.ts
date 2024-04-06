@@ -1,7 +1,7 @@
-import { Kitchen } from './../build/MasterChef/tact_Kitchen';
+import { Kitchen } from '../wrappers/Kitchen';
 import { Blockchain, printTransactionFees, SandboxContract, TreasuryContract } from '@ton/sandbox';
-import { beginCell, toNano } from '@ton/core';
-import { MasterChef, PoolInfo } from '../wrappers/MasterChef';
+import { Address, beginCell, toNano } from '@ton/core';
+import { JettonMasterChef, PoolInfo } from '../wrappers/JettonMasterChef';
 import { MiniChef } from '../wrappers/MiniChef';
 import { JettonWalletUSDT } from '../wrappers/JettonWallet';
 import { JettonMasterUSDT } from '../wrappers/JettonMaster';
@@ -12,8 +12,7 @@ describe('MasterChef', () => {
     let deployer: SandboxContract<TreasuryContract>;
     let user: SandboxContract<TreasuryContract>;
     let thunderMint: SandboxContract<TreasuryContract>; // ThunderMint is the dev team to receive the fees in ton
-    let masterChef: SandboxContract<MasterChef>;
-    let miniChef: SandboxContract<MiniChef>;
+    let masterChef: SandboxContract<JettonMasterChef>;
     let usdt: SandboxContract<JettonMasterUSDT>;
     let masterChefJettonWallet: SandboxContract<JettonWalletUSDT>;
     let deployerJettonWallet: SandboxContract<JettonWalletUSDT>;
@@ -28,7 +27,7 @@ describe('MasterChef', () => {
     async function depositJetton(
         usdt: SandboxContract<JettonMasterUSDT>,
         user: SandboxContract<TreasuryContract>,
-        masterChef: SandboxContract<MasterChef>,
+        masterChef: SandboxContract<JettonMasterChef>,
         amount: bigint,
     ) {
         await usdt.send(user.getSender(), { value: toNano('1') }, 'Mint:1');
@@ -51,7 +50,7 @@ describe('MasterChef', () => {
 
     // Initialize MasterChef by sending Reward to MasterChef JettonWallet
     async function initialize(
-        masterChef: SandboxContract<MasterChef>,
+        masterChef: SandboxContract<JettonMasterChef>,
         deployerJettonWallet: SandboxContract<JettonWalletUSDT>,
         deployer: SandboxContract<TreasuryContract>,
     ) {
@@ -102,7 +101,7 @@ describe('MasterChef', () => {
 
     // Add a pool to MasterChef
     async function addPool(
-        masterChef: SandboxContract<MasterChef>,
+        masterChef: SandboxContract<JettonMasterChef>,
         masterChefJettonWallet: SandboxContract<JettonWalletUSDT>,
         allocPoint = 100n,
     ) {
@@ -119,7 +118,7 @@ describe('MasterChef', () => {
 
     // Owner of MasterChef deposits reward token first, then user deposits USDT
     async function deposit(
-        masterChef: SandboxContract<MasterChef>,
+        masterChef: SandboxContract<JettonMasterChef>,
         user: SandboxContract<TreasuryContract>,
         masterChefJettonWallet: SandboxContract<JettonWalletUSDT>,
         usdt: SandboxContract<JettonMasterUSDT>,
@@ -131,7 +130,7 @@ describe('MasterChef', () => {
 
     // User withdraws USDT from MasterChef
     async function withdraw(
-        masterChef: SandboxContract<MasterChef>,
+        masterChef: SandboxContract<JettonMasterChef>,
         user: SandboxContract<TreasuryContract>,
         masterChefJettonWallet: SandboxContract<JettonWalletUSDT>,
         userWithdrawAmount = 5n * 10n ** 5n,
@@ -151,7 +150,7 @@ describe('MasterChef', () => {
 
     // User harvests reward from MasterChef
     async function harvest(
-        masterChef: SandboxContract<MasterChef>,
+        masterChef: SandboxContract<JettonMasterChef>,
         user: SandboxContract<TreasuryContract>,
         masterChefJettonWallet: SandboxContract<JettonWalletUSDT>,
     ) {
@@ -181,7 +180,7 @@ describe('MasterChef', () => {
         kitchen = await blockchain.openContract(await Kitchen.fromInit(deployer.address, 0n)); // MasterChef Factory
         usdt = blockchain.openContract(await JettonMasterUSDT.fromInit(deployer.address, beginCell().endCell())); // Reward token and LP token
         seed = BigInt(`0x${beginCell().storeUint(Date.now(), 64).endCell().hash().toString('hex')}`); // Seed for MasterChef
-        masterChef = blockchain.openContract(await MasterChef.fromInit(deployer.address, seed)); // MasterChef contract
+        masterChef = blockchain.openContract(await JettonMasterChef.fromInit(deployer.address, seed)); // MasterChef contract
         masterChefJettonWallet = blockchain.openContract(
             await JettonWalletUSDT.fromInit(masterChef.address, usdt.address),
         ); // MasterChef USDT JettonWallet
@@ -283,14 +282,14 @@ describe('MasterChef', () => {
             success: true,
         });
 
-        miniChef = blockchain.openContract(await MiniChef.fromInit(user.address, masterChef.address));
+        let miniChefAddress = await masterChef.getGetMiniChefAddress(user.address);
         // check if masterchef send userDeposit to minichef
         expect(depositResult.transactions).toHaveTransaction({
             from: masterChef.address,
-            to: miniChef.address,
+            to: miniChefAddress,
             success: true,
         });
-
+        let miniChef = blockchain.openContract(await MiniChef.fromAddress(miniChefAddress));
         const userInfo = await miniChef.getGetUserInfo(masterChefJettonWallet.address);
         // check the user deposit amount is correct
         expect(userInfo.amount).toBe(userDepositAmount);
@@ -342,16 +341,16 @@ describe('MasterChef', () => {
         });
 
         // Check if the MasterChef send HarvestInternal to MiniChef
-        miniChef = blockchain.openContract(await MiniChef.fromInit(user.address, masterChef.address));
+        let miniChefAddress = await masterChef.getGetMiniChefAddress(user.address);
         expect(harvestResult.transactions).toHaveTransaction({
             from: masterChef.address,
-            to: miniChef.address,
+            to: miniChefAddress,
             success: true,
         });
 
         // Check if MiniChef send HarvestInternalReply to user
         expect(harvestResult.transactions).toHaveTransaction({
-            from: miniChef.address,
+            from: miniChefAddress,
             to: masterChef.address,
             success: true,
         });
@@ -699,7 +698,7 @@ describe('MasterChef', () => {
         let blockchain: Blockchain;
         let deployer: SandboxContract<TreasuryContract>;
         let user: SandboxContract<TreasuryContract>;
-        let masterChef: SandboxContract<MasterChef>;
+        let masterChef: SandboxContract<JettonMasterChef>;
         let usdt: SandboxContract<JettonMasterUSDT>;
         let masterChefJettonWallet: SandboxContract<JettonWalletUSDT>;
         let deployerJettonWallet: SandboxContract<JettonWalletUSDT>;
@@ -708,7 +707,7 @@ describe('MasterChef', () => {
         deployer = await blockchain.treasury('deployer');
         user = await blockchain.treasury('user');
         usdt = blockchain.openContract(await JettonMasterUSDT.fromInit(deployer.address, beginCell().endCell()));
-        masterChef = blockchain.openContract(await MasterChef.fromInit(deployer.address, 0n));
+        masterChef = blockchain.openContract(await JettonMasterChef.fromInit(deployer.address, 0n));
         masterChefJettonWallet = blockchain.openContract(
             await JettonWalletUSDT.fromInit(masterChef.address, usdt.address),
         );
