@@ -2,7 +2,7 @@ import "@stdlib/deploy";
 import "./master_chef.tact";
 
 // MasterChef Contract: Users deposit, withdraw and harvest their LP tokens in this contract
-contract JettonMasterChef with Deployable, MasterChef {
+contract TonMasterChef with Deployable, MasterChef {
     // State
     isInitialized: Bool = false;
 
@@ -10,59 +10,52 @@ contract JettonMasterChef with Deployable, MasterChef {
     owner: Address;
     pools: map<Address, PoolInfo>;
     totalAllocPoint: Int = 0;
-    createdAt: Int as uint64 = 0;
-    deadline: Int as uint64 = 0;
+    createdAt: Int = 0;
+    deadline: Int = 0;
     metaData: Cell;
 
     // for reward jetton
-    mcRewardJettonWallet: Address;
-    rewardPerSecond: Int as coins = 0;
+    rewardPerSecond: Int = 0;
     totalReward: Int = 0;
-
 
     // For ThunderMint
     thunderMintWallet: Address;
-    thunderMintJettonWallet: Address;
     Fee: Int = 3; // 0.3%
-    jettonForDevs: Int = 0;
     tonForDevs: Int = 0;
 
     // initialize the contract with owner and reward jetton wallet address
     init(owner: Address, _seed: Int) {
         self.owner = owner;
         self.isInitialized = false;
-        self.mcRewardJettonWallet = newAddress(0, 0);
         self.thunderMintWallet = newAddress(0, 0);
-        self.thunderMintJettonWallet = newAddress(0, 0);
         self.metaData = emptyCell();
         emit(DeployMasterChef{owner: owner, seed: _seed}.toCell());
     }
 
     // Kitchen contract will send this message to initialize the MasterChef
-    receive(msg: SetUp) {
+    receive(msg: SetUpForTon) {
         self.requireNotInitialized();
-        require(self.mcRewardJettonWallet == newAddress(0, 0), "reward wallet already set");
-        self.mcRewardJettonWallet = msg.mcRewardJettonWallet;
+        self.createdAt = now();
+        self.rewardPerSecond = self.totalReward / (self.deadline - self.createdAt);
+        require(self.rewardPerSecond > 0, "reward per second must be greater than 0");
+        // Check if the sended TON is enough to cover the total reward and fee
+        let ctx: Context = context();
+        let feeForDevs: Int = msg.totalReward * self.Fee / 1000;
+        let expectedTon: Int = msg.totalReward + feeForDevs + STORAGE_FEES;
+        require(ctx.value >= expectedTon, "insufficient TON amount for reward and fee");
         self.thunderMintWallet = msg.thunderMintWallet;
-        self.thunderMintJettonWallet = msg.thunderMintJettonWallet;
         self.metaData = build_content_cell(msg.metaData);
         self.totalReward = msg.totalReward;
         self.deadline = msg.deadline;
+        self.tonForDevs += feeForDevs;
+        self.isInitialized = true;
     }
-
     
     // Owner has to send Reward Jetton to the MasterChef first, so that MasterChef can distribute the reward to the users
     // Users send JettonTransferNotification to the MasterChef to deposit their LP tokens
     receive(msg: JettonTransferNotification) {
         // context sender is from different kind of jetton wallet 
         let ctx: Context = context();
-        // If not initialized, only accept reward jetton with Setup message payload
-        if (!self.isInitialized) {
-            require(ctx.sender == self.mcRewardJettonWallet, "only reward jetton wallet can send message");
-            require(msg.sender == self.owner, "only owner can send setup message");
-            self.handleSetup(ctx, msg.amount);
-            return;
-        }
 
         // check if pool exists
         require(self.pools.get(ctx.sender) != null , "pool not exists");
@@ -102,46 +95,16 @@ contract JettonMasterChef with Deployable, MasterChef {
         let expectedSender: Address = contractAddress(initCode);
         require(expectedSender == sender(), "unexpected sender");
         send(SendParameters{
-                to: self.mcRewardJettonWallet,
-                value: 0,
-                mode: SendRemainingValue,
-                body: JettonTransfer{
-                    query_id: 0,
-                    amount: msg.reward,
-                    destination: msg.beneficiary,
-                    response_destination: msg.beneficiary,
-                    custom_payload: null,
-                    forward_ton_amount: 0,
-                    forward_payload: emptySlice()
-            }.toCell()
-            }
-        );
-
+            to: msg.beneficiary,
+            value: msg.reward,
+            mode: SendRemainingValue,
+            body: "Reward of TON".asComment()
+        });
     }
 
     // Pay the fee to the devs
-    receive("Collect") {
-        // Reward jetton for devs can only be sent to ThunderMint once
-        if (self.jettonForDevs > 0) {
-            send(SendParameters{
-                    to: self.mcRewardJettonWallet,
-                    value: self.tonForDevs,
-                    mode: SendRemainingValue,
-                    body: JettonTransfer{
-                        query_id: 0,
-                        amount: self.jettonForDevs,
-                        destination: self.thunderMintWallet,
-                        response_destination: self.thunderMintWallet,
-                        custom_payload: null,
-                        forward_ton_amount: 0,
-                        forward_payload: emptySlice()
-                }.toCell()
-            });
-            self.tonForDevs = 0;
-            self.jettonForDevs = 0;
-            return;
-        }
-        // Only send ton to devs
+    receive("CollectTON") {
+        // Send ton to devs
         send(SendParameters{
             to: self.thunderMintWallet, 
             value: self.tonForDevs,
@@ -151,36 +114,20 @@ contract JettonMasterChef with Deployable, MasterChef {
         self.tonForDevs = 0;
     }
 
-    // Internal Functions //
-
-    // Handle the setup message which is used to initialize the contract
-    inline fun handleSetup(ctx: Context, amount: Int) {
-        self.requireNotInitialized();
-        self.createdAt = now();
-        self.rewardPerSecond = self.totalReward / (self.deadline - self.createdAt);
-        require(self.rewardPerSecond > 0, "reward per second must be greater than 0");
-        self.jettonForDevs = self.totalReward * self.Fee / 1000; // 0.3% fee
-        // Have to transfer reward jetton and fee to the contract
-        let expectedAmount: Int = self.totalReward + self.jettonForDevs;
-        require(amount >= expectedAmount, "insufficient reward jetton amount");
-        self.isInitialized = true;
-    }
-
     // Get MasterChef Data
-    get fun getJettonMasterChefData(): JettonMasterChefData {
-        return JettonMasterChefData{
+    get fun getTonMasterChefData(): TonMasterChefData {
+        return TonMasterChefData{
             owner: self.owner,
-            mcRewardJettonWallet: self.mcRewardJettonWallet,
             rewardPerSecond: self.rewardPerSecond,
             createdAt: self.createdAt,
             deadline: self.deadline,
             isInitialized: self.isInitialized,
             totalAllocPoint: self.totalAllocPoint,
             tonForDevs: self.tonForDevs,
-            jettonForDevs: self.jettonForDevs,
             pools: self.pools,
             metaData: self.metaData,
             totalReward: self.totalReward
         };
     }
+
 }

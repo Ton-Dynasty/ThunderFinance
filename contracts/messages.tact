@@ -108,7 +108,7 @@ struct UserInfo {
     rewardDebt: Int; // Reward user received
 }
 
-struct MasterChefData {
+struct JettonMasterChefData {
     owner: Address; // Owner of the MasterChef
     mcRewardJettonWallet: Address; // MasterChef Wallet address for reward jetton
     rewardPerSecond: Int as coins; // Reward per second
@@ -123,5 +123,28 @@ struct MasterChefData {
     totalReward: Int; // Total reward
 }
 
+// TonMasterChef Messages
+message SetUpForTon {
+    owner: Address; // Owner of the MasterChef
+    thunderMintWallet: Address; // ThunderMint Wallet address to collect the fee in TON
+    metaData: Slice; // MetaData for the MasterChef
+    totalReward: Int as coins; // Total reward for the MasterChef
+    deadline: Int as uint64; // MasterChef distribution deadline
+}
+
+struct TonMasterChefData {
+    owner: Address; // Owner of the MasterChef
+    rewardPerSecond: Int as coins; // Reward per second
+    createdAt: Int as uint64; // MasterChef Created at block number
+    deadline: Int as uint64; // MasterChef distribution deadline
+    isInitialized: Bool; // MasterChef is initialized or not
+    totalAllocPoint: Int; // Total allocation point
+    tonForDevs: Int; // TON for ThunderMint
+    pools: map<Address, PoolInfo>; // Pool Info
+    metaData: Cell; // MetaData for the MasterChef
+    totalReward: Int; // Total reward
+}
+
+const STORAGE_FEES: Int = ton("0.001");
 const THUNDER_FEE: Int = ton("0.01"); // User have to pay the fee to ThunderMint
 const ACC_PRECISION: Int = 1000000; // Precision for the accumulated reward per share

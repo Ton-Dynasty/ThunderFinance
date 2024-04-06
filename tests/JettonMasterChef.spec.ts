@@ -71,7 +71,7 @@ describe('MasterChef', () => {
                 forward_payload: beginCell().endCell(),
             },
         );
-        rewardPerSecond = await (await masterChef.getGetMasterChefData()).rewardPerSecond;
+        rewardPerSecond = await (await masterChef.getGetJettonMasterChefData()).rewardPerSecond;
 
         // Deployer should send JettonTransfer to his wallet
         expect(initResult.transactions).toHaveTransaction({
@@ -93,7 +93,7 @@ describe('MasterChef', () => {
             success: true,
         });
 
-        const masterChefData = await masterChef.getGetMasterChefData();
+        const masterChefData = await masterChef.getGetJettonMasterChefData();
         // Make sure that jetton For ThunderMint is recorded
         expect(masterChefData.jettonForDevs).toEqual((totalReward * 3n) / 1000n);
         return true; //masterChefData.isInitialized;
@@ -632,7 +632,7 @@ describe('MasterChef', () => {
             success: true,
             op: 0x097bb407,
         });
-        const masterChefDataAfterWithdraw = await masterChef.getGetMasterChefData();
+        const masterChefDataAfterWithdraw = await masterChef.getGetJettonMasterChefData();
         // Make sure that tonForDevs is recorded after user withdraw
         expect(masterChefDataAfterWithdraw.tonForDevs).toEqual(10000000n); // Withdraw's fee is 0.1 TON
 
@@ -640,7 +640,7 @@ describe('MasterChef', () => {
         blockchain.now!! += periodTime;
         // User send Harvest to MasterChef
         await harvest(masterChef, user, masterChefJettonWallet);
-        const masterChefDataAfterHarvest = await masterChef.getGetMasterChefData();
+        const masterChefDataAfterHarvest = await masterChef.getGetJettonMasterChefData();
         expect(masterChefDataAfterHarvest.tonForDevs).toEqual(20000000n); // Harvest's fee is 0.1 TON and add Withdraw's fee = 0.2 TON
 
         // Send Collect Msg to MasterChef
@@ -654,7 +654,7 @@ describe('MasterChef', () => {
             blockchain.now!! += periodTime;
             await withdraw(masterChef, user, masterChefJettonWallet, userWithdrawAmount);
         }
-        const masterChefData = await masterChef.getGetMasterChefData();
+        const masterChefData = await masterChef.getGetJettonMasterChefData();
         const collectResult = await masterChef.send(deployer.getSender(), { value: toNano('1') }, 'Collect');
         let thunderMintTonAfter = await thunderMint.getBalance();
         let thunderJettonAfter = (await thunderMintJettonWallet.getGetWalletData()).balance;
@@ -754,7 +754,7 @@ describe('MasterChef', () => {
         );
 
         // check if the masterChef is not initialized
-        const masterChefData = await masterChef.getGetMasterChefData();
+        const masterChefData = await masterChef.getGetJettonMasterChefData();
         const isInitialized = masterChefData.isInitialized;
         expect(isInitialized).toBe(false);
     });
