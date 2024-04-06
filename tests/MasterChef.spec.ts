@@ -209,7 +209,7 @@ describe('MasterChef', () => {
             deploy: true,
             success: true,
         });
-        deadline = BigInt(blockchain.now!! + 1000);
+        deadline = BigInt(blockchain.now!! + 1500);
         totalReward = 1000n * 10n ** 5n;
         // Build the MasterChef contract from kitchen
         const masterChefResult = await kitchen.send(
@@ -376,6 +376,43 @@ describe('MasterChef', () => {
         expect(userUSDTBalanceAfter).toEqual(userUSDTBalanceBefore + benifit);
     });
 
+    it('Should deposit twice and harvest ', async () => {
+        await addPool(masterChef, masterChefJettonWallet);
+        const userDepositAmount = 1n * 10n ** 6n;
+        const periodTime = 1000;
+        await depositJetton(usdt, user, masterChef, userDepositAmount);
+        // Update time to periodTime, so that we can harvest
+        blockchain.now!! += periodTime;
+        const userJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(user.address, usdt.address));
+        const userUSDTBalanceBefore = (await userJettonWallet.getGetWalletData()).balance;
+
+        // User send Harvest to MasterChef
+        await harvest(masterChef, user, masterChefJettonWallet);
+
+        // User JettonWallet should have received the reward
+        const userUSDTBalanceAfter = (await userJettonWallet.getGetWalletData()).balance;
+        const benifit = (userDepositAmount * BigInt(periodTime) * rewardPerSecond) / 10n ** 6n;
+        expect(userUSDTBalanceAfter).toEqual(userUSDTBalanceBefore + benifit);
+
+        // User Deposit Again
+        await depositJetton(usdt, user, masterChef, userDepositAmount);
+        // Update time to periodTime, so that we can harvest
+        blockchain.now!! += periodTime;
+
+        // User send Harvest to MasterChef
+        const harvestResult = await harvest(masterChef, user, masterChefJettonWallet);
+
+        // User JettonWallet should have received the reward
+        const userUSDTBalanceAfter2rdHarvest = (await userJettonWallet.getGetWalletData()).balance;
+        //  99999000000n
+        // 100099000000n
+        // 200098000000n
+        // 200098000000n
+        // 100099000000n
+        // 100099000000n
+        // 200098000000n
+    });
+
     it('Should deposit and withdraw', async () => {
         const userDepositAmount = 1n * 10n ** 6n;
         const userWithdrawAmount = 5n * 10n ** 5n;
@@ -514,9 +551,16 @@ describe('MasterChef', () => {
 
         // check the benefit of user1 and user2 are correct
         const totalDeposit = user1DepositAmount + user2DepositAmount;
-        const rewardPerShare = (BigInt(periodTime) * rewardPerSecond) / totalDeposit;
-        const benifit1 = user1DepositAmount * rewardPerShare;
-        const benifit2 = user2DepositAmount * rewardPerShare;
+        const rewardPerShare = (10n ** 6n * (BigInt(periodTime) * rewardPerSecond)) / totalDeposit;
+        const benifit1 = (user1DepositAmount * rewardPerShare) / 10n ** 6n;
+        const benifit2 = (user2DepositAmount * rewardPerShare) / 10n ** 6n;
+        // console.log('rewardPerShare 1 ', rewardPerShare);
+        // console.log('benifit 1 ', benifit1);
+        // console.log('benifit 2 ', benifit2);
+        // console.log('user1USDTBalanceBefore', user1USDTBalanceBefore);
+        // console.log('user1USDTBalanceAfter', user1USDTBalanceAfter);
+        // console.log('user2USDTBalanceBefore', user2USDTBalanceBefore);
+        // console.log('user2USDTBalanceAfter', user2USDTBalanceAfter);
 
         expect(user1USDTBalanceAfter).toEqual(user1USDTBalanceBefore + benifit1);
         expect(user2USDTBalanceAfter).toEqual(user2USDTBalanceBefore + benifit2);
