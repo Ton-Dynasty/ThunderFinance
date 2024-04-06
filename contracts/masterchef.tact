@@ -466,6 +466,7 @@ contract MasterChef with Deployable {
         // If the deadline is passed, set now to deadline, so that no more reward will be distributed
         if (now > self.deadline) {
             now = self.deadline;
+            self.deadline = 0;
         }
         if (now <= pool.lastRewardBlock){
             return;
