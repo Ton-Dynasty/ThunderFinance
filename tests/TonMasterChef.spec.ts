@@ -719,7 +719,7 @@ describe('TON MasterChef Tests', () => {
             from: kitchen.address,
             to: masterChef.address,
             success: false,
-            exitCode: 31992, // not enough reward
+            exitCode: 1, // not enough reward
         });
 
         // isInitialized should be true
