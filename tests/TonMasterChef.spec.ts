@@ -7,7 +7,7 @@ import { JettonWalletUSDT } from '../wrappers/JettonWallet';
 import { JettonMasterUSDT } from '../wrappers/JettonMaster';
 import '@ton/test-utils';
 
-describe('MasterChef', () => {
+describe('TON MasterChef Tests', () => {
     let blockchain: Blockchain;
     let deployer: SandboxContract<TreasuryContract>;
     let user: SandboxContract<TreasuryContract>;
