@@ -90,7 +90,7 @@ trait MasterChef {
         let expectedSender: Address = contractAddress(initCode);
         require(expectedSender == sender(), "unexpected sender");
         let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
-        self.sendJetton(pool.lpTokenAddress, msg.amount, msg.beneficiary, msg.beneficiary);
+        self.sendJetton(pool.lpTokenAddress, 0, msg.amount, msg.beneficiary, msg.beneficiary);
     }
 
     // User can send this message to harvest their reward
@@ -122,9 +122,47 @@ trait MasterChef {
 
     // Internal Functions //
 
+    // Baise setup function
+    inline fun basicSetUp(_thunderMintWallet: Address, _metaData: Slice, _totalReward: Int, _deadline: Int) {
+        self.thunderMintWallet = _thunderMintWallet;
+        self.metaData = build_content_cell(_metaData);
+        self.totalReward = _totalReward;
+        self.deadline = _deadline;
+    }
+
     // Check if the contract is initialized
     inline fun requireInitialized() {
         require(self.isInitialized, "contract not initialized");
+    }
+
+    // Deploy MiniChef Contract
+    inline fun userDeposit(msg: JettonTransferNotification, ctx: Context) {        // transfer from masterchef jetton wallet
+        self.updatePool(ctx.sender);
+
+        // load address from forward payload, if it does not exist, use msg.sender
+        let beneficiary: Address = msg.sender;
+        let payload: Slice = msg.forward_payload;
+        if (!payload.dataEmpty()) {
+            beneficiary = msg.sender;
+        }
+        let initCode: StateInit = self._calculateMiniChefInit(beneficiary);
+        let pool: PoolInfo = self.pools.get(ctx.sender)!!;
+        pool.lpSupply = pool.lpSupply + msg.amount;
+        self.pools.set(ctx.sender, pool);
+        send(SendParameters{
+                to: contractAddress(initCode),
+                value: 0,
+                mode: SendRemainingValue,
+                body: UserDeposit{
+                    queryId: msg.query_id,
+                    lpTokenAddress: ctx.sender,
+                    amount: msg.amount,
+                    rewardDebt: pool.accRewardPerShare * msg.amount / ACC_PRECISION
+                }.toCell(),
+                code: initCode.code,
+                data: initCode.data
+            }
+        );
     }
 
     // Update the pool, recalculate the reward per share
@@ -151,11 +189,11 @@ trait MasterChef {
     }
 
     // Send Jetton
-    inline fun sendJetton(_to: Address,_amount: Int, _destination: Address, _response_destination: Address) {
+    inline fun sendJetton(_to: Address, _tonValue: Int, _amount: Int, _destination: Address, _response_destination: Address) {
         // Send Jetton back to the sender        
         send(SendParameters{
             to: _to,
-            value: 0,
+            value: _tonValue,
             mode: SendRemainingValue,
             body: JettonTransfer{
                 query_id: 0,
@@ -166,6 +204,17 @@ trait MasterChef {
                 forward_ton_amount: 0,
                 forward_payload: emptySlice()
             }.toCell()    
+        });
+    }
+
+
+    // Send TON
+    inline fun sendTon(_to: Address, _value: Int, _mode: Int) {
+        send(SendParameters{
+            to: _to,
+            value: _value,
+            mode: _mode,
+            body: "MasterChef Send Back TON".asComment()
         });
     }
 

@@ -49,10 +49,7 @@ contract TonMasterChef with Deployable, MasterChef {
             self.sendTon(msg.owner, 0, SendRemainingValue);
             throw(ERROR_NOT_ENOUGH_AMOUNT_OR_RPS_ZERO);
         }
-        self.thunderMintWallet = msg.thunderMintWallet;
-        self.metaData = build_content_cell(msg.metaData);
-        self.totalReward = msg.totalReward;
-        self.deadline = msg.deadline;
+        self.basicSetUp(msg.thunderMintWallet, msg.metaData, msg.totalReward, msg.deadline);
         self.tonForDevs += feeForDevs;
         self.isInitialized = true;
 
@@ -60,7 +57,6 @@ contract TonMasterChef with Deployable, MasterChef {
         if(sendedTon > expectedTon) {
             self.sendTon(self.owner, sendedTon - expectedTon, 0);
         }
-
     }
     
     // Owner has to send Reward Jetton to the MasterChef first, so that MasterChef can distribute the reward to the users
@@ -70,35 +66,11 @@ contract TonMasterChef with Deployable, MasterChef {
         let ctx: Context = context();
 
         // check if pool exists
-        require(self.pools.get(ctx.sender) != null , "pool not exists");
-
-        // transfer from masterchef jetton wallet
-        self.updatePool(ctx.sender);
-
-        // load address from forward payload, if it does not exist, use msg.sender
-        let beneficiary: Address = msg.sender;
-        let payload: Slice = msg.forward_payload;
-        if (!payload.dataEmpty()) {
-            beneficiary = msg.sender;
+        if(self.pools.get(ctx.sender) == null) {
+            self.sendTon(msg.sender, 0, SendRemainingValue);
+            throw(ERROR_POOL_NOT_FOUND);
         }
-        let initCode: StateInit = self._calculateMiniChefInit(beneficiary);
-        let pool: PoolInfo = self.pools.get(ctx.sender)!!;
-        pool.lpSupply = pool.lpSupply + msg.amount;
-        self.pools.set(ctx.sender, pool);
-        send(SendParameters{
-                to: contractAddress(initCode),
-                value: 0,
-                mode: SendRemainingValue,
-                body: UserDeposit{
-                    queryId: msg.query_id,
-                    lpTokenAddress: ctx.sender,
-                    amount: msg.amount,
-                    rewardDebt: pool.accRewardPerShare * msg.amount / ACC_PRECISION
-                }.toCell(),
-                code: initCode.code,
-                data: initCode.data
-            }
-        );
+        self.userDeposit(msg,ctx);
     }
 
     // MiniChef will send this message to ask MasterChef to send reward
@@ -114,16 +86,6 @@ contract TonMasterChef with Deployable, MasterChef {
         // Send ton to devs
         self.sendTon(self.thunderMintWallet, self.tonForDevs, 0);
         self.tonForDevs = 0;
-    }
-
-    // Internal function
-    inline fun sendTon(_to: Address, _value: Int, _mode: Int) {
-        send(SendParameters{
-            to: _to,
-            value: _value,
-            mode: _mode,
-            body: "MasterChef Send Back TON".asComment()
-        });
     }
 
     // Get MasterChef Data
