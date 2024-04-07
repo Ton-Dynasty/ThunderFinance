@@ -37,7 +37,7 @@ contract TonMasterChef with Deployable, MasterChef {
         self.requireNotInitialized();
         self.createdAt = now();
         self.rewardPerSecond = msg.totalReward / (msg.deadline - self.createdAt);
-        require(self.rewardPerSecond > 0, "reward per second must be greater than 0");
+        require(self.rewardPerSecond > 0, "reward per second must be greater than 0"); // TODO: Should send ton back to the owner
         // Check if the sended TON is enough to cover the total reward and fee
         let ctx: Context = context();
         let sendedTon: Int = ctx.value;
