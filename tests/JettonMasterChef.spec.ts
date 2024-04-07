@@ -22,6 +22,7 @@ describe('MasterChef', () => {
     let seed: bigint;
     let deadline: bigint;
     let totalReward: bigint;
+    let masterChefJettonWalletAddress: Address;
 
     // User deposits USDT to MasterChef by send JettonTransfer to his JettonWallet
     async function depositJetton(
@@ -185,10 +186,7 @@ describe('MasterChef', () => {
         kitchen = await blockchain.openContract(await Kitchen.fromInit(deployer.address, 0n)); // MasterChef Factory
         usdt = blockchain.openContract(await JettonMasterUSDT.fromInit(deployer.address, beginCell().endCell())); // Reward token and LP token
         seed = BigInt(`0x${beginCell().storeUint(Date.now(), 64).endCell().hash().toString('hex')}`); // Seed for MasterChef
-        masterChef = blockchain.openContract(await JettonMasterChef.fromInit(deployer.address, seed)); // MasterChef contract
-        masterChefJettonWallet = blockchain.openContract(
-            await JettonWalletUSDT.fromInit(masterChef.address, usdt.address),
-        ); // MasterChef USDT JettonWallet
+
         deployerJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(deployer.address, usdt.address)); // Deployer USDT JettonWallet
         thunderMintJettonWallet = blockchain.openContract(
             await JettonWalletUSDT.fromInit(thunderMint.address, usdt.address),
@@ -213,6 +211,16 @@ describe('MasterChef', () => {
             deploy: true,
             success: true,
         });
+        let masterChefAddress = await kitchen.getGetMasterChefAddress(deployer.address, seed); // MasterChef address
+        masterChef = blockchain.openContract(await JettonMasterChef.fromAddress(masterChefAddress)); // MasterChef
+        masterChefJettonWalletAddress = await usdt.getGetWalletAddress(masterChefAddress); // MasterChef USDT JettonWallet address
+        masterChefJettonWallet = blockchain.openContract(
+            await JettonWalletUSDT.fromAddress(masterChefJettonWalletAddress),
+        ); // MasterChef USDT JettonWallet
+        masterChefJettonWallet = blockchain.openContract(
+            await JettonWalletUSDT.fromInit(masterChef.address, usdt.address),
+        ); // MasterChef USDT JettonWallet
+
         deadline = BigInt(blockchain.now!! + 2000);
         totalReward = 1000n * 10n ** 5n;
         // Build the MasterChef contract from kitchen
@@ -232,8 +240,7 @@ describe('MasterChef', () => {
                 deadline: deadline,
                 totalReward: totalReward,
             },
-        );
-
+        );        
         expect(masterChefResult.transactions).toHaveTransaction({
             from: kitchen.address,
             to: masterChef.address,
