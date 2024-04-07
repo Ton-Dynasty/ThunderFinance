@@ -50,62 +50,6 @@ describe('MasterChef', () => {
         );
     }
 
-    // Initialize MasterChef by sending Reward to MasterChef JettonWallet
-    // async function initialize(
-    //     masterChef: SandboxContract<TonMasterChef>,
-    //     deployerJettonWallet: SandboxContract<JettonWalletUSDT>,
-    //     deployer: SandboxContract<TreasuryContract>,
-    // ) {
-    //     const ownerBalanceBefore = (await deployerJettonWallet.getGetWalletData()).balance;
-    //     const feeAmont = (totalReward * 3n) / 1000n;
-    //     const extraAmount = 2000000n;
-    //     const initResult = await deployerJettonWallet.send(
-    //         deployer.getSender(),
-    //         {
-    //             value: toNano('1.5'),
-    //         },
-    //         {
-    //             $$type: 'JettonTransfer',
-    //             query_id: 0n,
-    //             amount: totalReward + feeAmont + extraAmount,
-    //             destination: masterChef.address,
-    //             response_destination: deployer.address,
-    //             custom_payload: null,
-    //             forward_ton_amount: toNano('1'),
-    //             forward_payload: beginCell().endCell(),
-    //         },
-    //     );
-    //     const ownerBalanceAfter = (await deployerJettonWallet.getGetWalletData()).balance;
-    //     // Eexpect Masterchef gave the extra amount to the owner
-    //     expect(ownerBalanceBefore - ownerBalanceAfter).toBe(totalReward + feeAmont);
-    //     rewardPerSecond = await (await masterChef.getGetTonMasterChefData()).rewardPerSecond;
-
-    //     // Deployer should send JettonTransfer to his wallet
-    //     expect(initResult.transactions).toHaveTransaction({
-    //         from: deployer.address,
-    //         to: deployerJettonWallet.address,
-    //         success: true,
-    //     });
-
-    //     // deployerJettonWallet send jetton to MasterChef JettonWallet
-    //     expect(initResult.transactions).toHaveTransaction({
-    //         from: deployerJettonWallet.address,
-    //         to: masterChefJettonWallet.address,
-    //         success: true,
-    //     });
-    //     // MasterChef should send JettonNotify to MasterChef
-    //     expect(initResult.transactions).toHaveTransaction({
-    //         from: masterChefJettonWallet.address,
-    //         to: masterChef.address,
-    //         success: true,
-    //     });
-
-    //     const masterChefData = await masterChef.getGetTonMasterChefData();
-    //     // Make sure that jetton For ThunderMint is recorded
-    //     expect(masterChefData.jettonForDevs).toEqual((totalReward * 3n) / 1000n);
-    //     return true; //masterChefData.isInitialized;
-    // }
-
     // Add a pool to MasterChef
     async function addPool(
         masterChef: SandboxContract<TonMasterChef>,
