@@ -40,7 +40,7 @@ contract JettonMasterChef with Deployable, MasterChef {
 
     // Kitchen contract will send this message to initialize the MasterChef
     receive(msg: SetUp) {
-        self.requireNotInitialized();
+        require(!self.isInitialized, "contract already initialized");
         require(self.mcRewardJettonWallet == newAddress(0, 0), "reward wallet already set");
         self.mcRewardJettonWallet = msg.mcRewardJettonWallet;
         self.thunderMintWallet = msg.thunderMintWallet;
@@ -58,14 +58,19 @@ contract JettonMasterChef with Deployable, MasterChef {
         let ctx: Context = context();
         // If not initialized, only accept reward jetton with Setup message payload
         if (!self.isInitialized) {
-            require(ctx.sender == self.mcRewardJettonWallet, "only reward jetton wallet can send message");
-            require(msg.sender == self.owner, "only owner can send setup message");
+            if(ctx.sender != self.mcRewardJettonWallet || msg.sender != self.owner) {
+                self.sendJetton(self.mcRewardJettonWallet, msg.amount, msg.sender, msg.sender);
+                throw(ERROR_NOT_INITIALIZED);
+            }
             self.handleSetup(ctx, msg.amount, msg.sender);
             return;
         }
 
         // check if pool exists
-        require(self.pools.get(ctx.sender) != null , "pool not exists");
+        if(self.pools.get(ctx.sender) == null) {
+            self.sendJetton(ctx.sender, msg.amount, msg.sender, msg.sender);
+            throw(ERROR_POOL_NOT_FOUND);
+        }
 
         // transfer from masterchef jetton wallet
         self.updatePool(ctx.sender);
@@ -101,22 +106,7 @@ contract JettonMasterChef with Deployable, MasterChef {
         let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
         let expectedSender: Address = contractAddress(initCode);
         require(expectedSender == sender(), "unexpected sender");
-        send(SendParameters{
-                to: self.mcRewardJettonWallet,
-                value: 0,
-                mode: SendRemainingValue,
-                body: JettonTransfer{
-                    query_id: 0,
-                    amount: msg.reward,
-                    destination: msg.beneficiary,
-                    response_destination: msg.beneficiary,
-                    custom_payload: null,
-                    forward_ton_amount: 0,
-                    forward_payload: emptySlice()
-            }.toCell()
-            }
-        );
-
+        self.sendJetton(self.mcRewardJettonWallet, msg.reward, msg.beneficiary, msg.beneficiary);
     }
 
     // Pay the fee to the devs
@@ -155,33 +145,20 @@ contract JettonMasterChef with Deployable, MasterChef {
 
     // Handle the setup message which is used to initialize the contract
     inline fun handleSetup(ctx: Context, amount: Int, sender: Address) {
-        self.requireNotInitialized();
         self.createdAt = now();
         self.rewardPerSecond = self.totalReward / (self.deadline - self.createdAt);
-        require(self.rewardPerSecond > 0, "reward per second must be greater than 0");
         self.jettonForDevs = self.totalReward * self.Fee / 1000; // 0.3% fee
         // Have to transfer reward jetton and fee to the contract
         let expectedAmount: Int = self.totalReward + self.jettonForDevs;
-        require(amount >= expectedAmount, "insufficient reward jetton amount");
+        if(amount < expectedAmount || self.rewardPerSecond <= 0) {
+            self.sendJetton(self.mcRewardJettonWallet,amount, sender, sender);
+            throw(ERROR_NOT_ENOUGH_AMOUNT_OR_RPS_ZERO);
+        }
         self.isInitialized = true;
-
         // Send the remaining jetton back to the sender
         let remainingJetton: Int = amount - expectedAmount;
         if (remainingJetton > 0) {
-            send(SendParameters{
-                    to: self.mcRewardJettonWallet,
-                    value: 0,
-                    mode: SendRemainingValue,
-                    body: JettonTransfer{
-                        query_id: 0,
-                        amount: remainingJetton ,
-                        destination: sender,
-                        response_destination: sender,
-                        custom_payload: null,
-                        forward_ton_amount: 0,
-                        forward_payload: emptySlice()
-                }.toCell()
-            });
+            self.sendJetton(self.mcRewardJettonWallet, remainingJetton, sender, sender);
         }
     }
 

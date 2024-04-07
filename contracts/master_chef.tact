@@ -89,23 +89,8 @@ trait MasterChef {
         let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
         let expectedSender: Address = contractAddress(initCode);
         require(expectedSender == sender(), "unexpected sender");
-
         let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
-        send(SendParameters{
-            to: pool.lpTokenAddress,
-            value: 0,
-            mode: SendRemainingValue,
-            body: JettonTransfer{
-                query_id: 0,
-                amount: msg.amount,
-                destination: msg.beneficiary,
-                response_destination: msg.beneficiary,
-                custom_payload: null,
-                forward_ton_amount: 0,
-                forward_payload: emptySlice()
-            }.toCell()
-        });
-        
+        self.sendJetton(pool.lpTokenAddress, msg.amount, msg.beneficiary, msg.beneficiary);
     }
 
     // User can send this message to harvest their reward
@@ -142,11 +127,6 @@ trait MasterChef {
         require(self.isInitialized, "contract not initialized");
     }
 
-    // Check if the contract is not initialized
-    inline fun requireNotInitialized() {
-        require(!self.isInitialized, "contract already initialized");
-    }
-
     // Update the pool, recalculate the reward per share
     fun updatePool(lpTokenAddress: Address) {
         require(self.pools.get(lpTokenAddress) != null , "pool not exists");
@@ -168,6 +148,25 @@ trait MasterChef {
         } 
         pool.lastRewardBlock = now;
         self.pools.set(lpTokenAddress, pool);
+    }
+
+    // Send Jetton
+    inline fun sendJetton(_to: Address,_amount: Int, _destination: Address, _response_destination: Address) {
+        // Send Jetton back to the sender        
+        send(SendParameters{
+            to: _to,
+            value: 0,
+            mode: SendRemainingValue,
+            body: JettonTransfer{
+                query_id: 0,
+                amount: _amount,
+                destination: _destination,
+                response_destination: _response_destination,
+                custom_payload: null,
+                forward_ton_amount: 0,
+                forward_payload: emptySlice()
+            }.toCell()    
+        });
     }
 
     // Calculate MiniChef init code

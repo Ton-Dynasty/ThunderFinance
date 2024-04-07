@@ -34,16 +34,21 @@ contract TonMasterChef with Deployable, MasterChef {
 
     // Kitchen contract will send this message to initialize the MasterChef
     receive(msg: SetUpForTon) {
-        self.requireNotInitialized();
+        if (self.isInitialized) {
+            self.sendTon(msg.owner, 0, SendRemainingValue);
+            throw(ERROR_NOT_INITIALIZED);
+        }
         self.createdAt = now();
         self.rewardPerSecond = msg.totalReward / (msg.deadline - self.createdAt);
-        require(self.rewardPerSecond > 0, "reward per second must be greater than 0"); // TODO: Should send ton back to the owner
         // Check if the sended TON is enough to cover the total reward and fee
         let ctx: Context = context();
         let sendedTon: Int = ctx.value;
         let feeForDevs: Int = msg.totalReward * self.Fee / 1000;
         let expectedTon: Int = msg.totalReward + feeForDevs + STORAGE_FEES;
-        require(sendedTon >= expectedTon, "insufficient TON amount for reward and fee");
+        if (self.rewardPerSecond <= 0 || sendedTon < expectedTon) {
+            self.sendTon(msg.owner, 0, SendRemainingValue);
+            throw(ERROR_NOT_ENOUGH_AMOUNT_OR_RPS_ZERO);
+        }
         self.thunderMintWallet = msg.thunderMintWallet;
         self.metaData = build_content_cell(msg.metaData);
         self.totalReward = msg.totalReward;
@@ -53,12 +58,7 @@ contract TonMasterChef with Deployable, MasterChef {
 
         // Sending the remaining TON to the owner
         if(sendedTon > expectedTon) {
-            send(SendParameters{
-                to: self.owner,
-                value: sendedTon - expectedTon,
-                mode: 0,
-                body: "Remaining TON".asComment()
-            });
+            self.sendTon(self.owner, sendedTon - expectedTon, 0);
         }
 
     }
@@ -106,24 +106,24 @@ contract TonMasterChef with Deployable, MasterChef {
         let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
         let expectedSender: Address = contractAddress(initCode);
         require(expectedSender == sender(), "unexpected sender");
-        send(SendParameters{
-            to: msg.beneficiary,
-            value: msg.reward,
-            mode: SendRemainingValue,
-            body: "Reward of TON".asComment()
-        });
+        self.sendTon(msg.beneficiary, msg.reward, SendRemainingValue);
     }
 
     // Pay the fee to the devs
     receive("CollectTON") {
         // Send ton to devs
-        send(SendParameters{
-            to: self.thunderMintWallet, 
-            value: self.tonForDevs,
-            mode: 0, 
-            body: "Fees For Devs".asComment()
-        });
+        self.sendTon(self.thunderMintWallet, self.tonForDevs, 0);
         self.tonForDevs = 0;
+    }
+
+    // Internal function
+    inline fun sendTon(_to: Address, _value: Int, _mode: Int) {
+        send(SendParameters{
+            to: _to,
+            value: _value,
+            mode: _mode,
+            body: "MasterChef Send Back TON".asComment()
+        });
     }
 
     // Get MasterChef Data

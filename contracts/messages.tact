@@ -87,6 +87,24 @@ message(0x925d0240) HarvestInternal {
     accRewardPerShare: Int as coins; // New accumulated reward per share after harvest
 }
 
+// TonMasterChef Messages
+message(0x8bf38613) SetUpForTon {
+    owner: Address; // Owner of the MasterChef
+    thunderMintWallet: Address; // ThunderMint Wallet address to collect the fee in TON
+    metaData: Slice; // MetaData for the MasterChef
+    totalReward: Int as coins; // Total reward for the MasterChef
+    deadline: Int as uint64; // MasterChef distribution deadline
+}
+
+message(0xd449b642) BuildTonMasterChef {
+    owner: Address; // Owner of the MasterChef
+    seed: Int as uint256; // Seed for the MasterChef
+    thunderMintWallet: Address; // ThunderMint Wallet address to collect the fee in TON
+    metaData: Slice; // MetaData for the MasterChef
+    totalReward: Int as coins; // Total reward for the MasterChef
+    deadline: Int as uint64; // MasterChef distribution deadline
+}
+
 // Event: Deploy MasterChef
 message(0xd1a0507d) DeployMasterChef {
     owner: Address; // Owner of the MasterChef
@@ -123,24 +141,6 @@ struct JettonMasterChefData {
     totalReward: Int; // Total reward
 }
 
-// TonMasterChef Messages
-message(0x8bf38613) SetUpForTon {
-    owner: Address; // Owner of the MasterChef
-    thunderMintWallet: Address; // ThunderMint Wallet address to collect the fee in TON
-    metaData: Slice; // MetaData for the MasterChef
-    totalReward: Int as coins; // Total reward for the MasterChef
-    deadline: Int as uint64; // MasterChef distribution deadline
-}
-
-message(0xd449b642) BuildTonMasterChef {
-    owner: Address; // Owner of the MasterChef
-    seed: Int as uint256; // Seed for the MasterChef
-    thunderMintWallet: Address; // ThunderMint Wallet address to collect the fee in TON
-    metaData: Slice; // MetaData for the MasterChef
-    totalReward: Int as coins; // Total reward for the MasterChef
-    deadline: Int as uint64; // MasterChef distribution deadline
-}
-
 struct TonMasterChefData {
     owner: Address; // Owner of the MasterChef
     rewardPerSecond: Int as coins; // Reward per second
@@ -157,3 +157,8 @@ struct TonMasterChefData {
 const STORAGE_FEES: Int = ton("0.001");
 const THUNDER_FEE: Int = ton("0.01"); // User have to pay the fee to ThunderMint
 const ACC_PRECISION: Int = 1000000; // Precision for the accumulated reward per share
+
+// ERROR CODES
+const ERROR_NOT_INITIALIZED: Int = 0;
+const ERROR_NOT_ENOUGH_AMOUNT_OR_RPS_ZERO: Int = 1;
+const ERROR_POOL_NOT_FOUND: Int = 2;
