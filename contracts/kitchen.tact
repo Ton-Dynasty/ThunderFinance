@@ -14,7 +14,7 @@ contract Kitchen with Deployable {
     }
 
     // Deploy MasterChef for jetton
-    receive(msg: BuildMasterChef) {
+    receive(msg: BuildJettonMasterChef) {
         let initCode: StateInit = self._calculateMasterChef(msg.owner,msg.seed);
         send(SendParameters{
                 to: contractAddress(initCode),

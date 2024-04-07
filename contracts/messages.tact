@@ -1,6 +1,6 @@
 // Messages
 // For Kithcen Contract
-message(0x89265822) BuildMasterChef {
+message(0x89265822) BuildJettonMasterChef {
     owner: Address; // Owner of the MasterChef
     seed: Int as uint256; // Seed for the MasterChef
     thunderMintWallet: Address; // ThunderMint Wallet address to collect the fee in TON

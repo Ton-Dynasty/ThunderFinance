@@ -230,7 +230,7 @@ describe('MasterChef', () => {
                 value: toNano('0.5'),
             },
             {
-                $$type: 'BuildMasterChef',
+                $$type: 'BuildJettonMasterChef',
                 owner: deployer.address,
                 seed: seed,
                 thunderMintWallet: thunderMint.address,
