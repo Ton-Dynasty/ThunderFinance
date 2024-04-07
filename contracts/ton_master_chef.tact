@@ -1,5 +1,5 @@
 import "@stdlib/deploy";
-import "./master_chef.tact";
+import "./trait_master_chef.tact";
 
 // MasterChef Contract: Users deposit, withdraw and harvest their LP tokens in this contract
 contract TonMasterChef with Deployable, MasterChef {
