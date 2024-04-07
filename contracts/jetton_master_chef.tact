@@ -14,7 +14,7 @@ contract JettonMasterChef with Deployable, MasterChef {
     deadline: Int as uint64 = 0;
     metaData: Cell;
 
-    // for reward jetton
+    // For Reward Jetton
     mcRewardJettonWallet: Address;
     rewardPerSecond: Int as coins = 0;
     totalReward: Int = 0;
@@ -27,7 +27,7 @@ contract JettonMasterChef with Deployable, MasterChef {
     jettonForDevs: Int = 0;
     tonForDevs: Int = 0;
 
-    // initialize the contract with owner and reward jetton wallet address
+    // initialize the contract with owner and seed
     init(owner: Address, _seed: Int) {
         self.owner = owner;
         self.isInitialized = false;
@@ -38,7 +38,7 @@ contract JettonMasterChef with Deployable, MasterChef {
         emit(DeployMasterChef{owner: owner, seed: _seed}.toCell());
     }
 
-    // Kitchen contract will send this message to initialize the MasterChef
+    // Kitchen contract will send this message to deploy the MasterChef
     receive(msg: SetUp) {
         require(!self.isInitialized, "contract already initialized");
         require(self.mcRewardJettonWallet == newAddress(0, 0), "reward wallet already set");
@@ -48,27 +48,30 @@ contract JettonMasterChef with Deployable, MasterChef {
         self.basicSetUp(msg.thunderMintWallet, msg.metaData, msg.totalReward, msg.deadline);
     }
     
-    // Owner has to send Reward Jetton to the MasterChef first, so that MasterChef can distribute the reward to the users
-    // Users send JettonTransferNotification to the MasterChef to deposit their LP tokens
+    // 1. Owner has to send Reward Jetton to the MasterChef first, so that MasterChef can distribute the reward to the users
+    // 2. Users send JettonTransferNotification to the MasterChef to deposit their LP tokens
     receive(msg: JettonTransferNotification) {
-        // context sender is from different kind of jetton wallet 
+        // context sender can come from different kind of jetton wallet depending on the pool
         let ctx: Context = context();
         // If not initialized, only accept reward jetton with Setup message payload
         if (!self.isInitialized) {
             if(ctx.sender != self.mcRewardJettonWallet || msg.sender != self.owner) {
+                // Send the jetton back to the sender if conditions are not met
                 self.sendJetton(self.mcRewardJettonWallet, 0, msg.amount, msg.sender, msg.sender);
                 throw(ERROR_NOT_INITIALIZED);
             }
+            // Handle the setup message to initialize the contract
             self.handleSetup(ctx, msg.amount, msg.sender);
             return;
         }
 
         // check if pool exists
         if(self.pools.get(ctx.sender) == null) {
+            // Send the jetton back to the sender if pool does not exist
             self.sendJetton(ctx.sender, 0, msg.amount, msg.sender, msg.sender);
             throw(ERROR_POOL_NOT_FOUND);
         }
-
+        // Deposit the LP tokens for the user
         self.userDeposit(msg,ctx);
     }
 
@@ -80,7 +83,7 @@ contract JettonMasterChef with Deployable, MasterChef {
         self.sendJetton(self.mcRewardJettonWallet, 0, msg.reward, msg.beneficiary, msg.beneficiary);
     }
 
-    // Pay the fee to the devs
+    // Pay the fee to ThunderMint team
     receive("Collect") {
         // Reward jetton for devs can only be sent to ThunderMint once
         if (self.jettonForDevs > 0) {
@@ -115,7 +118,7 @@ contract JettonMasterChef with Deployable, MasterChef {
         }
     }
 
-    // Get MasterChef Data
+    // Get JettonMasterChef Data
     get fun getJettonMasterChefData(): JettonMasterChefData {
         return JettonMasterChefData{
             owner: self.owner,

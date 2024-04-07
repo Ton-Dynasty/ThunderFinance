@@ -10,12 +10,12 @@ contract TonMasterChef with Deployable, MasterChef {
     owner: Address;
     pools: map<Address, PoolInfo>;
     totalAllocPoint: Int = 0;
-    createdAt: Int = 0;
-    deadline: Int = 0;
+    createdAt: Int as uint64 = 0;
+    deadline: Int as uint64 = 0;
     metaData: Cell;
 
     // for reward jetton
-    rewardPerSecond: Int = 0;
+    rewardPerSecond: Int as coins = 0;
     totalReward: Int = 0;
 
     // For ThunderMint
@@ -23,7 +23,7 @@ contract TonMasterChef with Deployable, MasterChef {
     Fee: Int = 3; // 0.3%
     tonForDevs: Int = 0;
 
-    // initialize the contract with owner and reward jetton wallet address
+    // initialize the contract with owner and seed
     init(owner: Address, _seed: Int) {
         self.owner = owner;
         self.isInitialized = false;
@@ -32,12 +32,14 @@ contract TonMasterChef with Deployable, MasterChef {
         emit(DeployMasterChef{owner: owner, seed: _seed}.toCell());
     }
 
-    // Kitchen contract will send this message to initialize the MasterChef
+    // Kitchen contract will send this message to initialize the MasterChef and also send the total reward ton
     receive(msg: SetUpForTon) {
         if (self.isInitialized) {
+            // If the contract is already initialized, then return the remaining TON to the owner
             self.sendTon(msg.owner, 0, SendRemainingValue);
             throw(ERROR_NOT_INITIALIZED);
         }
+        // Initialize the contract
         self.createdAt = now();
         self.rewardPerSecond = msg.totalReward / (msg.deadline - self.createdAt);
         // Check if the sended TON is enough to cover the total reward and fee
@@ -59,7 +61,6 @@ contract TonMasterChef with Deployable, MasterChef {
         }
     }
     
-    // Owner has to send Reward Jetton to the MasterChef first, so that MasterChef can distribute the reward to the users
     // Users send JettonTransferNotification to the MasterChef to deposit their LP tokens
     receive(msg: JettonTransferNotification) {
         // context sender is from different kind of jetton wallet 
@@ -67,9 +68,11 @@ contract TonMasterChef with Deployable, MasterChef {
 
         // check if pool exists
         if(self.pools.get(ctx.sender) == null) {
-            self.sendTon(msg.sender, 0, SendRemainingValue);
+            // If the pool does not exist, then return the jetton to the sender
+            self.sendJetton(ctx.sender, 0 ,msg.amount, msg.sender, msg.sender);
             throw(ERROR_POOL_NOT_FOUND);
         }
+        // Deposit the LP tokens for the user
         self.userDeposit(msg,ctx);
     }
 
@@ -81,14 +84,14 @@ contract TonMasterChef with Deployable, MasterChef {
         self.sendTon(msg.beneficiary, msg.reward, SendRemainingValue);
     }
 
-    // Pay the fee to the devs
+    // Pay the fee to Thunder Mint
     receive("CollectTON") {
         // Send ton to devs
         self.sendTon(self.thunderMintWallet, self.tonForDevs, 0);
         self.tonForDevs = 0;
     }
 
-    // Get MasterChef Data
+    // Get TonMasterChef Data
     get fun getTonMasterChefData(): TonMasterChefData {
         return TonMasterChefData{
             owner: self.owner,

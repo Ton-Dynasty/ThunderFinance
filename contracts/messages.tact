@@ -1,4 +1,5 @@
 // Messages
+
 // For Kithcen Contract
 message(0x89265822) BuildJettonMasterChef {
     owner: Address; // Owner of the MasterChef
@@ -154,6 +155,7 @@ struct TonMasterChefData {
     totalReward: Int; // Total reward
 }
 
+// Constants
 const STORAGE_FEES: Int = ton("0.001");
 const THUNDER_FEE: Int = ton("0.01"); // User have to pay the fee to ThunderMint
 const ACC_PRECISION: Int = 1000000; // Precision for the accumulated reward per share

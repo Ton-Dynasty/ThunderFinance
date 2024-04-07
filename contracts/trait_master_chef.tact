@@ -8,7 +8,7 @@ import "./mini_chef.tact";
 @name(build_content_cell)
 native build_content_cell(metadata_uri: Slice): Cell;
 
-// MasterChef Contract: Users deposit, withdraw and harvest their LP tokens in this contract
+// MasterChef Contract Trait: This contract will have basic fuctions and receive messages to interact with the MasterChef contract 
 trait MasterChef {
     // State
     isInitialized: Bool = false;
@@ -31,7 +31,7 @@ trait MasterChef {
     Fee: Int = 3; // 0.3%
     tonForDevs: Int = 0;
 
-    // Owner send AddPool message to add a new pool
+    // Owner send AddPool message to add a new pool, so that users can deposit their LP tokens
     receive(msg: AddPool){
         self.requireInitialized();
         require(sender() == self.owner, "only owner can add pool");
@@ -77,14 +77,12 @@ trait MasterChef {
                     rewardDebt: pool.accRewardPerShare * msg.amount / ACC_PRECISION,
                     beneficiary: msg.beneficiary,
                     sender: sender()
-                }.toCell(),
-                code: initCode.code,
-                data: initCode.data
+                }.toCell()
             }
         );
     }
 
-    // MiniChef will send this message to ask MasterChef to withdraw LP tokens
+    // Users' MiniChef will send this message to ask MasterChef to withdraw LP tokens
     receive(msg: WithdrawInternalReply) {
         let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
         let expectedSender: Address = contractAddress(initCode);
@@ -103,6 +101,7 @@ trait MasterChef {
         let initCode: StateInit = self._calculateMiniChefInit(sender());
         self.updatePool(msg.lpTokenAddress);
         let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
+        // Send the info of accRewardPerShare to the user's MiniChef, so that MiniChef can calculate the reward
         send(SendParameters{
                 to: contractAddress(initCode),
                 value: remainTon,
@@ -112,9 +111,7 @@ trait MasterChef {
                     lpTokenAddress: msg.lpTokenAddress,
                     accRewardPerShare: pool.accRewardPerShare,
                     beneficiary: msg.beneficiary
-                }.toCell(),
-                code: initCode.code,
-                data: initCode.data
+                }.toCell()
             }
         );
 
@@ -135,7 +132,7 @@ trait MasterChef {
         require(self.isInitialized, "contract not initialized");
     }
 
-    // Deploy MiniChef Contract
+    // Deploy MiniChef Contract for the user
     inline fun userDeposit(msg: JettonTransferNotification, ctx: Context) {        // transfer from masterchef jetton wallet
         self.updatePool(ctx.sender);
 
@@ -145,10 +142,13 @@ trait MasterChef {
         if (!payload.dataEmpty()) {
             beneficiary = msg.sender;
         }
-        let initCode: StateInit = self._calculateMiniChefInit(beneficiary);
+        // TODO: if payload is not empty, load the address from the payload
+        // Update the pool
         let pool: PoolInfo = self.pools.get(ctx.sender)!!;
         pool.lpSupply = pool.lpSupply + msg.amount;
         self.pools.set(ctx.sender, pool);
+        // Get the MiniChef init code for the user
+        let initCode: StateInit = self._calculateMiniChefInit(beneficiary);
         send(SendParameters{
                 to: contractAddress(initCode),
                 value: 0,
@@ -173,12 +173,15 @@ trait MasterChef {
         // If the deadline is passed, set now to deadline, so that no more reward will be distributed
         if (now > self.deadline) {
             now = self.deadline;
-            self.deadline = 0;
+            self.deadline = 0; // Set deadline to 0, so that next time will be no more updated
         }
+
+        // If the last reward block is greater than now, return
         if (now <= pool.lastRewardBlock){
             return;
         }
 
+        // Calculate the reward
         if (pool.lpSupply > 0 ) {
             let reward: Int = (now - pool.lastRewardBlock) * self.rewardPerSecond;
             let rewardAmount: Int = ACC_PRECISION * reward * pool.allocPoint / self.totalAllocPoint;
