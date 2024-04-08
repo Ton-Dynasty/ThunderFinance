@@ -138,22 +138,14 @@ trait MasterChef {
     }
 
     // Deploy MiniChef Contract for the user
-    inline fun userDeposit(msg: JettonTransferNotification, ctx: Context) {        // transfer from masterchef jetton wallet
-        self.updatePool(ctx.sender);
-
-        // load address from forward payload, if it does not exist, use msg.sender
-        let beneficiary: Address = msg.sender;
-        let payload: Slice = msg.forward_payload;
-        if (!payload.dataEmpty()) {
-            beneficiary = msg.sender;
-        }
-        // TODO: if payload is not empty, load the address from the payload
+    inline fun userDeposit(msg: JettonTransferNotification, ctx: Context) {        
         // Update the pool
+        self.updatePool(ctx.sender);
         let pool: PoolInfo = self.pools.get(ctx.sender)!!;
         pool.lpSupply = pool.lpSupply + msg.amount;
         self.pools.set(ctx.sender, pool);
         // Get the MiniChef init code for the user
-        let initCode: StateInit = self._calculateMiniChefInit(beneficiary);
+        let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
         send(SendParameters{
                 to: contractAddress(initCode),
                 value: 0,
@@ -232,7 +224,7 @@ trait MasterChef {
     }
 
     // Get Methods // 
-    
+
     // Get minichef address by user address
     get fun getMiniChefAddress(userAddress: Address): Address {
         let initCode: StateInit = self._calculateMiniChefInit(userAddress);

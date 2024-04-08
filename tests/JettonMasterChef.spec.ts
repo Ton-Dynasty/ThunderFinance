@@ -211,7 +211,7 @@ describe('Jetton MasterChef Tests', () => {
             deploy: true,
             success: true,
         });
-        let masterChefAddress = await kitchen.getGetMasterChefAddress(deployer.address, seed); // MasterChef address
+        let masterChefAddress = await kitchen.getGetJettonMasterChefAddress(deployer.address, seed); // MasterChef address
         masterChef = blockchain.openContract(await JettonMasterChef.fromAddress(masterChefAddress)); // MasterChef
         masterChefJettonWalletAddress = await usdt.getGetWalletAddress(masterChefAddress); // MasterChef USDT JettonWallet address
         masterChefJettonWallet = blockchain.openContract(

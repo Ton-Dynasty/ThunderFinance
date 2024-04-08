@@ -15,7 +15,7 @@ contract Kitchen with Deployable {
 
     // Deploy MasterChef for jetton
     receive(msg: BuildJettonMasterChef) {
-        let initCode: StateInit = self._calculateMasterChef(msg.owner,msg.seed);
+        let initCode: StateInit = self._calculateJettonMasterChef(msg.owner,msg.seed);
         send(SendParameters{
                 to: contractAddress(initCode),
                 value: 0,
@@ -56,16 +56,10 @@ contract Kitchen with Deployable {
     }
 
     // Internal Functions //
-    // Calculate MasterChef init code
-    inline fun _calculateMasterChef(owner: Address, seed: Int): StateInit {
-        return initOf JettonMasterChef(owner,seed);
-    }
 
-    // Get Methods //
-    // Get masterChef address by its owner and seed
-    get fun getMasterChefAddress(owner: Address, seed: Int): Address {
-        let initCode: StateInit = self._calculateMasterChef(owner, seed);
-        return contractAddress(initCode);
+    // Calculate Jetton MasterChef init code
+    inline fun _calculateJettonMasterChef(owner: Address, seed: Int): StateInit {
+        return initOf JettonMasterChef(owner,seed);
     }
 
     // Calculate TonMasterChef init code
@@ -74,7 +68,14 @@ contract Kitchen with Deployable {
     }
 
     // Get Methods //
-    // Get masterChef address by its owner and seed
+
+    // Get Jetton MasterChef address by its owner and seed
+    get fun getJettonMasterChefAddress(owner: Address, seed: Int): Address {
+        let initCode: StateInit = self._calculateJettonMasterChef(owner, seed);
+        return contractAddress(initCode);
+    }
+
+    // Get Ton MasterChef address by its owner and seed
     get fun getTonMasterChefAddress(owner: Address, seed: Int): Address {
         let initCode: StateInit = self._calculateTonMasterChef(owner, seed);
         return contractAddress(initCode);
