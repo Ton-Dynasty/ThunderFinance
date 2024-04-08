@@ -22,12 +22,14 @@ contract TonMasterChef with Deployable, MasterChef {
     thunderMintWallet: Address;
     Fee: Int = 3; // 0.3%
     tonForDevs: Int = 0;
+    ZERO_ADDRESS: Address;
 
     // initialize the contract with owner and seed
     init(owner: Address, _seed: Int) {
         self.owner = owner;
         self.isInitialized = false;
-        self.thunderMintWallet = newAddress(0, 0);
+        self.ZERO_ADDRESS = newAddress(0, 0);
+        self.thunderMintWallet = self.ZERO_ADDRESS;
         self.metaData = emptyCell();
         emit(DeployMasterChef{owner: owner, seed: _seed}.toCell());
     }
@@ -40,18 +42,17 @@ contract TonMasterChef with Deployable, MasterChef {
             throw(ERROR_NOT_INITIALIZED);
         }
         // Initialize the contract
-        self.createdAt = now();
-        self.rewardPerSecond = msg.totalReward / (msg.deadline - self.createdAt);
         // Check if the sended TON is enough to cover the total reward and fee
         let ctx: Context = context();
+        // Calculate reward per second in basicSetUp() and also other basic setup
+        self.basicSetUp(msg.thunderMintWallet, msg.metaData, msg.totalReward, msg.deadline);
         let sendedTon: Int = ctx.value;
         let feeForDevs: Int = msg.totalReward * self.Fee / 1000;
         let expectedTon: Int = msg.totalReward + feeForDevs + STORAGE_FEES;
-        if (self.rewardPerSecond <= 0 || sendedTon < expectedTon) {
+        if (sendedTon < expectedTon) {
             self.sendTon(msg.owner, 0, SendRemainingValue);
-            throw(ERROR_NOT_ENOUGH_AMOUNT_OR_RPS_ZERO);
+            throw(ERROR_NOT_ENOUGH_REWARD);
         }
-        self.basicSetUp(msg.thunderMintWallet, msg.metaData, msg.totalReward, msg.deadline);
         self.tonForDevs += feeForDevs;
         self.isInitialized = true;
 
@@ -91,16 +92,20 @@ contract TonMasterChef with Deployable, MasterChef {
         self.tonForDevs = 0;
     }
 
+    // Get Methods //
+
     // Get TonMasterChef Data
-    get fun getTonMasterChefData(): TonMasterChefData {
-        return TonMasterChefData{
+    get fun getTonMasterChefData(): MasterChefData {
+        return MasterChefData{
             owner: self.owner,
+            mcRewardJettonWallet: self.ZERO_ADDRESS, // not used in TonMasterChef
             rewardPerSecond: self.rewardPerSecond,
             createdAt: self.createdAt,
             deadline: self.deadline,
             isInitialized: self.isInitialized,
             totalAllocPoint: self.totalAllocPoint,
             tonForDevs: self.tonForDevs,
+            jettonForDevs: 0, // not used in TonMasterChef
             pools: self.pools,
             metaData: self.metaData,
             totalReward: self.totalReward

@@ -26,14 +26,16 @@ contract JettonMasterChef with Deployable, MasterChef {
     Fee: Int = 3; // 0.3%
     jettonForDevs: Int = 0;
     tonForDevs: Int = 0;
+    ZERO_ADDRESS: Address;
 
     // initialize the contract with owner and seed
     init(owner: Address, _seed: Int) {
         self.owner = owner;
         self.isInitialized = false;
-        self.mcRewardJettonWallet = newAddress(0, 0);
-        self.thunderMintWallet = newAddress(0, 0);
-        self.thunderMintJettonWallet = newAddress(0, 0);
+        self.ZERO_ADDRESS = newAddress(0, 0);
+        self.mcRewardJettonWallet = self.ZERO_ADDRESS;
+        self.thunderMintWallet = self.ZERO_ADDRESS;
+        self.thunderMintJettonWallet = self.ZERO_ADDRESS;
         self.metaData = emptyCell();
         emit(DeployMasterChef{owner: owner, seed: _seed}.toCell());
     }
@@ -41,10 +43,10 @@ contract JettonMasterChef with Deployable, MasterChef {
     // Kitchen contract will send this message to deploy the MasterChef
     receive(msg: SetUp) {
         require(!self.isInitialized, "contract already initialized");
-        require(self.mcRewardJettonWallet == newAddress(0, 0), "reward wallet already set");
+        require(self.mcRewardJettonWallet == self.ZERO_ADDRESS, "reward wallet already set");
         self.mcRewardJettonWallet = msg.mcRewardJettonWallet;
         self.thunderMintJettonWallet = msg.thunderMintJettonWallet;
-        // Basic setup
+        // Calculate reward per second in basicSetUp() and also other basic setup
         self.basicSetUp(msg.thunderMintWallet, msg.metaData, msg.totalReward, msg.deadline);
     }
     
@@ -60,8 +62,20 @@ contract JettonMasterChef with Deployable, MasterChef {
                 self.sendJetton(self.mcRewardJettonWallet, 0, msg.amount, msg.sender, msg.sender);
                 throw(ERROR_NOT_INITIALIZED);
             }
-            // Handle the setup message to initialize the contract
-            self.handleSetup(ctx, msg.amount, msg.sender);
+            // Calculate the reward jetton for ThunderMint team
+            self.jettonForDevs = self.totalReward * self.Fee / 1000; // 0.3% fee
+            // Have to transfer reward jetton and fee to the contract
+            let expectedAmount: Int = self.totalReward + self.jettonForDevs;
+            if(msg.amount < expectedAmount) {
+                self.sendJetton(self.mcRewardJettonWallet,0 ,msg.amount, msg.sender, msg.sender);
+                throw(ERROR_NOT_ENOUGH_REWARD);
+            }
+            self.isInitialized = true;
+            // Send the remaining jetton back to the sender
+            let remainingJetton: Int = msg.amount - expectedAmount;
+            if (remainingJetton > 0) {
+                self.sendJetton(self.mcRewardJettonWallet, 0, remainingJetton, msg.sender, msg.sender);
+            }
             return;
         }
 
@@ -97,30 +111,11 @@ contract JettonMasterChef with Deployable, MasterChef {
         self.tonForDevs = 0;
     }
 
-    // Internal Functions //
-
-    // Handle the setup message which is used to initialize the contract
-    inline fun handleSetup(ctx: Context, amount: Int, sender: Address) {
-        self.createdAt = now();
-        self.rewardPerSecond = self.totalReward / (self.deadline - self.createdAt);
-        self.jettonForDevs = self.totalReward * self.Fee / 1000; // 0.3% fee
-        // Have to transfer reward jetton and fee to the contract
-        let expectedAmount: Int = self.totalReward + self.jettonForDevs;
-        if(amount < expectedAmount || self.rewardPerSecond <= 0) {
-            self.sendJetton(self.mcRewardJettonWallet,0 ,amount, sender, sender);
-            throw(ERROR_NOT_ENOUGH_AMOUNT_OR_RPS_ZERO);
-        }
-        self.isInitialized = true;
-        // Send the remaining jetton back to the sender
-        let remainingJetton: Int = amount - expectedAmount;
-        if (remainingJetton > 0) {
-            self.sendJetton(self.mcRewardJettonWallet, 0, remainingJetton, sender, sender);
-        }
-    }
-
+    // Get Methods //
+    
     // Get JettonMasterChef Data
-    get fun getJettonMasterChefData(): JettonMasterChefData {
-        return JettonMasterChefData{
+    get fun getJettonMasterChefData(): MasterChefData {
+        return MasterChefData{
             owner: self.owner,
             mcRewardJettonWallet: self.mcRewardJettonWallet,
             rewardPerSecond: self.rewardPerSecond,
@@ -136,3 +131,4 @@ contract JettonMasterChef with Deployable, MasterChef {
         };
     }
 }
+

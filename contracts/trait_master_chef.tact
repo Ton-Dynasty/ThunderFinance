@@ -125,6 +125,11 @@ trait MasterChef {
         self.metaData = build_content_cell(_metaData);
         self.totalReward = _totalReward;
         self.deadline = _deadline;
+        self.createdAt = now();
+        self.rewardPerSecond = self.totalReward / (self.deadline - self.createdAt);
+        if(self.rewardPerSecond <= 0) {
+            throw(ERROR_RPS_UNDER_ZERO);
+        }
     }
 
     // Check if the contract is initialized
@@ -227,7 +232,7 @@ trait MasterChef {
     }
 
     // Get Methods // 
-
+    
     // Get minichef address by user address
     get fun getMiniChefAddress(userAddress: Address): Address {
         let initCode: StateInit = self._calculateMiniChefInit(userAddress);

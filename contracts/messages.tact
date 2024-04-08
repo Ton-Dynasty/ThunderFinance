@@ -127,7 +127,7 @@ struct UserInfo {
     rewardDebt: Int; // Reward user received
 }
 
-struct JettonMasterChefData {
+struct MasterChefData {
     owner: Address; // Owner of the MasterChef
     mcRewardJettonWallet: Address; // MasterChef Wallet address for reward jetton
     rewardPerSecond: Int as coins; // Reward per second
@@ -142,18 +142,6 @@ struct JettonMasterChefData {
     totalReward: Int; // Total reward
 }
 
-struct TonMasterChefData {
-    owner: Address; // Owner of the MasterChef
-    rewardPerSecond: Int as coins; // Reward per second
-    createdAt: Int as uint64; // MasterChef Created at block number
-    deadline: Int as uint64; // MasterChef distribution deadline
-    isInitialized: Bool; // MasterChef is initialized or not
-    totalAllocPoint: Int; // Total allocation point
-    tonForDevs: Int; // TON for ThunderMint
-    pools: map<Address, PoolInfo>; // Pool Info
-    metaData: Cell; // MetaData for the MasterChef
-    totalReward: Int; // Total reward
-}
 
 // Constants
 const STORAGE_FEES: Int = ton("0.001");
@@ -162,5 +150,6 @@ const ACC_PRECISION: Int = 1000000; // Precision for the accumulated reward per 
 
 // ERROR CODES
 const ERROR_NOT_INITIALIZED: Int = 0;
-const ERROR_NOT_ENOUGH_AMOUNT_OR_RPS_ZERO: Int = 1;
+const ERROR_NOT_ENOUGH_REWARD: Int = 1;
 const ERROR_POOL_NOT_FOUND: Int = 2;
+const ERROR_RPS_UNDER_ZERO: Int = 3;
