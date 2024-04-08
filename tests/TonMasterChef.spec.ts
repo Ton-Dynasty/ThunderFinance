@@ -619,14 +619,27 @@ describe('TON MasterChef Tests', () => {
         const collectResult = await masterChef.send(deployer.getSender(), { value: toNano('1') }, 'CollectTON');
         let thunderMintTonAfter = await thunderMint.getBalance();
 
-        // Check if deployer send Collect msg to MasterChef
+        // Deployer can't collect before deadline
         expect(collectResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: masterChef.address,
+            success: false,
+            exitCode: 58913, // Can't collect before deadline
+        });
+
+        blockchain.now!! += 5000;
+
+        const collectResultAfterDL = await masterChef.send(deployer.getSender(), { value: toNano('1') }, 'CollectTON');
+        thunderMintTonAfter = await thunderMint.getBalance();
+
+        // Check if deployer send Collect msg to MasterChef
+        expect(collectResultAfterDL.transactions).toHaveTransaction({
             from: deployer.address,
             to: masterChef.address,
             success: true,
         });
         // Check if MasterChef send JettonTransfer to MasterChef Reward JettonWallet
-        expect(collectResult.transactions).toHaveTransaction({
+        expect(collectResultAfterDL.transactions).toHaveTransaction({
             from: masterChef.address,
             to: thunderMint.address,
             success: true,
