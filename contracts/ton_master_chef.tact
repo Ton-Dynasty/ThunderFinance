@@ -35,7 +35,7 @@ contract TonMasterChef with Deployable, MasterChef {
     }
 
     // Kitchen contract will send this message to initialize the MasterChef and also send the total reward ton
-    receive(msg: SetUpForTon) {
+    receive(msg: SetUpForTonMC) {
         if (self.isInitialized) {
             // If the contract is already initialized, then return the remaining TON to the owner
             self.sendTon(msg.owner, 0, SendRemainingValue);

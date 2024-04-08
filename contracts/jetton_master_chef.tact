@@ -41,7 +41,7 @@ contract JettonMasterChef with Deployable, MasterChef {
     }
 
     // Kitchen contract will send this message to deploy the MasterChef
-    receive(msg: SetUp) {
+    receive(msg: SetUpJettonMC) {
         require(!self.isInitialized, "contract already initialized");
         require(self.mcRewardJettonWallet == self.ZERO_ADDRESS, "reward wallet already set");
         self.mcRewardJettonWallet = msg.mcRewardJettonWallet;
@@ -112,7 +112,7 @@ contract JettonMasterChef with Deployable, MasterChef {
     }
 
     // Get Methods //
-    
+
     // Get JettonMasterChef Data
     get fun getJettonMasterChefData(): MasterChefData {
         return MasterChefData{

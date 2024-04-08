@@ -20,7 +20,7 @@ contract Kitchen with Deployable {
                 to: contractAddress(initCode),
                 value: 0,
                 mode: SendRemainingValue,
-                body: SetUp{
+                body: SetUpJettonMC{
                     owner: msg.owner,
                     thunderMintWallet: msg.thunderMintWallet,
                     thunderMintJettonWallet: msg.thunderMintJettonWallet,
@@ -42,7 +42,7 @@ contract Kitchen with Deployable {
                 to: contractAddress(initCode),
                 value: 0,
                 mode: SendRemainingValue,
-                body: SetUpForTon{
+                body: SetUpForTonMC{
                     owner: msg.owner,
                     thunderMintWallet: msg.thunderMintWallet,
                     metaData: msg.metaData,

@@ -17,7 +17,7 @@ message(0xc1c45a7c) Initialize {
     rewardJettonContent: Cell; // jetton content for reward token
 }
 
-message(0xf6cf7e6c) SetUp {
+message(0xf6cf7e6c) SetUpJettonMC {
     owner: Address; // Owner of the MasterChef
     mcRewardJettonWallet: Address; // MasterChef Wallet address for reward jetton
     thunderMintWallet: Address; // ThunderMint Wallet address to collect the fee in TON
@@ -89,7 +89,7 @@ message(0x925d0240) HarvestInternal {
 }
 
 // TonMasterChef Messages
-message(0x8bf38613) SetUpForTon {
+message(0x8bf38613) SetUpForTonMC {
     owner: Address; // Owner of the MasterChef
     thunderMintWallet: Address; // ThunderMint Wallet address to collect the fee in TON
     metaData: Slice; // MetaData for the MasterChef
