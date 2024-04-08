@@ -57,7 +57,7 @@ contract JettonMasterChef with Deployable, MasterChef {
         if (!self.isInitialized) {
             if(ctx.sender != self.mcRewardJettonWallet || msg.sender != self.owner) {
                 // Send the jetton back to the sender if conditions are not met
-                self.sendJetton(self.mcRewardJettonWallet, 0, msg.amount, msg.sender, msg.sender);
+                self.sendJetton(self.mcRewardJettonWallet, 0, msg.amount, msg.sender, msg.sender, SendRemainingValue);
                 throw(ERROR_WRONG_AUTH);
             }
             // Calculate the reward jetton for ThunderMint team
@@ -65,14 +65,14 @@ contract JettonMasterChef with Deployable, MasterChef {
             // Have to transfer reward jetton and fee to the contract
             let expectedAmount: Int = self.totalReward + self.jettonForDevs;
             if(msg.amount < expectedAmount) {
-                self.sendJetton(self.mcRewardJettonWallet,0 ,msg.amount, msg.sender, msg.sender);
+                self.sendJetton(self.mcRewardJettonWallet,0 ,msg.amount, msg.sender, msg.sender, SendRemainingValue);
                 throw(ERROR_NOT_ENOUGH_REWARD);
             }
             self.isInitialized = true;
             // Send the remaining jetton back to the sender
             let remainingJetton: Int = msg.amount - expectedAmount;
             if (remainingJetton > 0) {
-                self.sendJetton(self.mcRewardJettonWallet, 0, remainingJetton, msg.sender, msg.sender);
+                self.sendJetton(self.mcRewardJettonWallet, 0, remainingJetton, msg.sender, msg.sender, SendRemainingValue);
             }
             return;
         }
@@ -80,7 +80,7 @@ contract JettonMasterChef with Deployable, MasterChef {
         // check if pool exists
         if(self.pools.get(ctx.sender) == null) {
             // Send the jetton back to the sender if pool does not exist
-            self.sendJetton(ctx.sender, 0, msg.amount, msg.sender, msg.sender);
+            self.sendJetton(ctx.sender, 0, msg.amount, msg.sender, msg.sender, SendRemainingValue);
             throw(ERROR_POOL_NOT_FOUND);
         }
         // Deposit the LP tokens for the user
@@ -92,7 +92,7 @@ contract JettonMasterChef with Deployable, MasterChef {
         let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
         let expectedSender: Address = contractAddress(initCode);
         require(expectedSender == sender(), "unexpected sender");
-        self.sendJetton(self.mcRewardJettonWallet, 0, msg.reward, msg.beneficiary, msg.beneficiary);
+        self.sendJetton(self.mcRewardJettonWallet, 0, msg.reward, msg.beneficiary, msg.beneficiary, SendRemainingValue);
     }
 
     // MiniChef send this message to ask MasterChef to withdraw LP tokens and harvest reward
@@ -100,20 +100,22 @@ contract JettonMasterChef with Deployable, MasterChef {
         let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
         let expectedSender: Address = contractAddress(initCode);
         require(expectedSender == sender(), "unexpected sender");
+        let ctx: Context = context();
+        let sendBackTon: Int = ctx.value;
 
         // Send Reward to the user
-        self.sendJetton(self.mcRewardJettonWallet, 0, msg.reward, msg.beneficiary, msg.beneficiary);
+        self.sendJetton(self.mcRewardJettonWallet, sendBackTon / 2, msg.reward, msg.beneficiary, msg.beneficiary, SendIgnoreErrors);
 
         // Withdraw to msg.beneficiary
         let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
-        self.sendJetton(pool.lpTokenAddress, 0, msg.amount, msg.beneficiary, msg.beneficiary);
+        self.sendJetton(pool.lpTokenAddress, sendBackTon / 2, msg.amount, msg.beneficiary, msg.beneficiary, SendIgnoreErrors);
     }
 
     // Pay the fee to ThunderMint team
     receive("Collect") {
         // Reward jetton for devs can only be sent to ThunderMint once
         if (self.jettonForDevs > 0) {
-            self.sendJetton(self.mcRewardJettonWallet, self.tonForDevs, self.jettonForDevs, self.thunderMintWallet, self.thunderMintWallet);
+            self.sendJetton(self.mcRewardJettonWallet, self.tonForDevs, self.jettonForDevs, self.thunderMintWallet, self.thunderMintWallet, SendRemainingValue);
             self.tonForDevs = 0;
             self.jettonForDevs = 0;
             return;

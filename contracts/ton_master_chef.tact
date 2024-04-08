@@ -71,7 +71,7 @@ contract TonMasterChef with Deployable, MasterChef {
         // check if pool exists
         if(self.pools.get(ctx.sender) == null) {
             // If the pool does not exist, then return the jetton to the sender
-            self.sendJetton(ctx.sender, 0 ,msg.amount, msg.sender, msg.sender);
+            self.sendJetton(ctx.sender, 0 ,msg.amount, msg.sender, msg.sender, SendRemainingValue);
             throw(ERROR_POOL_NOT_FOUND);
         }
         // Deposit the LP tokens for the user
@@ -97,7 +97,7 @@ contract TonMasterChef with Deployable, MasterChef {
 
         // Withdraw to msg.beneficiary
         let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
-        self.sendJetton(pool.lpTokenAddress, 0, msg.amount, msg.beneficiary, msg.beneficiary);
+        self.sendJetton(pool.lpTokenAddress, 0, msg.amount, msg.beneficiary, msg.beneficiary, SendRemainingValue);
     }
 
     // Pay the fee to Thunder Mint

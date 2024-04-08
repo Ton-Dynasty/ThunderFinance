@@ -88,14 +88,14 @@ message(0x925d0240) HarvestInternal {
     accRewardPerShare: Int as coins; // New accumulated reward per share after harvest
 }
 
-message WithdrawAndHarvest {
+message (0x4212017c) WithdrawAndHarvest {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
     amount: Int as coins;
     beneficiary: Address;
 }
 
-message WithdrawAndHarvestInternal {
+message (0x16a5d563) WithdrawAndHarvestInternal {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
     amount: Int as coins;
@@ -104,7 +104,7 @@ message WithdrawAndHarvestInternal {
     sender: Address;
 }
 
-message WithdrawAndHarvestReply {
+message (0xa1114e19) WithdrawAndHarvestReply {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
     beneficiary: Address; // the one who will receive the reward

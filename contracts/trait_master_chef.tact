@@ -88,7 +88,7 @@ trait MasterChef {
         let expectedSender: Address = contractAddress(initCode);
         require(expectedSender == sender(), "unexpected sender");
         let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
-        self.sendJetton(pool.lpTokenAddress, 0, msg.amount, msg.beneficiary, msg.beneficiary);
+        self.sendJetton(pool.lpTokenAddress, 0, msg.amount, msg.beneficiary, msg.beneficiary, SendRemainingValue);
     }
 
     // User can send this message to harvest their reward
@@ -122,13 +122,17 @@ trait MasterChef {
         self.requireInitialized();
         // check if pool exists
         require(self.pools.get(msg.lpTokenAddress) != null , "pool not exists");
+        let ctx: Context = context();
+        let remainTon: Int = ctx.value - THUNDER_FEE;
+        self.tonForDevs = self.tonForDevs + THUNDER_FEE;
+        self.updatePool(msg.lpTokenAddress);
 
         let initCode: StateInit = self._calculateMiniChefInit(sender());
         let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
         send(SendParameters{
                 to: contractAddress(initCode),
-                value: 0,
-                mode: SendRemainingValue,
+                value: remainTon,
+                mode: 0,
                 bounce: true,
                 body: WithdrawAndHarvestInternal{
                     queryId: msg.queryId,
@@ -215,12 +219,12 @@ trait MasterChef {
     }
 
     // Send Jetton
-    inline fun sendJetton(_to: Address, _tonValue: Int, _amount: Int, _destination: Address, _response_destination: Address) {
+    inline fun sendJetton(_to: Address, _tonValue: Int, _amount: Int, _destination: Address, _response_destination: Address, _mode: Int) {
         // Send Jetton back to the sender        
         send(SendParameters{
             to: _to,
             value: _tonValue,
-            mode: SendRemainingValue, // add SendIgnoreErrors
+            mode: _mode, // add SendIgnoreErrors
             body: JettonTransfer{
                 query_id: 0,
                 amount: _amount,
