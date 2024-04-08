@@ -44,6 +44,7 @@ contract JettonMasterChef with Deployable, MasterChef {
     receive(msg: SetUpJettonMC) {
         require(!self.isInitialized, "contract already initialized");
         require(self.mcRewardJettonWallet == self.ZERO_ADDRESS, "reward wallet already set");
+        // Jetton MasterChef Set Up
         self.mcRewardJettonWallet = msg.mcRewardJettonWallet;
         self.thunderMintJettonWallet = msg.thunderMintJettonWallet;
         // Calculate reward per second in basicSetUp() and also other basic setup
@@ -60,7 +61,7 @@ contract JettonMasterChef with Deployable, MasterChef {
             if(ctx.sender != self.mcRewardJettonWallet || msg.sender != self.owner) {
                 // Send the jetton back to the sender if conditions are not met
                 self.sendJetton(self.mcRewardJettonWallet, 0, msg.amount, msg.sender, msg.sender);
-                throw(ERROR_NOT_INITIALIZED);
+                throw(ERROR_WRONG_AUTH);
             }
             // Calculate the reward jetton for ThunderMint team
             self.jettonForDevs = self.totalReward * self.Fee / 1000; // 0.3% fee
