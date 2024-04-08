@@ -154,3 +154,4 @@ const ERROR_NOT_ENOUGH_REWARD: Int = 1;
 const ERROR_POOL_NOT_FOUND: Int = 2;
 const ERROR_RPS_UNDER_ZERO: Int = 3;
 const ERROR_WRONG_AUTH: Int = 4;
+const ERROR_NO_REWARD: Int = 5;

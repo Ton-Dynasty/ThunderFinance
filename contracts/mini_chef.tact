@@ -59,7 +59,7 @@ contract MiniChef with Deployable {
         let accumulatedReward: Int = userInfo.amount * msg.accRewardPerShare / ACC_PRECISION; 
         let _pendingReward: Int = accumulatedReward - userInfo.rewardDebt;
         if (_pendingReward <= 0) {
-            return;
+            throw(ERROR_NO_REWARD);
         }
         userInfo.rewardDebt = accumulatedReward;
         self.userInfo.set(msg.lpTokenAddress, userInfo);
