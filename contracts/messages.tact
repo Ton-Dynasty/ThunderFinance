@@ -169,7 +169,6 @@ struct MasterChefData {
 
 
 // Constants
-const STORAGE_FEES: Int = ton("0.001"); // TODO: Remove this
 const THUNDER_FEE: Int = ton("0.01"); // User have to pay the fee to ThunderMint
 const ACC_PRECISION: Int = 1000000; // Precision for the accumulated reward per share
 

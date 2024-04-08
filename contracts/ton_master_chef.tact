@@ -49,7 +49,7 @@ contract TonMasterChef with Deployable, MasterChef {
         self.basicSetUp(msg.thunderMintWallet, msg.metaData, msg.totalReward, msg.deadline);
         let sendedTon: Int = ctx.value;
         let feeForDevs: Int = msg.totalReward * self.Fee / 1000;
-        let expectedTon: Int = msg.totalReward + feeForDevs + STORAGE_FEES;
+        let expectedTon: Int = msg.totalReward + feeForDevs;
         if (sendedTon < expectedTon) {
             self.sendTon(msg.owner, 0, SendRemainingValue);
             throw(ERROR_NOT_ENOUGH_REWARD);
@@ -102,7 +102,7 @@ contract TonMasterChef with Deployable, MasterChef {
 
     // Pay the fee to Thunder Mint
     receive("CollectTON") {
-        // TODO: now > deadline
+        require(now() > self.deadline, "deadline not reached");
         // Send ton to devs
         self.sendTon(self.thunderMintWallet, self.tonForDevs, 0);
         self.tonForDevs = 0;
