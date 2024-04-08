@@ -25,13 +25,13 @@ contract TonMasterChef with Deployable, MasterChef {
     ZERO_ADDRESS: Address;
 
     // initialize the contract with owner and seed
-    init(owner: Address, _seed: Int) {
-        self.owner = owner;
+    init(_owner: Address, _seed: Int) {
+        self.owner = _owner;
         self.isInitialized = false;
         self.ZERO_ADDRESS = newAddress(0, 0);
         self.thunderMintWallet = self.ZERO_ADDRESS;
         self.metaData = emptyCell();
-        emit(DeployMasterChef{owner: owner, seed: _seed}.toCell());
+        emit(DeployMasterChef{owner: _owner, seed: _seed}.toCell());
     }
 
     // Kitchen contract will send this message to initialize the MasterChef and also send the total reward ton

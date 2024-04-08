@@ -4,6 +4,7 @@ import "./packages/utils/data.fc";
 import "./messages.tact";
 import "./jetton_master_chef.tact";
 import "./ton_master_chef.tact";
+
 // Kithcen Contract (MasterChef Factory) is used to deploy the MasterChef
 contract Kitchen with Deployable {
     owner: Address;
@@ -15,7 +16,7 @@ contract Kitchen with Deployable {
 
     // Deploy MasterChef for jetton
     receive(msg: BuildJettonMasterChef) {
-        let initCode: StateInit = self._calculateJettonMasterChef(msg.owner,msg.seed);
+        let initCode: StateInit = self.calculateJettonMasterChef(msg.owner,msg.seed);
         send(SendParameters{
                 to: contractAddress(initCode),
                 value: 0,
@@ -37,7 +38,7 @@ contract Kitchen with Deployable {
 
     // Deploy MasterChef for TON
     receive(msg: BuildTonMasterChef) {
-        let initCode: StateInit = self._calculateTonMasterChef(msg.owner,msg.seed);
+        let initCode: StateInit = self.calculateTonMasterChef(msg.owner,msg.seed);
         send(SendParameters{
                 to: contractAddress(initCode),
                 value: 0,
@@ -58,12 +59,12 @@ contract Kitchen with Deployable {
     // Internal Functions //
 
     // Calculate Jetton MasterChef init code
-    inline fun _calculateJettonMasterChef(owner: Address, seed: Int): StateInit {
+    inline fun calculateJettonMasterChef(owner: Address, seed: Int): StateInit {
         return initOf JettonMasterChef(owner,seed);
     }
 
     // Calculate TonMasterChef init code
-    inline fun _calculateTonMasterChef(owner: Address, seed: Int): StateInit {
+    inline fun calculateTonMasterChef(owner: Address, seed: Int): StateInit {
         return initOf TonMasterChef(owner,seed);
     }
 
@@ -71,13 +72,13 @@ contract Kitchen with Deployable {
 
     // Get Jetton MasterChef address by its owner and seed
     get fun getJettonMasterChefAddress(owner: Address, seed: Int): Address {
-        let initCode: StateInit = self._calculateJettonMasterChef(owner, seed);
+        let initCode: StateInit = self.calculateJettonMasterChef(owner, seed);
         return contractAddress(initCode);
     }
 
     // Get Ton MasterChef address by its owner and seed
     get fun getTonMasterChefAddress(owner: Address, seed: Int): Address {
-        let initCode: StateInit = self._calculateTonMasterChef(owner, seed);
+        let initCode: StateInit = self.calculateTonMasterChef(owner, seed);
         return contractAddress(initCode);
     }
 }
