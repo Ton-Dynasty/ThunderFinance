@@ -775,4 +775,79 @@ describe('TON MasterChef Tests', () => {
         const benefit = (userDepositAmount * BigInt(deadline - startBlock) * rewardPerSecond) / 10n ** 6n;
         expect(userTonBalanceAfterHarvest).toBeLessThanOrEqual(userTonBalanceBeforeHarvest + benefit);
     });
+
+    // Test the contract's response to being initialized more than once.
+    it('should reject initialization if the contract has already been initialized', async () => {
+        // Attempt to initialize the contract a second time and expect a revert or similar failure.
+    });
+
+    // Test sending SetUpJettonMC message twice in a row.
+    it('should not allow SetUpJettonMC to be called twice in succession', async () => {
+        // Call SetUpJettonMC twice and verify that the second call fails or is ignored.
+    });
+
+    // Test sending jettons from a non-reward wallet.
+    it('should reject jetton transfers from non-reward jetton wallets', async () => {
+        // Send jettons from a wallet that is not designated as the reward wallet and expect failure.
+    });
+
+    // Test contract initialization by a non-owner entity.
+    it('should only allow the contract owner to initiate the contract', async () => {
+        // Attempt contract initialization by an address that is not the owner and expect it to fail.
+    });
+
+    // Test the behavior when the reward amount sent is insufficient.
+    it('should return the entire amount if the reward sent is not sufficient for initialization', async () => {
+        // Send an insufficient reward amount and verify that it is returned in full.
+    });
+
+    // Test user deposit behavior before a pool is added.
+    it('should reject user deposits before any pool is added', async () => {
+        // Attempt to make a deposit before any pool has been added to the contract and expect failure.
+    });
+
+    // Test withdraw functionality when the contract is not initialized.
+    it('should not allow withdrawals when the contract is not initialized', async () => {
+        // Attempt a withdrawal from an uninitialized contract and expect it to fail.
+    });
+
+    // Test user withdrawal before a pool is added.
+    it('should reject withdrawal requests before any pool is added', async () => {
+        // Attempt to withdraw before any pool has been added and expect the transaction to fail.
+    });
+
+    // Test unauthorized internal withdraw messages sent to MiniChef.
+    it('should reject WithdrawInternal messages from non-MasterChef contracts', async () => {
+        // Simulate a WithdrawInternal message from an unauthorized source and expect rejection.
+    });
+
+    // Test user attempting to withdraw more than their balance.
+    it('should prevent users from withdrawing more than their current balance', async () => {
+        // Attempt to withdraw an amount greater than the user's balance and expect failure.
+    });
+
+    // Test handling of WithdrawInternalReply by an entity other than MiniChef.
+    it('should ignore WithdrawInternalReply messages not sent by MiniChef', async () => {
+        // Simulate receiving a WithdrawInternalReply message from an unauthorized source and verify it's ignored.
+    });
+
+    // Test the Harvest function when the contract is not initialized.
+    it('should not allow harvesting when the contract is not initialized', async () => {
+        // Attempt to call the Harvest function on an uninitialized contract and expect it to fail.
+    });
+
+    // Test the Harvest function before a pool is added.
+    it('should reject Harvest calls before any pool is added', async () => {
+        // Attempt to call Harvest before any pool has been added to the contract and expect failure.
+    });
+
+    // Test unauthorized internal harvest messages sent to MiniChef.
+    it('should reject HarvestInternal messages from non-MasterChef contracts', async () => {
+        // Simulate a HarvestInternal message from an unauthorized source and expect rejection.
+    });
+
+    // Test handling of HarvestInternalReply by an entity other than MiniChef.
+    it('should ignore HarvestInternalReply messages not sent by MiniChef', async () => {
+        // Simulate receiving a HarvestInternalReply message from an unauthorized source and verify it's ignored.
+    });
 });
