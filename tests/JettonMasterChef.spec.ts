@@ -616,7 +616,6 @@ describe('Jetton MasterChef Tests', () => {
         expect(userUSDTBalanceAfterHarvest).toEqual(userUSDTBalanceBeforeHarvest + benefit);
     });
 
-
     it('Should withdraw and harvest in one step', async () => {
         const userDepositAmount = 1n * 10n ** 6n;
         const userWithdrawAmount = 5n * 10n ** 5n;
@@ -662,7 +661,7 @@ describe('Jetton MasterChef Tests', () => {
             to: masterChef.address,
             success: true,
         });
-        
+
         // Check that MasterChef send JettonTransfer to his JettonWallet
         expect(WithdrawAndHarvestResult.transactions).toHaveTransaction({
             from: masterChef.address,
@@ -981,7 +980,7 @@ describe('Jetton MasterChef Tests', () => {
             await setupRevertEnv());
         const result = await masterChef.send(
             user.getSender(),
-            { value: toNano('1') },
+            { value: toNano('2') },
             {
                 $$type: 'JettonTransferNotification',
                 query_id: 0n,
@@ -996,8 +995,9 @@ describe('Jetton MasterChef Tests', () => {
             from: user.address,
             to: masterChef.address,
             success: false,
-            exitCode: 4, // ERROR_WRONG_AUTH
+            exitCode: 1004, // ERROR_WRONG_AUTH
         });
+
     });
 
     it('Should revert if pool does not exist', async () => {
@@ -1018,7 +1018,7 @@ describe('Jetton MasterChef Tests', () => {
             from: user.address,
             to: masterChef.address,
             success: false,
-            exitCode: 2, // ERROR_POOL_NOT_FOUND
+            exitCode: 1002, // ERROR_POOL_NOT_FOUND
         });
     });
 
@@ -1054,7 +1054,7 @@ describe('Jetton MasterChef Tests', () => {
             from: masterChefJettonWallet.address,
             to: masterChef.address,
             success: false,
-            exitCode: 4, // ERROR_WRONG_AUTH
+            exitCode: 1004, // ERROR_WRONG_AUTH
         });
     });
 
@@ -1105,7 +1105,7 @@ describe('Jetton MasterChef Tests', () => {
             from: masterChefJettonWalletAddress,
             to: masterChef.address,
             success: false,
-            exitCode: 2, // ERROR_POOL_NOT_FOUND
+            exitCode: 1002, // ERROR_POOL_NOT_FOUND
         });
     });
 

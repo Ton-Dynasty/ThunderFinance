@@ -114,7 +114,7 @@ message (0xa1114e19) WithdrawAndHarvestReply {
 }
 
 // TonMasterChef Messages
-message(0x8bf38613) SetUpForTonMC {
+message(0x8bf38613) SetUpTonMC {
     owner: Address; // Owner of the MasterChef
     thunderMintWallet: Address; // ThunderMint Wallet address to collect the fee in TON
     metaData: Slice; // MetaData for the MasterChef
@@ -173,9 +173,9 @@ const THUNDER_FEE: Int = ton("0.01"); // User have to pay the fee to ThunderMint
 const ACC_PRECISION: Int = 1000000; // Precision for the accumulated reward per share
 
 // ERROR CODES
-const ERROR_NOT_INITIALIZED: Int = 0;
+const ERROR_NOT_INITIALIZED: Int = 1006;
 const ERROR_NOT_ENOUGH_REWARD: Int = 1;
-const ERROR_POOL_NOT_FOUND: Int = 2;
-const ERROR_RPS_UNDER_ZERO: Int = 3;
-const ERROR_WRONG_AUTH: Int = 4;
-const ERROR_NO_REWARD: Int = 5;
+const ERROR_POOL_NOT_FOUND: Int = 1002;
+const ERROR_RPS_UNDER_ZERO: Int = 1003;
+const ERROR_WRONG_AUTH: Int = 1004;
+const ERROR_NO_REWARD: Int = 1005;

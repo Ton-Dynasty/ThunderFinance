@@ -56,8 +56,6 @@ contract JettonMasterChef with Deployable, MasterChef {
         // If not initialized, only accept reward jetton with Setup message payload
         if (!self.isInitialized) {
             if(ctx.sender != self.mcRewardJettonWallet || msg.sender != self.owner) {
-                // Send the jetton back to the sender if conditions are not met
-                self.sendJetton(self.mcRewardJettonWallet, 0, msg.amount, msg.sender, msg.sender, SendRemainingValue);
                 throw(ERROR_WRONG_AUTH);
             }
             // Calculate the reward jetton for ThunderMint team
@@ -67,6 +65,7 @@ contract JettonMasterChef with Deployable, MasterChef {
             if(msg.amount < expectedAmount) {
                 self.sendJetton(self.mcRewardJettonWallet,0 ,msg.amount, msg.sender, msg.sender, SendRemainingValue);
                 throw(ERROR_NOT_ENOUGH_REWARD);
+                return;
             }
             self.isInitialized = true;
             // Send the remaining jetton back to the sender

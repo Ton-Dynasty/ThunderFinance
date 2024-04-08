@@ -43,7 +43,7 @@ contract Kitchen with Deployable {
                 to: contractAddress(initCode),
                 value: 0,
                 mode: SendRemainingValue,
-                body: SetUpForTonMC{
+                body: SetUpTonMC{
                     owner: msg.owner,
                     thunderMintWallet: msg.thunderMintWallet,
                     metaData: msg.metaData,

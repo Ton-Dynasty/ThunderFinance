@@ -36,7 +36,7 @@ contract TonMasterChef with Deployable, MasterChef {
     }
 
     // Kitchen contract will send this message to initialize the MasterChef and also send the total reward ton
-    receive(msg: SetUpForTonMC) {
+    receive(msg: SetUpTonMC) {
         if (self.isInitialized) {
             // If the contract is already initialized, then return the remaining TON to the owner
             self.sendTon(msg.owner, 0, SendRemainingValue);
@@ -51,7 +51,7 @@ contract TonMasterChef with Deployable, MasterChef {
         let feeForDevs: Int = msg.totalReward * self.Fee / 1000;
         let expectedTon: Int = msg.totalReward + feeForDevs;
         if (sendedTon < expectedTon) {
-            self.sendTon(msg.owner, 0, SendRemainingValue);
+            self.sendTon(msg.owner, sendedTon - THUNDER_FEE*2, 0);
             throw(ERROR_NOT_ENOUGH_REWARD);
         }
         self.tonForDevs += feeForDevs;
