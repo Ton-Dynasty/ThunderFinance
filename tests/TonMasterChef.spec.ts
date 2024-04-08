@@ -427,6 +427,42 @@ describe('TON MasterChef Tests', () => {
         expect(userTonBalanceAfter2rdHarvest).toBeGreaterThanOrEqual(userTonBalanceBefore2rdHarvest + benefit1 - fee);
     });
 
+    it('Should withdraw and harvest in one step', async () => {
+        const userDepositAmount = 1n * 10n ** 6n;
+        const userWithdrawAmount = 5n * 10n ** 5n;
+        const periodTime = 1000;
+        const userJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(user.address, usdt.address));
+        // deposit first
+        await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
+        // get the balance of usdt before withdraw
+        const userUSDTBalanceBeforeWH = (await userJettonWallet.getGetWalletData()).balance;
+        const userTonBalanceBeforeWH = await user.getBalance();
+
+        // Update time to periodTime, so that we can withdraw
+        blockchain.now!! += periodTime;
+
+        const WithdrawAndHarvestResult = await masterChef.send(
+            user.getSender(),
+            { value: toNano('2') },
+            {
+                $$type: 'WithdrawAndHarvest',
+                queryId: 0n,
+                lpTokenAddress: masterChefJettonWallet.address,
+                amount: userWithdrawAmount,
+                beneficiary: user.address,
+            },
+        );
+        const userUSDTBalanceAfterWH = (await userJettonWallet.getGetWalletData()).balance;
+        const userTonBalanceAfterWH = await user.getBalance();
+        // expect that the userUSDTBalanceAfterWH is equal to userUSDTBalanceBeforeWH + userWithdrawAmount
+        expect(userUSDTBalanceAfterWH).toEqual(userUSDTBalanceBeforeWH + userWithdrawAmount);
+
+        // Expect that the userTonBalanceAfterWH > userTonBalanceBeforeWH
+        const benefit1 = BigInt(periodTime) * rewardPerSecond;
+        const extraFee = toNano('0.2'); // Because We did withdraw and harvest in one step, so there are 0.2 TON extra fee
+        expect(userTonBalanceAfterWH).toBeGreaterThanOrEqual(userTonBalanceBeforeWH + benefit1 - fee - extraFee);
+    });
+
     it('Should Harvest After Deadline', async () => {
         await addPool(masterChef, masterChefJettonWallet);
         const userDepositAmount = 1n * 10n ** 6n;
@@ -909,7 +945,6 @@ describe('TON MasterChef Tests', () => {
         });
 
         expect(balanceAfter).toBeGreaterThanOrEqual(balanceBefore - toNano('0.5')); // 0.5 TON is the fee
-        
 
         let isInitialized = (await masterChef.getGetTonMasterChefData()).isInitialized;
         // Should not be initialized
@@ -919,50 +954,231 @@ describe('TON MasterChef Tests', () => {
     // Test user deposit behavior before a pool is added.
     it('should reject user deposits before any pool is added', async () => {
         // Attempt to make a deposit before any pool has been added to the contract and expect failure.
+        const userDepositAmount = 1n * 10n ** 6n;
+        const depositResult = await depositJetton(usdt, user, masterChef, userDepositAmount);
+        expect(depositResult.transactions).toHaveTransaction({
+            from: masterChefJettonWalletAddress,
+            to: masterChef.address,
+            success: false,
+            exitCode: 1002, // ERROR_POOL_NOT_FOUND
+        });
     });
 
-    // Test withdraw functionality when the contract is not initialized.
-    it('should not allow withdrawals when the contract is not initialized', async () => {
+    it('Should not allow withdrawals when the contract is not initialized', async () => {
         // Attempt a withdrawal from an uninitialized contract and expect it to fail.
+
+        ({ deployer, user, kitchen, usdt, masterChef } = await setupRevertEnv());
+        const withdrawResult = await masterChef.send(
+            user.getSender(),
+            { value: toNano('1') },
+            {
+                $$type: 'Withdraw',
+                queryId: 0n,
+                lpTokenAddress: masterChefJettonWallet.address,
+                amount: 100000n,
+                beneficiary: user.address,
+            },
+        );
+        expect(withdrawResult.transactions).toHaveTransaction({
+            from: user.address,
+            to: masterChef.address,
+            success: false,
+        });
     });
 
     // Test user withdrawal before a pool is added.
     it('should reject withdrawal requests before any pool is added', async () => {
         // Attempt to withdraw before any pool has been added and expect the transaction to fail.
+        const withdrawResult = await masterChef.send(
+            user.getSender(),
+            { value: toNano('1') },
+            {
+                $$type: 'Withdraw',
+                queryId: 0n,
+                lpTokenAddress: masterChefJettonWallet.address,
+                amount: 100000n,
+                beneficiary: user.address,
+            },
+        );
+        expect(withdrawResult.transactions).toHaveTransaction({
+            from: user.address,
+            to: masterChef.address,
+            success: false,
+            exitCode: 58086, // pool not exists
+        });
     });
 
     // Test unauthorized internal withdraw messages sent to MiniChef.
     it('should reject WithdrawInternal messages from non-MasterChef contracts', async () => {
         // Simulate a WithdrawInternal message from an unauthorized source and expect rejection.
+        const userDepositAmount = 1n * 10n ** 6n;
+        // deposit first
+        await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
+        const miniChefAddress = await masterChef.getGetMiniChefAddress(user.address);
+        const miniChef = blockchain.openContract(await MiniChef.fromAddress(miniChefAddress));
+        const withdrawInternalResult = await miniChef.send(
+            user.getSender(),
+            { value: toNano('1') },
+            {
+                $$type: 'WithdrawInternal',
+                queryId: 0n,
+                lpTokenAddress: masterChefJettonWallet.address,
+                amount: 100000n,
+                rewardDebt: 100n,
+                beneficiary: user.address,
+                sender: user.address,
+            },
+        );
+        expect(withdrawInternalResult.transactions).toHaveTransaction({
+            from: user.address,
+            to: miniChefAddress,
+            success: false,
+            exitCode: 9504, // only masterChef can withdraw
+        });
     });
 
     // Test user attempting to withdraw more than their balance.
     it('should prevent users from withdrawing more than their current balance', async () => {
         // Attempt to withdraw an amount greater than the user's balance and expect failure.
+
+        const userDepositAmount = 1n * 10n ** 6n;
+        const userWithdrawAmount = userDepositAmount * 2n;
+        const periodTime = 10;
+        // deposit first
+        await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
+        // get the balance of usdt before withdraw
+
+        // withdraw
+        blockchain.now!! += periodTime;
+        const withdrawResult = await withdraw(masterChef, user, masterChefJettonWallet, userWithdrawAmount);
+        const userMiniChefAddress = await masterChef.getGetMiniChefAddress(user.address);
+        expect(withdrawResult.transactions).toHaveTransaction({
+            from: masterChef.address,
+            to: userMiniChefAddress,
+            success: false,
+            exitCode: 19364, // insufficient balance
+        });
     });
 
     // Test handling of WithdrawInternalReply by an entity other than MiniChef.
     it('should ignore WithdrawInternalReply messages not sent by MiniChef', async () => {
         // Simulate receiving a WithdrawInternalReply message from an unauthorized source and verify it's ignored.
+        const userDepositAmount = 1n * 10n ** 6n;
+        // deposit first
+        await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
+        const withdrawInternalReplyResult = await masterChef.send(
+            user.getSender(),
+            { value: toNano('1') },
+            {
+                $$type: 'WithdrawInternalReply',
+                queryId: 0n,
+                lpTokenAddress: masterChefJettonWallet.address,
+                amount: 100000n,
+                beneficiary: user.address,
+                sender: user.address,
+            },
+        );
+        expect(withdrawInternalReplyResult.transactions).toHaveTransaction({
+            from: user.address,
+            to: masterChef.address,
+            success: false,
+            exitCode: 33311, //unexpected sender
+        });
     });
 
     // Test the Harvest function when the contract is not initialized.
     it('should not allow harvesting when the contract is not initialized', async () => {
         // Attempt to call the Harvest function on an uninitialized contract and expect it to fail.
+
+        ({ deployer, user, kitchen, usdt, masterChef } = await setupRevertEnv());
+        const harvestResult = await masterChef.send(
+            user.getSender(),
+            { value: toNano('1') },
+            {
+                $$type: 'Harvest',
+                queryId: 0n,
+                lpTokenAddress: masterChefJettonWallet.address,
+                beneficiary: user.address,
+            },
+        );
+        expect(harvestResult.transactions).toHaveTransaction({
+            from: user.address,
+            to: masterChef.address,
+            success: false,
+        });
     });
 
     // Test the Harvest function before a pool is added.
     it('should reject Harvest calls before any pool is added', async () => {
         // Attempt to call Harvest before any pool has been added to the contract and expect failure.
+        const harvestResult = await masterChef.send(
+            user.getSender(),
+            { value: toNano('1') },
+            {
+                $$type: 'Harvest',
+                queryId: 0n,
+                lpTokenAddress: masterChefJettonWallet.address,
+                beneficiary: user.address,
+            },
+        );
+        expect(harvestResult.transactions).toHaveTransaction({
+            from: user.address,
+            to: masterChef.address,
+            success: false,
+            exitCode: 58086, // pool not exists
+        });
     });
 
     // Test unauthorized internal harvest messages sent to MiniChef.
     it('should reject HarvestInternal messages from non-MasterChef contracts', async () => {
         // Simulate a HarvestInternal message from an unauthorized source and expect rejection.
+        const userDepositAmount = 1n * 10n ** 6n;
+        // deposit first
+        await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
+        const miniChefAddress = await masterChef.getGetMiniChefAddress(user.address);
+        const miniChef = blockchain.openContract(await MiniChef.fromAddress(miniChefAddress));
+        const harvestInternalResult = await miniChef.send(
+            user.getSender(),
+            { value: toNano('1') },
+            {
+                $$type: 'HarvestInternal',
+                queryId: 0n,
+                lpTokenAddress: masterChefJettonWallet.address,
+                beneficiary: user.address,
+                accRewardPerShare: 100000n,
+            },
+        );
+        expect(harvestInternalResult.transactions).toHaveTransaction({
+            from: user.address,
+            to: miniChefAddress,
+            success: false,
+            exitCode: 31120, // only masterChef can harvest
+        });
     });
 
     // Test handling of HarvestInternalReply by an entity other than MiniChef.
     it('should ignore HarvestInternalReply messages not sent by MiniChef', async () => {
         // Simulate receiving a HarvestInternalReply message from an unauthorized source and verify it's ignored.
+        const userDepositAmount = 1n * 10n ** 6n;
+        // deposit first
+        await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
+        const harvestInternalReplyResult = await masterChef.send(
+            user.getSender(),
+            { value: toNano('1') },
+            {
+                $$type: 'HarvestInternalReply',
+                queryId: 0n,
+                lpTokenAddress: masterChefJettonWallet.address,
+                beneficiary: user.address,
+                reward: 100000n,
+                sender: user.address,
+            },
+        );
+        expect(harvestInternalReplyResult.transactions).toHaveTransaction({
+            from: user.address,
+            to: masterChef.address,
+            success: false,
+            exitCode: 33311, //unexpected sender
+        });
     });
 });

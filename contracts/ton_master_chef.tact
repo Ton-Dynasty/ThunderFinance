@@ -92,13 +92,17 @@ contract TonMasterChef with Deployable, MasterChef {
         let expectedSender: Address = contractAddress(initCode);
         require(expectedSender == sender(), "unexpected sender");
 
+        let ctx: Context = context();
+        let sendTon: Int = ctx.value;
+
         // Send Reward to the user
-        self.sendTon(msg.beneficiary, msg.reward, SendRemainingValue);
+        self.sendTon(msg.beneficiary, msg.reward, SendIgnoreErrors);
 
         // Withdraw to msg.beneficiary
         let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
-        self.sendJetton(pool.lpTokenAddress, 0, msg.amount, msg.beneficiary, msg.beneficiary, SendRemainingValue);
+        self.sendJetton(pool.lpTokenAddress, sendTon - THUNDER_FEE, msg.amount, msg.beneficiary, msg.beneficiary, SendIgnoreErrors);
     }
+    
 
     // Pay the fee to Thunder Mint
     receive("CollectTON") {
