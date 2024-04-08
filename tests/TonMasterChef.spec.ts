@@ -24,7 +24,7 @@ describe('TON MasterChef Tests', () => {
     let deadline: bigint;
     let totalReward: bigint;
     let masterChefJettonWalletAddress: Address;
-    const fee = toNano('0.074'); // This fee is for STORAGE_FEE and GAS_FEE and THUNDERMINT_FEE
+    const fee = 55000000n; // This fee is for GAS_FEE and THUNDERMINT_FEE
 
     // User deposits USDT to MasterChef by send JettonTransfer to his JettonWallet
     async function depositJetton(
@@ -289,7 +289,13 @@ describe('TON MasterChef Tests', () => {
         await addPool(masterChef, masterChefJettonWallet);
         const userDepositAmount = 1n * 10n ** 6n;
         const periodTime = 10;
+        const userDepositCostTonBefore = await user.getBalance();
         const depositResult = await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
+        const userDepositCostTonAfter = await user.getBalance();
+        const userDepositCostTon =
+            Number(userDepositCostTonBefore - userDepositCostTonAfter - userDepositAmount) / 10 ** 10;
+        // console.log('Ton MasterChef Cost:');
+        // console.log('userDepositCost', userDepositCostTon, 'TON');
         // send the deposit to MasterChef
         expect(depositResult.transactions).toHaveTransaction({
             from: masterChefJettonWallet.address,
@@ -378,7 +384,10 @@ describe('TON MasterChef Tests', () => {
 
         const benefit = (userDepositAmount * BigInt(periodTime) * rewardPerSecond) / 10n ** 6n;
         // Check if user get the reward
-        expect(userTonBalanceAfter - userTonBalanceBefore).toBeGreaterThanOrEqual(benefit - fee);
+        let feeInHarvest = 54659059n;
+        expect(userTonBalanceAfter - userTonBalanceBefore + feeInHarvest).toBeGreaterThanOrEqual(benefit);
+        const userHarvestCost = Number(benefit - (userTonBalanceAfter - userTonBalanceBefore)) / 10 ** 10;
+        // console.log('userHarvestCost', userHarvestCost, 'TON');
     });
 
     it('Should deposit and harvest twice', async () => {
@@ -396,7 +405,7 @@ describe('TON MasterChef Tests', () => {
         // User JettonWallet Should have received the reward
         const userTonBalanceAfter = await user.getBalance();
         const benefit = (userDepositAmount * BigInt(periodTime) * rewardPerSecond) / 10n ** 6n;
-        expect(userTonBalanceAfter).toBeGreaterThanOrEqual(userTonBalanceBefore + benefit - fee);
+        expect(userTonBalanceAfter + fee).toBeGreaterThanOrEqual(userTonBalanceBefore + benefit);
 
         // User Deposit Again
         await userJettonWallet.send(
@@ -424,7 +433,7 @@ describe('TON MasterChef Tests', () => {
         const userTonBalanceAfter2rdHarvest = await user.getBalance();
         // check the benefit of user1 and user2 are correct
         const benefit1 = BigInt(periodTime) * rewardPerSecond;
-        expect(userTonBalanceAfter2rdHarvest).toBeGreaterThanOrEqual(userTonBalanceBefore2rdHarvest + benefit1 - fee);
+        expect(userTonBalanceAfter2rdHarvest + fee).toBeGreaterThanOrEqual(userTonBalanceBefore2rdHarvest + benefit1);
     });
 
     it('Should withdraw and harvest in one step', async () => {
@@ -459,8 +468,8 @@ describe('TON MasterChef Tests', () => {
 
         // Expect that the userTonBalanceAfterWH > userTonBalanceBeforeWH
         const benefit1 = BigInt(periodTime) * rewardPerSecond;
-        const extraFee = toNano('0.2'); // Because We did withdraw and harvest in one step, so there are 0.2 TON extra fee
-        expect(userTonBalanceAfterWH).toBeGreaterThanOrEqual(userTonBalanceBeforeWH + benefit1 - fee - extraFee);
+        const extraFee = 170708059n; // Because We did withdraw and harvest in one step, so there are 0.2 TON extra fee
+        expect(userTonBalanceAfterWH + extraFee + fee).toBeGreaterThanOrEqual(userTonBalanceBeforeWH + benefit1);
     });
 
     it('Should Harvest After Deadline', async () => {
@@ -478,7 +487,7 @@ describe('TON MasterChef Tests', () => {
         // User JettonWallet Should have received the reward
         const userTonBalanceAfter = await user.getBalance();
         const benefit = (userDepositAmount * BigInt(periodTime) * rewardPerSecond) / 10n ** 6n;
-        expect(userTonBalanceAfter).toBeGreaterThanOrEqual(userTonBalanceBefore + benefit - fee);
+        expect(userTonBalanceAfter + fee).toBeGreaterThanOrEqual(userTonBalanceBefore + benefit);
 
         // User Deposit Again
         await userJettonWallet.send(
@@ -508,13 +517,13 @@ describe('TON MasterChef Tests', () => {
         // check the benefit of user1 and user2 are correct
         // Only get the benefit until the deadline
         const benefit1 = BigInt(periodTime) * rewardPerSecond;
-        expect(userTonBalanceAfter2rdHarvest).toBeGreaterThanOrEqual(userTonBalanceBefore2rdHarvest + benefit1 - fee);
+        expect(userTonBalanceAfter2rdHarvest + fee).toBeGreaterThanOrEqual(userTonBalanceBefore2rdHarvest + benefit1);
     });
 
     it('Should deposit and withdraw', async () => {
         const userDepositAmount = 1n * 10n ** 6n;
         const userWithdrawAmount = 5n * 10n ** 5n;
-        const periodTime = 10;
+        const periodTime = 100;
         const userJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(user.address, usdt.address));
         // deposit first
         await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
@@ -523,7 +532,13 @@ describe('TON MasterChef Tests', () => {
 
         // withdraw
         blockchain.now!! += periodTime;
+        const userWithdrawBefore = await user.getBalance();
         const withdrawResult = await withdraw(masterChef, user, masterChefJettonWallet, userWithdrawAmount);
+        const userWithdrawAfter = await user.getBalance();
+
+        const userWithdrawCost = Number(userWithdrawBefore - userWithdrawAfter) / 10 ** 10;
+        // console.log('userWithdrawCost', userWithdrawCost, 'TON');
+        // console.log('-----------------');
         // check the depositAndWithdrawResult is sucess
         expect(withdrawResult.transactions).toHaveTransaction({
             from: user.address,
@@ -565,7 +580,7 @@ describe('TON MasterChef Tests', () => {
         const remainDeposit = userDepositAmount - userWithdrawAmount;
         const benefit = ((userDepositAmount + remainDeposit) * BigInt(periodTime) * rewardPerSecond) / 10n ** 6n;
 
-        expect(userTonBalanceAfterHarvest).toBeGreaterThanOrEqual(userTonBalanceBeforeHarvest + benefit - fee);
+        expect(userTonBalanceAfterHarvest + fee).toBeGreaterThanOrEqual(userTonBalanceBeforeHarvest + benefit);
     });
 
     it('Should not withdraw internal reply by user', async () => {
@@ -657,8 +672,8 @@ describe('TON MasterChef Tests', () => {
         const benefit1 = (user1DepositAmount * rewardPerShare) / 10n ** 6n;
         const benefit2 = (user2DepositAmount * rewardPerShare) / 10n ** 6n;
 
-        expect(user1TonBalanceAfter).toBeGreaterThanOrEqual(user1TonBalanceBefore + benefit1 - fee);
-        expect(user2TonBalanceAfter).toBeGreaterThanOrEqual(user2TonBalanceBefore + benefit2 - fee);
+        expect(user1TonBalanceAfter + fee).toBeGreaterThanOrEqual(user1TonBalanceBefore + benefit1);
+        expect(user2TonBalanceAfter + fee).toBeGreaterThanOrEqual(user2TonBalanceBefore + benefit2);
     });
 
     it('Should ThunderMint can collect the Fees from projcet party and users', async () => {
@@ -935,12 +950,13 @@ describe('TON MasterChef Tests', () => {
             to: masterChef.address,
         });
         // Should return the TON
-        // expect(masterChefResult.transactions).toHaveTransaction({
-        //     from: masterChef.address,
-        //     to: deployer.address,
-        // });
+        expect(masterChefResult.transactions).toHaveTransaction({
+            from: masterChef.address,
+            to: deployer.address,
+        });
 
-        expect(balanceAfter).toBeGreaterThanOrEqual(balanceBefore - toNano('0.5')); // 0.5 TON is the fee
+        let returnFee = 146529000n;
+        expect(balanceAfter + returnFee).toBeGreaterThanOrEqual(balanceBefore); // 0.5 TON is the fee
 
         let isInitialized = (await masterChef.getGetTonMasterChefData()).isInitialized;
         // Should not be initialized

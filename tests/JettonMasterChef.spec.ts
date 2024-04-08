@@ -415,7 +415,12 @@ describe('Jetton MasterChef Tests', () => {
         await addPool(masterChef, masterChefJettonWallet);
         const userDepositAmount = 1n * 10n ** 6n;
         const periodTime = 1000;
+        const userBeforeTonBalance = await user.getBalance();
         await depositJetton(usdt, user, masterChef, userDepositAmount);
+        const userAfterTonBalance = await user.getBalance();
+        const UserDepositCostTon = Number(userBeforeTonBalance - userAfterTonBalance) / 10 ** 10;
+        // console.log("Jetton MasterChef Cost:")
+        // console.log('UserDepositCost', UserDepositCostTon, 'TON');
         // Update time to periodTime, so that we can harvest
         blockchain.now!! += periodTime;
         const userJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(user.address, usdt.address));
@@ -423,6 +428,9 @@ describe('Jetton MasterChef Tests', () => {
 
         // User send Harvest to MasterChef
         const harvestResult = await harvest(masterChef, user, masterChefJettonWallet);
+        const userAfterTonBalance2 = await user.getBalance();
+        const UserHarvestCostTon = Number(userAfterTonBalance - userAfterTonBalance2) / 10 ** 10;
+        //console.log('UserHarvestCost', UserHarvestCostTon, 'TON');
 
         // Check if the user send Harvest to MasterChef
         expect(harvestResult.transactions).toHaveTransaction({
@@ -598,8 +606,13 @@ describe('Jetton MasterChef Tests', () => {
 
         // Update time to periodTime, so that we can withdraw
         blockchain.now!! += periodTime;
+        const userWithdrawCostTon = await user.getBalance();
         // withdraw
         await withdraw(masterChef, user, masterChefJettonWallet, userWithdrawAmount);
+        const userAfterWithdrawCostTon = await user.getBalance();
+        const userWithdrawCost = Number(userWithdrawCostTon - userAfterWithdrawCostTon) / 10 ** 10;
+        // console.log('UserWithdrawCost', userWithdrawCost, 'TON');
+        // console.log("-----------------")
         const userUSDTBalanceBeforeHarvest = (await userJettonWallet.getGetWalletData()).balance;
 
         // Update time to periodTime, so that we can harvest
@@ -997,7 +1010,6 @@ describe('Jetton MasterChef Tests', () => {
             success: false,
             exitCode: 1004, // ERROR_WRONG_AUTH
         });
-
     });
 
     it('Should revert if pool does not exist', async () => {
