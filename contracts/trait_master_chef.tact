@@ -117,6 +117,8 @@ trait MasterChef {
 
     }
 
+    // TODO: Withdraw and Harvest in one message
+
     // Internal Functions //
 
     // Baise setup function
@@ -194,7 +196,7 @@ trait MasterChef {
         send(SendParameters{
             to: _to,
             value: _tonValue,
-            mode: SendRemainingValue,
+            mode: SendRemainingValue, // add SendIgnoreErrors
             body: JettonTransfer{
                 query_id: 0,
                 amount: _amount,

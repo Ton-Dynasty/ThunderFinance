@@ -1,5 +1,6 @@
 import "@stdlib/deploy";
 import "./trait_master_chef.tact";
+// TODO: add more functions
 
 // MasterChef Contract: Users deposit, withdraw and harvest their LP tokens in this contract
 contract TonMasterChef with Deployable, MasterChef {
@@ -87,6 +88,7 @@ contract TonMasterChef with Deployable, MasterChef {
 
     // Pay the fee to Thunder Mint
     receive("CollectTON") {
+        // TODO: now > deadline
         // Send ton to devs
         self.sendTon(self.thunderMintWallet, self.tonForDevs, 0);
         self.tonForDevs = 0;
