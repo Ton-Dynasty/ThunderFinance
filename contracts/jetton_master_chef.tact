@@ -22,7 +22,6 @@ contract JettonMasterChef with Deployable, MasterChef {
 
     // For ThunderMint
     thunderMintWallet: Address;
-    thunderMintJettonWallet: Address;
     Fee: Int = 3; // 0.3%
     jettonForDevs: Int = 0;
     tonForDevs: Int = 0;
@@ -35,7 +34,6 @@ contract JettonMasterChef with Deployable, MasterChef {
         self.ZERO_ADDRESS = newAddress(0, 0);
         self.mcRewardJettonWallet = self.ZERO_ADDRESS;
         self.thunderMintWallet = self.ZERO_ADDRESS;
-        self.thunderMintJettonWallet = self.ZERO_ADDRESS;
         self.metaData = emptyCell();
         emit(DeployMasterChef{owner: _owner, seed: _seed}.toCell());
     }
@@ -46,7 +44,6 @@ contract JettonMasterChef with Deployable, MasterChef {
         require(self.mcRewardJettonWallet == self.ZERO_ADDRESS, "reward wallet already set");
         // Jetton MasterChef Set Up
         self.mcRewardJettonWallet = msg.mcRewardJettonWallet;
-        self.thunderMintJettonWallet = msg.thunderMintJettonWallet;
         // Calculate reward per second in basicSetUp() and also other basic setup
         self.basicSetUp(msg.thunderMintWallet, msg.metaData, msg.totalReward, msg.deadline);
     }
