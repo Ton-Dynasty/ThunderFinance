@@ -117,7 +117,31 @@ trait MasterChef {
 
     }
 
-    // TODO: Withdraw and Harvest in one message
+    // Withdraw and Harvest in one step
+    receive(msg: WithdrawAndHarvest) {
+        self.requireInitialized();
+        // check if pool exists
+        require(self.pools.get(msg.lpTokenAddress) != null , "pool not exists");
+
+        let initCode: StateInit = self._calculateMiniChefInit(sender());
+        let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
+        send(SendParameters{
+                to: contractAddress(initCode),
+                value: 0,
+                mode: SendRemainingValue,
+                bounce: true,
+                body: WithdrawAndHarvestInternal{
+                    queryId: msg.queryId,
+                    lpTokenAddress: msg.lpTokenAddress,
+                    amount: msg.amount,
+                    accRewardPerShare: pool.accRewardPerShare,
+                    beneficiary: msg.beneficiary,
+                    sender: sender()
+                }.toCell(),
+                code: initCode.code,
+                data: initCode.data
+            });
+    }
 
     // Internal Functions //
 

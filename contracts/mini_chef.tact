@@ -78,6 +78,36 @@ contract MiniChef with Deployable {
         });
     
     }
+
+    receive(msg: WithdrawAndHarvestInternal) {
+        require(sender() == self.masterChef, "only masterChef can harvest");
+        let userInfo: UserInfo = self.userInfo.get(msg.lpTokenAddress)!!;
+        let accumulatedReward: Int = userInfo.amount * msg.accRewardPerShare / ACC_PRECISION; 
+        let _pendingReward: Int = accumulatedReward - userInfo.rewardDebt;
+        if (_pendingReward <= 0) {
+            throw(ERROR_NO_REWARD);
+        }
+        userInfo.rewardDebt = accumulatedReward - msg.amount * msg.accRewardPerShare;
+        userInfo.amount = userInfo.amount - msg.amount;
+        self.userInfo.set(msg.lpTokenAddress, userInfo);
+
+        // Send WithdrawAndHarvestReply to MasterChef
+        send(SendParameters{
+            to: self.masterChef,
+            value: 0,
+            mode: SendRemainingValue,
+            body: WithdrawAndHarvestReply{
+                queryId: msg.queryId,
+                lpTokenAddress: msg.lpTokenAddress,
+                reward: _pendingReward,
+                amount: msg.amount,
+                sender: self.owner,
+                beneficiary: msg.beneficiary
+            }.toCell()
+        });
+
+    }
+
     // Get Methods // 
 
     // Get User Info

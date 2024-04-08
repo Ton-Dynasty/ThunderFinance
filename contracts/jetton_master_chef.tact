@@ -95,6 +95,20 @@ contract JettonMasterChef with Deployable, MasterChef {
         self.sendJetton(self.mcRewardJettonWallet, 0, msg.reward, msg.beneficiary, msg.beneficiary);
     }
 
+    // MiniChef send this message to ask MasterChef to withdraw LP tokens and harvest reward
+    receive(msg: WithdrawAndHarvestReply) {
+        let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
+        let expectedSender: Address = contractAddress(initCode);
+        require(expectedSender == sender(), "unexpected sender");
+
+        // Send Reward to the user
+        self.sendJetton(self.mcRewardJettonWallet, 0, msg.reward, msg.beneficiary, msg.beneficiary);
+
+        // Withdraw to msg.beneficiary
+        let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
+        self.sendJetton(pool.lpTokenAddress, 0, msg.amount, msg.beneficiary, msg.beneficiary);
+    }
+
     // Pay the fee to ThunderMint team
     receive("Collect") {
         // Reward jetton for devs can only be sent to ThunderMint once

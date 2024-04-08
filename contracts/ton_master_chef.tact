@@ -86,6 +86,20 @@ contract TonMasterChef with Deployable, MasterChef {
         self.sendTon(msg.beneficiary, msg.reward, SendRemainingValue);
     }
 
+    // MiniChef send this message to ask MasterChef to withdraw LP tokens and harvest reward
+    receive(msg: WithdrawAndHarvestReply) {
+        let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
+        let expectedSender: Address = contractAddress(initCode);
+        require(expectedSender == sender(), "unexpected sender");
+
+        // Send Reward to the user
+        self.sendTon(msg.beneficiary, msg.reward, SendRemainingValue);
+
+        // Withdraw to msg.beneficiary
+        let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
+        self.sendJetton(pool.lpTokenAddress, 0, msg.amount, msg.beneficiary, msg.beneficiary);
+    }
+
     // Pay the fee to Thunder Mint
     receive("CollectTON") {
         // TODO: now > deadline

@@ -920,4 +920,6 @@ describe('Jetton MasterChef Tests', () => {
     it('should ignore HarvestInternalReply messages not sent by MiniChef', async () => {
         // Simulate receiving a HarvestInternalReply message from an unauthorized source and verify it's ignored.
     });
+
+    it('should withdraw and harvest in one step', async () => {});
 });

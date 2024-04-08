@@ -88,6 +88,31 @@ message(0x925d0240) HarvestInternal {
     accRewardPerShare: Int as coins; // New accumulated reward per share after harvest
 }
 
+message WithdrawAndHarvest {
+    queryId: Int as uint64;
+    lpTokenAddress: Address; // Pool Factory LP token Wallet address
+    amount: Int as coins;
+    beneficiary: Address;
+}
+
+message WithdrawAndHarvestInternal {
+    queryId: Int as uint64;
+    lpTokenAddress: Address; // Pool Factory LP token Wallet address
+    amount: Int as coins;
+    accRewardPerShare: Int as coins;
+    beneficiary: Address;
+    sender: Address;
+}
+
+message WithdrawAndHarvestReply {
+    queryId: Int as uint64;
+    lpTokenAddress: Address; // Pool Factory LP token Wallet address
+    beneficiary: Address; // the one who will receive the reward
+    reward: Int as coins;
+    amount: Int as coins;
+    sender: Address;
+}
+
 // TonMasterChef Messages
 message(0x8bf38613) SetUpForTonMC {
     owner: Address; // Owner of the MasterChef
