@@ -8,6 +8,7 @@ import { JettonWalletUSDT } from '../wrappers/JettonWallet';
 import { JettonMasterUSDT } from '../wrappers/JettonMaster';
 import '@ton/test-utils';
 import * as fs from 'fs';
+import exp from 'constants';
 
 describe('Jetton MasterChef Tests', () => {
     let blockchain: Blockchain;
@@ -823,16 +824,11 @@ describe('Jetton MasterChef Tests', () => {
             success: true,
             op: 0x097bb407,
         });
-        const masterChefDataAfterWithdraw = await masterChef.getGetJettonMasterChefData();
-        // Make sure that tonForDevs is recorded after user withdraw
-        expect(masterChefDataAfterWithdraw.tonForDevs).toEqual(10000000n); // Withdraw's fee is 0.1 TON
 
         // Update time to periodTime, so that we can harvest
         blockchain.now!! += periodTime;
         // User send Harvest to MasterChef
         await harvest(masterChef, user, masterChefJettonWallet);
-        const masterChefDataAfterHarvest = await masterChef.getGetJettonMasterChefData();
-        expect(masterChefDataAfterHarvest.tonForDevs).toEqual(20000000n); // Harvest's fee is 0.1 TON and add Withdraw's fee = 0.2 TON
 
         // Send Collect Msg to MasterChef
         let thunderMintTonBefore = await thunderMint.getBalance();
@@ -854,7 +850,6 @@ describe('Jetton MasterChef Tests', () => {
         // Check if the MasterChef send TON to ThunderMint
         expect(diffTON).toBeGreaterThan(0);
         // Check if the MasterChef send TON for Devs to ThunderMint
-        expect(thunderMintTonAfter).toBeGreaterThanOrEqual(masterChefData.tonForDevs);
 
         // Check if the MasterChef send Reward jetton to ThunderMint
         expect(thunderJettonAfter).toEqual(masterChefData.jettonForDevs);
@@ -912,31 +907,35 @@ describe('Jetton MasterChef Tests', () => {
     });
 
     it('Should deposit, withdraw and harvest after deadline', async () => {
+        await addPool(masterChef, masterChefJettonWallet);
         const userDepositAmount = 1n * 10n ** 6n;
-        const userWithdrawAmount = 5n * 10n ** 5n;
         const periodTime = 3500; // deadline is 2000
+        // Mint USDT to user so that he can deposit
+        await usdt.send(user.getSender(), { value: toNano('1') }, 'Mint:1');
         const userJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(user.address, usdt.address));
 
         // Update time to periodTime to make sure that the deadline is passed
         blockchain.now!! += periodTime;
+        const userUSDTBefore = (await userJettonWallet.getGetWalletData()).balance;
         // deposit first
-        await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
-        // get the balance of usdt before withdraw
-        const userUSDTBalanceBeforeWithdraw = (await userJettonWallet.getGetWalletData()).balance;
-
-        // withdraw
-        await withdraw(masterChef, user, masterChefJettonWallet, userWithdrawAmount);
-        const userUSDTBalanceAfterWithdraw = (await userJettonWallet.getGetWalletData()).balance;
-        // check the differnce between userUSDTBalanceBeforeWithdraw and userUSDTBalanceAfterWithdraw is equal to userWithdrawAmount
-        expect(userUSDTBalanceAfterWithdraw - userUSDTBalanceBeforeWithdraw).toEqual(userWithdrawAmount);
-
-        // Update time to periodTime, so that we can harvest
-        blockchain.now!! += periodTime;
-        // User send Harvest to MasterChef
-        await harvest(masterChef, user, masterChefJettonWallet);
-        const userUSDTBalanceAfterHarvest = (await userJettonWallet.getGetWalletData()).balance;
-        // After Harvest, the user Should have the same balance as before harvest (It should not add any reward, because the deadline is passed)
-        expect(userUSDTBalanceAfterHarvest).toEqual(userUSDTBalanceAfterWithdraw);
+        let result = await userJettonWallet.send(
+            user.getSender(),
+            { value: toNano('1.1') },
+            {
+                $$type: 'JettonTransfer',
+                query_id: 0n,
+                amount: userDepositAmount,
+                destination: masterChef.address,
+                response_destination: user.address,
+                custom_payload: null,
+                forward_ton_amount: toNano('1'),
+                forward_payload: beginCell().endCell(),
+            },
+        );
+        // get the balance of usdt After deposit
+        const userUSDTAfter = (await userJettonWallet.getGetWalletData()).balance;
+        // Master Chef should not accept the deposit and also return the deposit
+        expect(userUSDTAfter).toEqual(userUSDTBefore);
     });
 
     it('Should deposit and harvest but deadline passed in the midle', async () => {
@@ -1033,30 +1032,6 @@ describe('Jetton MasterChef Tests', () => {
         });
     });
 
-    it('Should revert if pool does not exist', async () => {
-        const result = await masterChef.send(
-            user.getSender(),
-            { value: toNano('1') },
-            {
-                $$type: 'JettonTransferNotification',
-                query_id: 0n,
-                amount: 100000n,
-                sender: user.address,
-                forward_payload: beginCell().endCell(),
-            },
-        );
-
-        // Should revert with ERROR_POOL_NOT_FOUND
-        expect(result.transactions).toHaveTransaction({
-            from: user.address,
-            to: masterChef.address,
-            success: false,
-            exitCode: 1002, // ERROR_POOL_NOT_FOUND
-        });
-
-        // TODO: Check jetton transfer amount
-    });
-
     // Test contract initialization by a non-owner entity.
     it('Should only allow the contract owner to initiate the contract', async () => {
         ({ deployer, user, thunderMint, kitchen, usdt, seed, deployerJettonWallet, thunderMintJettonWallet } =
@@ -1134,14 +1109,32 @@ describe('Jetton MasterChef Tests', () => {
     it('Should reject user deposits before any pool is added', async () => {
         // Attempt to make a deposit before any pool has been added to the contract and expect failure.
 
+        await usdt.send(user.getSender(), { value: toNano('1') }, 'Mint:1');
+        const userJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(user.address, usdt.address));
+        const userUSDTbalanceBefore = (await userJettonWallet.getGetWalletData()).balance;
         const userDepositAmount = 1n * 10n ** 6n;
-        const depositResult = await depositJetton(usdt, user, masterChef, userDepositAmount);
+        const depositResult = await userJettonWallet.send(
+            user.getSender(),
+            { value: toNano('1.1') },
+            {
+                $$type: 'JettonTransfer',
+                query_id: 0n,
+                amount: userDepositAmount,
+                destination: masterChef.address,
+                response_destination: user.address,
+                custom_payload: null,
+                forward_ton_amount: toNano('1'),
+                forward_payload: beginCell().endCell(),
+            },
+        );
+        const userUSDTbalanceAfter = (await userJettonWallet.getGetWalletData()).balance;
         expect(depositResult.transactions).toHaveTransaction({
             from: masterChefJettonWalletAddress,
             to: masterChef.address,
-            success: false,
-            exitCode: 1002, // ERROR_POOL_NOT_FOUND
         });
+
+        // If the pool does not exist, the deposit should fail and MC should return the deposited amount.
+        expect(userUSDTbalanceAfter).toEqual(userUSDTbalanceBefore);
     });
 
     // Test withdraw functionality when the contract is not initialized.

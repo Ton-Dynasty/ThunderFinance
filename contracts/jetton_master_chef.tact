@@ -76,8 +76,6 @@ contract JettonMasterChef with Deployable, MasterChef {
         if(self.pools.get(ctx.sender) == null || now() > self.deadline) {
             // Send the jetton back to the sender if pool does not exist
             self.sendJetton(ctx.sender, 0, msg.amount, msg.sender, msg.sender, SendRemainingValue);
-            // TODO: Add test case if pool not exists before add pool @ipromise2324
-            // WE HAVE DELETED ERROR_POOL_NOT_FOUND
             return;
         }
         // Deposit the LP tokens for the user
@@ -86,9 +84,7 @@ contract JettonMasterChef with Deployable, MasterChef {
 
     // MiniChef will send this message to ask MasterChef to send reward
     receive(msg: HarvestInternalReply) {
-        let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
-        let expectedSender: Address = contractAddress(initCode);
-        require(expectedSender == sender(), "unexpected sender");
+        self.miniChefChek(msg.sender);
         self.sendJetton(self.mcRewardJettonWallet, 0, msg.reward, msg.beneficiary, msg.beneficiary, SendRemainingValue);
     }
 
@@ -97,7 +93,7 @@ contract JettonMasterChef with Deployable, MasterChef {
         let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
         let expectedSender: Address = contractAddress(initCode);
         require(expectedSender == sender(), "unexpected sender");
-    
+
         let ctx: Context = context();
 
         // Send Reward to the beneficiary
@@ -134,7 +130,6 @@ contract JettonMasterChef with Deployable, MasterChef {
             deadline: self.deadline,
             isInitialized: self.isInitialized,
             totalAllocPoint: self.totalAllocPoint,
-            tonForDevs: self.tonForDevs,
             jettonForDevs: self.jettonForDevs,
             pools: self.pools,
             metaData: self.metaData,

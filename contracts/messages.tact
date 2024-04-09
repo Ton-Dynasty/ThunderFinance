@@ -177,7 +177,6 @@ struct MasterChefData {
     deadline: Int as uint64; // MasterChef distribution deadline
     isInitialized: Bool; // MasterChef is initialized or not
     totalAllocPoint: Int; // Total allocation point
-    tonForDevs: Int; // TON for ThunderMint
     jettonForDevs: Int; // Jetton for ThunderMint
     pools: map<Address, PoolInfo>; // Pool Info
     metaData: Cell; // MetaData for the MasterChef

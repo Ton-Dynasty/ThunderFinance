@@ -1,10 +1,9 @@
 import "@stdlib/deploy";
 import "./trait_master_chef.tact";
-// TODO: add more functions
 
 // MasterChef Contract: Users deposit, withdraw and harvest their LP tokens in this contract
 contract TonMasterChef with Deployable, MasterChef {
-    // State
+    // Initializer
     isInitialized: Bool = false;
 
     // Pool Info
@@ -15,13 +14,12 @@ contract TonMasterChef with Deployable, MasterChef {
     deadline: Int as uint64 = 0;
     metaData: Cell;
 
-    // for reward jetton
+    // For Reward jetton
     rewardPerSecond: Int as coins = 0;
     totalReward: Int = 0;
 
     // For ThunderMint
     thunderMintWallet: Address;
-    tonForDevs: Int = 0;
 
     // initialize the contract with owner and seed
     init(_owner: Address, _seed: Int) {
@@ -48,11 +46,9 @@ contract TonMasterChef with Deployable, MasterChef {
         let feeForDevs: Int = msg.totalReward * FEE_PERCENT_FOR_DEV / 1000;
         let expectedTon: Int = msg.totalReward + feeForDevs;
         if (sendedTon < expectedTon) {
-            // TODO: use ctx.readForwardFee() for fee calculation @ipromise2324
-            self.sendTon(msg.owner, sendedTon - THUNDER_FEE*2, 0);
+            self.sendTon(msg.owner, sendedTon - ctx.readForwardFee(), 0);
             return;
         }
-        self.tonForDevs += feeForDevs;
         self.isInitialized = true;
 
         // Sending the remaining TON to the owner
@@ -78,17 +74,13 @@ contract TonMasterChef with Deployable, MasterChef {
 
     // MiniChef will send this message to ask MasterChef to send reward
     receive(msg: HarvestInternalReply) {
-        let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
-        let expectedSender: Address = contractAddress(initCode);
-        require(expectedSender == sender(), "unexpected sender");
+        self.miniChefChek(msg.sender);
         self.sendTon(msg.beneficiary, msg.reward, SendRemainingValue);
     }
 
     // MiniChef send this message to ask MasterChef to withdraw LP tokens and harvest reward
     receive(msg: WithdrawAndHarvestReply) {
-        let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
-        let expectedSender: Address = contractAddress(initCode);
-        require(expectedSender == sender(), "unexpected sender");
+        self.miniChefChek(msg.sender);
 
         let ctx: Context = context();
         let sendTon: Int = ctx.value;
@@ -103,12 +95,12 @@ contract TonMasterChef with Deployable, MasterChef {
     
 
     // Pay the fee to Thunder Mint
-    receive("CollectTON") {
-        require(now() > self.deadline, "deadline not reached");
-        // Send ton to devs
-        self.sendTon(self.thunderMintWallet, self.tonForDevs, 0);
-        self.tonForDevs = 0;
-    }
+    // receive("CollectTON") {
+    //     require(now() > self.deadline, "deadline not reached");
+    //     // Send ton to devs
+    //     self.sendTon(self.thunderMintWallet, self.tonForDevs, 0);
+    //     self.tonForDevs = 0;
+    // }
 
     // Get Methods //
 
@@ -122,7 +114,6 @@ contract TonMasterChef with Deployable, MasterChef {
             deadline: self.deadline,
             isInitialized: self.isInitialized,
             totalAllocPoint: self.totalAllocPoint,
-            tonForDevs: self.tonForDevs,
             jettonForDevs: 0, // not used in TonMasterChef
             pools: self.pools,
             metaData: self.metaData,

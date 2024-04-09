@@ -20,15 +20,13 @@ trait MasterChef {
     deadline: Int = 0;
     metaData: Cell;
 
-    // For reward jetton
+    // For Reward jetton
     rewardPerSecond: Int = 0;
     totalReward: Int = 0;
 
 
     // For ThunderMint
     thunderMintWallet: Address;
-    tonForDevs: Int = 0;
-    // TODO: @ipromise2324 remove tonForDevs for every contracts
 
     // Owner send AddPool message to add a new pool, so that users can deposit their LP tokens
     // NOTE that all the pools should have a total alloc point less than or equal to 10000
@@ -56,15 +54,9 @@ trait MasterChef {
 
     // User can send this message to withdraw their LP tokens
     receive(msg: Withdraw) {
-        self.requireInitialized();
+        self.userOpSetUp(msg.lpTokenAddress);
         let ctx: Context = context();
         let remainTon: Int = ctx.value - THUNDER_FEE;
-        self.tonForDevs = self.tonForDevs + THUNDER_FEE;
-        // check if pool exists
-        require(self.pools.get(msg.lpTokenAddress) != null , "pool not exists");
-
-        // Should update the accRewardPerShare first
-        self.updatePool(msg.lpTokenAddress);
 
         let initCode: StateInit = self._calculateMiniChefInit(ctx.sender);
         let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
@@ -86,24 +78,18 @@ trait MasterChef {
 
     // Users' MiniChef will send this message to ask MasterChef to withdraw LP tokens
     receive(msg: WithdrawInternalReply) {
-        let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
-        let expectedSender: Address = contractAddress(initCode);
-        require(expectedSender == sender(), "unexpected sender");
+        self.miniChefChek(msg.sender);
         let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
         self.sendJetton(pool.lpTokenAddress, 0, msg.amount, msg.beneficiary, msg.beneficiary, SendRemainingValue);
     }
 
     // User can send this message to harvest their reward
     receive(msg: Harvest) {
-        self.requireInitialized();
-        require(self.pools.get(msg.lpTokenAddress) != null , "pool not exists");
+        self.userOpSetUp(msg.lpTokenAddress);
         let ctx: Context = context();
         let remainTon: Int = ctx.value - THUNDER_FEE;
-        self.tonForDevs = self.tonForDevs + THUNDER_FEE;
-        let initCode: StateInit = self._calculateMiniChefInit(sender());
 
-        // should update accRewardPerShare first and get the pool info
-        self.updatePool(msg.lpTokenAddress);
+        let initCode: StateInit = self._calculateMiniChefInit(sender());
         let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
 
         // Send the info of accRewardPerShare to the user's MiniChef, so that MiniChef can calculate the reward
@@ -124,18 +110,9 @@ trait MasterChef {
 
     // Withdraw and Harvest in one step
     receive(msg: WithdrawAndHarvest) {
-        self.requireInitialized();
-
-        // TODO: reduce lines of code (identical logic with Withdraw and Harvest) @ipromise2324
-
-        // check if pool exists
-        require(self.pools.get(msg.lpTokenAddress) != null , "pool not exists");
+        self.userOpSetUp(msg.lpTokenAddress);
         let ctx: Context = context();
         let remainTon: Int = ctx.value - THUNDER_FEE;
-        self.tonForDevs = self.tonForDevs + THUNDER_FEE;
-
-        // Should update the accRewardPerShare first
-        self.updatePool(msg.lpTokenAddress);
 
         let initCode: StateInit = self._calculateMiniChefInit(sender());
         let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
@@ -171,6 +148,23 @@ trait MasterChef {
             // TODO: send remain balance + destroy to owner
             throw(ERROR_RPS_UNDER_ZERO);
         }
+    }
+
+    // Check contract is initialized and pool exists and then Update the pool
+    inline fun userOpSetUp(lpTokenAddress: Address) {
+        self.requireInitialized();
+        // check if pool exists
+        require(self.pools.get(lpTokenAddress) != null , "pool not exists");
+
+        // should update accRewardPerShare first and get the pool info
+        self.updatePool(lpTokenAddress);
+    }
+
+    // Check if the sender is the MiniChef
+    inline fun miniChefChek(sender: Address) {
+        let initCode: StateInit = self._calculateMiniChefInit(sender);
+        let expectedSender: Address = contractAddress(initCode);
+        require(expectedSender == sender(), "unexpected sender");
     }
 
     // Check if the contract is initialized
