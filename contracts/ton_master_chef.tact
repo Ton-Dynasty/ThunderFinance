@@ -93,11 +93,11 @@ contract TonMasterChef with Deployable, MasterChef {
         let sendTon: Int = ctx.value;
 
         // Send Reward to the user
-        self.sendTon(msg.beneficiary, msg.reward, SendIgnoreErrors);
+        self.sendTon(msg.beneficiary, msg.rewardAmount, SendIgnoreErrors);
 
         // Withdraw to msg.beneficiary
         let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
-        self.sendJetton(pool.lpTokenAddress, sendTon - THUNDER_FEE, msg.amount, msg.beneficiary, msg.beneficiary, SendIgnoreErrors);
+        self.sendJetton(pool.lpTokenAddress, sendTon - THUNDER_FEE, msg.withdrawAmount, msg.beneficiary, msg.beneficiary, SendIgnoreErrors);
     }
     
 

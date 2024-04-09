@@ -94,8 +94,8 @@ contract MiniChef with Deployable {
         if (_pendingReward <= 0) {
             throw(ERROR_NO_REWARD);
         }
-        userInfo.rewardDebt = accumulatedReward - msg.amount * msg.accRewardPerShare;
-        userInfo.amount = userInfo.amount - msg.amount;
+        userInfo.rewardDebt = accumulatedReward - msg.withdrawAmount * msg.accRewardPerShare;
+        userInfo.amount = userInfo.amount - msg.withdrawAmount;
         self.userInfo.set(msg.lpTokenAddress, userInfo);
 
         // Send WithdrawAndHarvestReply to MasterChef
@@ -106,8 +106,8 @@ contract MiniChef with Deployable {
             body: WithdrawAndHarvestReply{
                 queryId: msg.queryId,
                 lpTokenAddress: msg.lpTokenAddress,
-                reward: _pendingReward,
-                amount: msg.amount,
+                rewardAmount: _pendingReward,
+                withdrawAmount: msg.withdrawAmount,
                 sender: self.owner,
                 beneficiary: msg.beneficiary
             }.toCell()

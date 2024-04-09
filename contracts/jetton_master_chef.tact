@@ -99,11 +99,11 @@ contract JettonMasterChef with Deployable, MasterChef {
         let sendBackTon: Int = ctx.value;
 
         // Send Reward to the user
-        self.sendJetton(self.mcRewardJettonWallet, sendBackTon / 2, msg.reward, msg.beneficiary, msg.beneficiary, SendIgnoreErrors);
+        self.sendJetton(self.mcRewardJettonWallet, sendBackTon / 2, msg.rewardAmount, msg.beneficiary, msg.beneficiary, SendIgnoreErrors);
 
         // Withdraw to msg.beneficiary
         let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
-        self.sendJetton(pool.lpTokenAddress, sendBackTon / 2, msg.amount, msg.beneficiary, msg.beneficiary, SendIgnoreErrors);
+        self.sendJetton(pool.lpTokenAddress, sendBackTon / 2, msg.withdrawAmount, msg.beneficiary, msg.beneficiary, SendIgnoreErrors);
     }
 
     // Pay the fee to ThunderMint team

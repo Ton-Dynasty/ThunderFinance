@@ -666,7 +666,7 @@ describe('Jetton MasterChef Tests', () => {
                 $$type: 'WithdrawAndHarvest',
                 queryId: 0n,
                 lpTokenAddress: masterChefJettonWallet.address,
-                amount: userWithdrawAmount,
+                withdrawAmount: userWithdrawAmount,
                 beneficiary: user.address,
             },
         );

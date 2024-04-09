@@ -91,14 +91,14 @@ message(0x925d0240) HarvestInternal {
 message (0x4212017c) WithdrawAndHarvest {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
-    amount: Int as coins;
+    withdrawAmount: Int as coins;
     beneficiary: Address;
 }
 
 message (0x16a5d563) WithdrawAndHarvestInternal {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
-    amount: Int as coins;
+    withdrawAmount: Int as coins;
     accRewardPerShare: Int as coins;
     beneficiary: Address;
     sender: Address;
@@ -108,8 +108,8 @@ message (0xa1114e19) WithdrawAndHarvestReply {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
     beneficiary: Address; // the one who will receive the reward
-    reward: Int as coins; // @ipromise2324 these two fields are toooo confusing 
-    amount: Int as coins; // @ipromise2324 these two fields are toooo confusing
+    rewardAmount: Int as coins; 
+    withdrawAmount: Int as coins;
     sender: Address;
 }
 

@@ -136,7 +136,7 @@ trait MasterChef {
                 body: WithdrawAndHarvestInternal{
                     queryId: msg.queryId,
                     lpTokenAddress: msg.lpTokenAddress,
-                    amount: msg.amount,
+                    withdrawAmount: msg.withdrawAmount,
                     accRewardPerShare: pool.accRewardPerShare,
                     beneficiary: msg.beneficiary,
                     sender: sender()
