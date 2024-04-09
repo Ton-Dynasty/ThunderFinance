@@ -193,7 +193,7 @@ trait MasterChef {
     }
 
     // Update the pool, recalculate the reward per share
-    fun updatePool(lpTokenAddress: Address) {
+    inline fun updatePool(lpTokenAddress: Address) {
         require(self.pools.get(lpTokenAddress) != null , "pool not exists");
         let pool: PoolInfo = self.pools.get(lpTokenAddress)!!;
         let now: Int = now();

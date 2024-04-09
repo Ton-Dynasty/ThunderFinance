@@ -25,15 +25,13 @@ contract JettonMasterChef with Deployable, MasterChef {
     Fee: Int = 3; // 0.3%
     jettonForDevs: Int = 0;
     tonForDevs: Int = 0;
-    ZERO_ADDRESS: Address;
 
     // initialize the contract with owner and seed
     init(_owner: Address, _seed: Int) {
         self.owner = _owner;
         self.isInitialized = false;
-        self.ZERO_ADDRESS = newAddress(0, 0);
-        self.mcRewardJettonWallet = self.ZERO_ADDRESS;
-        self.thunderMintWallet = self.ZERO_ADDRESS;
+        self.mcRewardJettonWallet = address("0QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACkT");//address("0QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACkT");
+        self.thunderMintWallet = address("0QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACkT");
         self.metaData = emptyCell();
         emit(DeployMasterChef{owner: _owner, seed: _seed}.toCell());
     }
@@ -41,7 +39,7 @@ contract JettonMasterChef with Deployable, MasterChef {
     // Kitchen contract will send this message to deploy the MasterChef
     receive(msg: SetUpJettonMC) {
         require(!self.isInitialized, "contract already initialized");
-        require(self.mcRewardJettonWallet == self.ZERO_ADDRESS, "reward wallet already set");
+        require(self.mcRewardJettonWallet == address("0QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACkT"), "reward wallet already set");
         // Jetton MasterChef Set Up
         self.mcRewardJettonWallet = msg.mcRewardJettonWallet;
         // Calculate reward per second in basicSetUp() and also other basic setup

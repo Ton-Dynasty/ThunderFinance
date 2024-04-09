@@ -23,14 +23,12 @@ contract TonMasterChef with Deployable, MasterChef {
     thunderMintWallet: Address;
     Fee: Int = 3; // 0.3%
     tonForDevs: Int = 0;
-    ZERO_ADDRESS: Address;
 
     // initialize the contract with owner and seed
     init(_owner: Address, _seed: Int) {
         self.owner = _owner;
         self.isInitialized = false;
-        self.ZERO_ADDRESS = newAddress(0, 0);
-        self.thunderMintWallet = self.ZERO_ADDRESS;
+        self.thunderMintWallet = address("0QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACkT");
         self.metaData = emptyCell();
         emit(DeployMasterChef{owner: _owner, seed: _seed}.toCell());
     }
@@ -118,7 +116,7 @@ contract TonMasterChef with Deployable, MasterChef {
     get fun getTonMasterChefData(): MasterChefData {
         return MasterChefData{
             owner: self.owner,
-            mcRewardJettonWallet: self.ZERO_ADDRESS, // not used in TonMasterChef
+            mcRewardJettonWallet: address("0QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACkT"), // not used in TonMasterChef
             rewardPerSecond: self.rewardPerSecond,
             createdAt: self.createdAt,
             deadline: self.deadline,
