@@ -29,8 +29,7 @@ contract JettonMasterChef with Deployable, MasterChef {
     // initialize the contract with owner and seed
     init(_owner: Address, _seed: Int) {
         self.owner = _owner;
-        self.isInitialized = false;
-        self.mcRewardJettonWallet = address("0QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACkT");//address("0QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACkT");
+        self.mcRewardJettonWallet = address("0QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACkT");
         self.thunderMintWallet = address("0QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACkT");
         self.metaData = emptyCell();
         emit(DeployMasterChef{owner: _owner, seed: _seed}.toCell());
