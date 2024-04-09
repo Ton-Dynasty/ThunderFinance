@@ -1,16 +1,18 @@
 import { toNano, Address, beginCell } from '@ton/core';
-import { MasterChef } from '../wrappers/MasterChef';
-import { JettonWalletUSDT } from '../wrappers/JettonWallet';
+import { JettonMasterChef } from '../wrappers/JettonMasterChef';
 import { NetworkProvider } from '@ton/blueprint';
-import { JettonMasterUSDT } from '../wrappers/JettonMaster';
 import { loadDeployment } from '../utils/helper';
+import { JettonMinter } from '../wrappers/JettonMinter';
+import { JettonWallet } from '../wrappers/RealJettonWallet';
 
 export async function run(provider: NetworkProvider) {
     const deployment = await loadDeployment();
-    const masterchef = provider.open(MasterChef.fromAddress(Address.parse(deployment.MasterChef)));
-    const usdt = provider.open(JettonMasterUSDT.fromAddress(Address.parse(deployment.USDT)));
-    const masterchefUSDTWalletAddress = await usdt.getGetWalletAddress(masterchef.address);
-    const masterchefUSDTWallet = provider.open(JettonWalletUSDT.fromAddress(masterchefUSDTWalletAddress));
+
+    const masterchef = provider.open(JettonMasterChef.fromAddress(Address.parse(deployment.MasterChef)));
+    const rewardTokenMasterAddress = Address.parse("EQB3Xa6oQ4TVwXtDCYUq6DuDgWuZ6Lc-J2yaS5dirMMHyQpl")
+    const rewardTokenMaster = provider.open(JettonMinter.createFromAddress(rewardTokenMasterAddress));
+    const masterchefUSDTWalletAddress = await rewardTokenMaster.getWalletAddress(masterchef.address);
+    const masterchefUSDTWallet = provider.open(JettonWallet.createFromAddress(masterchefUSDTWalletAddress));
 
     await masterchef.send(
         provider.sender(),

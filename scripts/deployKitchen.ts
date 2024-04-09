@@ -1,5 +1,5 @@
 import { toNano, Address, beginCell } from '@ton/core';
-import { Kitchen } from '../wrappers/MasterChef_Kitchen';
+import { Kitchen } from '../wrappers/Kitchen';
 import { NetworkProvider } from '@ton/blueprint';
 import { updateDeployment } from '../utils/helper';
 
