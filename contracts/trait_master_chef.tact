@@ -1,5 +1,4 @@
 import "@stdlib/deploy";
-import "./packages/token/jetton/JettonMaster.tact";
 import "./packages/utils/data.fc";
 import "./messages.tact";
 import "./mini_chef.tact";
