@@ -9,7 +9,7 @@ native build_content_cell(metadata_uri: Slice): Cell;
 
 // MasterChef Contract Trait: This contract will have basic fuctions and receive messages to interact with the MasterChef contract 
 trait MasterChef {
-    // State
+    // Initializer
     isInitialized: Bool = false;
 
     // Pool Info
@@ -20,7 +20,7 @@ trait MasterChef {
     deadline: Int = 0;
     metaData: Cell;
 
-    // for reward jetton
+    // For reward jetton
     rewardPerSecond: Int = 0;
     totalReward: Int = 0;
 
@@ -28,8 +28,10 @@ trait MasterChef {
     // For ThunderMint
     thunderMintWallet: Address;
     tonForDevs: Int = 0;
+    // TODO: @ipromise2324 remove tonForDevs for every contracts
 
     // Owner send AddPool message to add a new pool, so that users can deposit their LP tokens
+    // NOTE that all the pools should have a total alloc point less than or equal to 10000
     receive(msg: AddPool){
         self.requireInitialized();
         require(sender() == self.owner, "only owner can add pool");
@@ -43,7 +45,7 @@ trait MasterChef {
             lpSupply: 0,
             lpTokenAddress: msg.lpTokenAddress
         };
-        self.pools.set(msg.lpTokenAddress,poolInfo);
+        self.pools.set(msg.lpTokenAddress, poolInfo);
     }
 
     // Anyone can send this message to update the pool, recalculate the reward per share
@@ -60,9 +62,11 @@ trait MasterChef {
         self.tonForDevs = self.tonForDevs + THUNDER_FEE;
         // check if pool exists
         require(self.pools.get(msg.lpTokenAddress) != null , "pool not exists");
+
+        // Should update the accRewardPerShare first
         self.updatePool(msg.lpTokenAddress);
 
-        let initCode: StateInit = self._calculateMiniChefInit(sender());
+        let initCode: StateInit = self._calculateMiniChefInit(ctx.sender);
         let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
         send(SendParameters{
                 to: contractAddress(initCode),
@@ -74,7 +78,7 @@ trait MasterChef {
                     amount: msg.amount,
                     rewardDebt: pool.accRewardPerShare * msg.amount / ACC_PRECISION,
                     beneficiary: msg.beneficiary,
-                    sender: sender()
+                    sender: ctx.sender
                 }.toCell()
             }
         );
@@ -97,8 +101,11 @@ trait MasterChef {
         let remainTon: Int = ctx.value - THUNDER_FEE;
         self.tonForDevs = self.tonForDevs + THUNDER_FEE;
         let initCode: StateInit = self._calculateMiniChefInit(sender());
+
+        // should update accRewardPerShare first and get the pool info
         self.updatePool(msg.lpTokenAddress);
         let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
+
         // Send the info of accRewardPerShare to the user's MiniChef, so that MiniChef can calculate the reward
         send(SendParameters{
                 to: contractAddress(initCode),
@@ -118,11 +125,16 @@ trait MasterChef {
     // Withdraw and Harvest in one step
     receive(msg: WithdrawAndHarvest) {
         self.requireInitialized();
+
+        // TODO: reduce lines of code (identical logic with Withdraw and Harvest) @ipromise2324
+
         // check if pool exists
         require(self.pools.get(msg.lpTokenAddress) != null , "pool not exists");
         let ctx: Context = context();
         let remainTon: Int = ctx.value - THUNDER_FEE;
         self.tonForDevs = self.tonForDevs + THUNDER_FEE;
+
+        // Should update the accRewardPerShare first
         self.updatePool(msg.lpTokenAddress);
 
         let initCode: StateInit = self._calculateMiniChefInit(sender());
@@ -156,6 +168,7 @@ trait MasterChef {
         self.createdAt = now();
         self.rewardPerSecond = self.totalReward / (self.deadline - self.createdAt);
         if(self.rewardPerSecond <= 0) {
+            // TODO: send remain balance + destroy to owner
             throw(ERROR_RPS_UNDER_ZERO);
         }
     }
@@ -194,25 +207,22 @@ trait MasterChef {
     inline fun updatePool(lpTokenAddress: Address) {
         require(self.pools.get(lpTokenAddress) != null , "pool not exists");
         let pool: PoolInfo = self.pools.get(lpTokenAddress)!!;
-        let now: Int = now();
-        // If the deadline is passed, set now to deadline, so that no more reward will be distributed
-        if (now > self.deadline) {
-            now = self.deadline;
-            self.deadline = 0; // Set deadline to 0, so that next time will be no more updated
-        }
+        // The time should be the minimum of now and deadline
+        let _time: Int = min(now(), self.deadline);
 
-        // If the last reward block is greater than now, return
-        if (now <= pool.lastRewardBlock){
+        // If the last reward block is greater than now,
+        // or the last reward block is equal to pool.lastRewardBlock, return
+        if (_time <= pool.lastRewardBlock){
             return;
         }
 
         // Calculate the reward
         if (pool.lpSupply > 0 ) {
-            let reward: Int = (now - pool.lastRewardBlock) * self.rewardPerSecond;
+            let reward: Int = (_time - pool.lastRewardBlock) * self.rewardPerSecond;
             let rewardAmount: Int = ACC_PRECISION * reward * pool.allocPoint / self.totalAllocPoint;
             pool.accRewardPerShare = pool.accRewardPerShare + (rewardAmount / pool.lpSupply);
         } 
-        pool.lastRewardBlock = now;
+        pool.lastRewardBlock = _time;
         self.pools.set(lpTokenAddress, pool);
     }
 

@@ -1053,6 +1053,8 @@ describe('Jetton MasterChef Tests', () => {
             success: false,
             exitCode: 1002, // ERROR_POOL_NOT_FOUND
         });
+
+        // TODO: Check jetton transfer amount
     });
 
     // Test contract initialization by a non-owner entity.
@@ -1363,4 +1365,8 @@ describe('Jetton MasterChef Tests', () => {
             exitCode: 33311, //unexpected sender
         });
     });
+
+    // TODO: @ipromise2324 Collect first, then withdraw and harvest twice
+
+    // TODO: @ipromise2324 test the maximum pool limit under same THUNDER_FEE
 });

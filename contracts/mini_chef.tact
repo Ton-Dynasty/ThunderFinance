@@ -21,7 +21,7 @@ contract MiniChef with Deployable {
             self.userInfo.set(msg.lpTokenAddress, UserInfo{amount: 0, rewardDebt: 0});
         }
         let userInfo: UserInfo = self.userInfo.get(msg.lpTokenAddress)!!;
-        userInfo.amount  = userInfo.amount + msg.amount;
+        userInfo.amount = userInfo.amount + msg.amount;
         userInfo.rewardDebt = userInfo.rewardDebt + msg.rewardDebt; 
         self.userInfo.set(msg.lpTokenAddress, userInfo);
         // Send remain Ton to owner
@@ -37,6 +37,7 @@ contract MiniChef with Deployable {
     // MasterChef will send this message to MiniChef to comfrim the withdraw and send WithdrawInternalReply to MasterChef to complete the withdraw
     receive(msg: WithdrawInternal) {
         require(sender() == self.masterChef, "only masterChef can withdraw");
+
         let userInfo: UserInfo = self.userInfo.get(msg.lpTokenAddress)!!;
         require(userInfo.amount >= msg.amount, "insufficient balance");
 
@@ -86,6 +87,7 @@ contract MiniChef with Deployable {
     
     }
 
+    // User will get all the reward until now and withdraw certain amount of LP token
     receive(msg: WithdrawAndHarvestInternal) {
         require(sender() == self.masterChef, "only masterChef can harvest");
         let userInfo: UserInfo = self.userInfo.get(msg.lpTokenAddress)!!;

@@ -48,8 +48,9 @@ contract TonMasterChef with Deployable, MasterChef {
         let feeForDevs: Int = msg.totalReward * FEE_PERCENT_FOR_DEV / 1000;
         let expectedTon: Int = msg.totalReward + feeForDevs;
         if (sendedTon < expectedTon) {
+            // TODO: use ctx.readForwardFee() for fee calculation @ipromise2324
             self.sendTon(msg.owner, sendedTon - THUNDER_FEE*2, 0);
-            throw(ERROR_NOT_ENOUGH_REWARD);
+            return;
         }
         self.tonForDevs += feeForDevs;
         self.isInitialized = true;

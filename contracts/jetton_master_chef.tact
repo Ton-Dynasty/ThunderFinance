@@ -49,6 +49,7 @@ contract JettonMasterChef with Deployable, MasterChef {
     receive(msg: JettonTransferNotification) {
         // context sender can come from different kind of jetton wallet depending on the pool
         let ctx: Context = context();
+
         // If not initialized, only accept reward jetton with Setup message payload
         if (!self.isInitialized) {
             if(ctx.sender != self.mcRewardJettonWallet || msg.sender != self.owner) {
@@ -60,7 +61,6 @@ contract JettonMasterChef with Deployable, MasterChef {
             let expectedAmount: Int = self.totalReward + self.jettonForDevs;
             if(msg.amount < expectedAmount) {
                 self.sendJetton(self.mcRewardJettonWallet,0 ,msg.amount, msg.sender, msg.sender, SendRemainingValue);
-                throw(ERROR_NOT_ENOUGH_REWARD);
                 return;
             }
             self.isInitialized = true;
@@ -72,14 +72,16 @@ contract JettonMasterChef with Deployable, MasterChef {
             return;
         }
 
-        // check if pool exists
-        if(self.pools.get(ctx.sender) == null) {
+        // check if pool exists or exceed the deadline
+        if(self.pools.get(ctx.sender) == null || now() > self.deadline) {
             // Send the jetton back to the sender if pool does not exist
             self.sendJetton(ctx.sender, 0, msg.amount, msg.sender, msg.sender, SendRemainingValue);
-            throw(ERROR_POOL_NOT_FOUND);
+            // TODO: Add test case if pool not exists before add pool @ipromise2324
+            // WE HAVE DELETED ERROR_POOL_NOT_FOUND
+            return;
         }
         // Deposit the LP tokens for the user
-        self.userDeposit(msg,ctx);
+        self.userDeposit(msg, ctx);
     }
 
     // MiniChef will send this message to ask MasterChef to send reward
@@ -95,15 +97,15 @@ contract JettonMasterChef with Deployable, MasterChef {
         let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
         let expectedSender: Address = contractAddress(initCode);
         require(expectedSender == sender(), "unexpected sender");
+    
         let ctx: Context = context();
-        let sendBackTon: Int = ctx.value;
 
-        // Send Reward to the user
-        self.sendJetton(self.mcRewardJettonWallet, sendBackTon / 2, msg.rewardAmount, msg.beneficiary, msg.beneficiary, SendIgnoreErrors);
+        // Send Reward to the beneficiary
+        self.sendJetton(self.mcRewardJettonWallet, ctx.value / 2, msg.rewardAmount, msg.beneficiary, msg.beneficiary, 0);
 
-        // Withdraw to msg.beneficiary
+        // Withdraw lpToken to msg.beneficiary
         let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
-        self.sendJetton(pool.lpTokenAddress, sendBackTon / 2, msg.withdrawAmount, msg.beneficiary, msg.beneficiary, SendIgnoreErrors);
+        self.sendJetton(pool.lpTokenAddress, ctx.value / 2, msg.withdrawAmount, msg.beneficiary, msg.beneficiary, 0);
     }
 
     // Pay the fee to ThunderMint team

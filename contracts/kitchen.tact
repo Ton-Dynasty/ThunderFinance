@@ -13,6 +13,7 @@ contract Kitchen with Deployable {
         self.version = _version;
     }
 
+    // TODO: remove msg.thunderMintWallet from msg, change to owner @ipromise2324
     // Deploy MasterChef for jetton
     receive(msg: BuildJettonMasterChef) {
         let initCode: StateInit = self.calculateJettonMasterChef(msg.owner,msg.seed);
@@ -35,6 +36,7 @@ contract Kitchen with Deployable {
         );
     }
 
+    // TODO: remove msg.thunderMintWallet from msg, change to owner @ipromise2324
     // Deploy MasterChef for TON
     receive(msg: BuildTonMasterChef) {
         let initCode: StateInit = self.calculateTonMasterChef(msg.owner,msg.seed);
