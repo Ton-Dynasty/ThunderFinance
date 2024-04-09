@@ -230,7 +230,7 @@ trait MasterChef {
                 response_destination: _response_destination,
                 custom_payload: null,
                 forward_ton_amount: 0,
-                forward_payload: beginCell().endCell().asSlice()
+                forward_payload: beginCell().storeUint(1,1).endCell().asSlice() // Have to put 1 bit, so that we can pass jetton minter exit code 708
             }.toCell()    
         });
     }
