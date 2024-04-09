@@ -4,7 +4,6 @@ import { JettonMasterChef } from '../wrappers/JettonMasterChef';
 import { NetworkProvider } from '@ton/blueprint';
 import { loadDeployment } from '../utils/helper';
 import { JettonMinter } from '../wrappers/JettonMinter';
-import { JettonWallet } from '../wrappers/RealJettonWallet';
 
 export async function run(provider: NetworkProvider) {
     const deployment = await loadDeployment();
@@ -19,9 +18,10 @@ export async function run(provider: NetworkProvider) {
         provider.sender(),
         { value: toNano('1') },
         {
-            $$type: 'Harvest',
+            $$type: 'WithdrawAndHarvest',
             queryId: 0n,
             lpTokenAddress: masterchefUSDTWalletAddress,
+            withdrawAmount: 1n * 10n ** 6n,
             beneficiary: provider.sender().address!!,
         },
     );
