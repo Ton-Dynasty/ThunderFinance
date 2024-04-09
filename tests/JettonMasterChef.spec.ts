@@ -14,12 +14,10 @@ describe('Jetton MasterChef Tests', () => {
     let blockchain: Blockchain;
     let deployer: SandboxContract<TreasuryContract>;
     let user: SandboxContract<TreasuryContract>;
-    let thunderMint: SandboxContract<TreasuryContract>; // ThunderMint is the dev team to receive the fees in ton
     let masterChef: SandboxContract<JettonMasterChef>;
     let usdt: SandboxContract<JettonMasterUSDT>;
     let masterChefJettonWallet: SandboxContract<JettonWalletUSDT>;
     let deployerJettonWallet: SandboxContract<JettonWalletUSDT>;
-    let thunderMintJettonWallet: SandboxContract<JettonWalletUSDT>; // ThunderMint is the dev team to receive the fee in jetton
     let kitchen: SandboxContract<Kitchen>;
     let rewardPerSecond: bigint;
     let seed: bigint;
@@ -115,7 +113,7 @@ describe('Jetton MasterChef Tests', () => {
 
         const masterChefData = await masterChef.getGetJettonMasterChefData();
         // Make sure that jetton For ThunderMint is recorded
-        expect(masterChefData.jettonForDevs).toEqual((totalReward * 3n) / 1000n);
+        expect(masterChefData.feeForDevs).toEqual((totalReward * 3n) / 1000n);
         return true; //masterChefData.isInitialized;
     }
 
@@ -194,7 +192,6 @@ describe('Jetton MasterChef Tests', () => {
         // Characters
         deployer = await blockchain.treasury('deployer'); // Owner of MasterChef
         user = await blockchain.treasury('user'); // User who deposits, withdraws, and harvests
-        thunderMint = await blockchain.treasury('thunderMint'); // Dev team who receives the fees
 
         // Contracts
         kitchen = await blockchain.openContract(await Kitchen.fromInit(deployer.address, 0n)); // MasterChef Factory
@@ -202,10 +199,6 @@ describe('Jetton MasterChef Tests', () => {
         seed = BigInt(`0x${beginCell().storeUint(Date.now(), 64).endCell().hash().toString('hex')}`); // Seed for MasterChef
 
         deployerJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(deployer.address, usdt.address)); // Deployer USDT JettonWallet
-        thunderMintJettonWallet = blockchain.openContract(
-            await JettonWalletUSDT.fromInit(thunderMint.address, usdt.address),
-        ); // ThunderMint USDT JettonWallet
-
         // Setup all the contracts
         await usdt.send(deployer.getSender(), { value: toNano('1') }, 'Mint:1'); // Mint USDT to deployer so that he can start the MasterChef
         const kitcherResult = await kitchen.send(
@@ -247,7 +240,6 @@ describe('Jetton MasterChef Tests', () => {
                 $$type: 'BuildJettonMasterChef',
                 owner: deployer.address,
                 seed: seed,
-                thunderMintWallet: thunderMint.address,
                 thunderMintJettonWallet: deployerJettonWallet.address,
                 mcRewardJettonWallet: masterChefJettonWallet.address,
                 metaData: beginCell().storeStringTail('httpppp').endCell(),
@@ -261,7 +253,7 @@ describe('Jetton MasterChef Tests', () => {
             success: true,
         });
 
-        return { deployer, user, thunderMint, kitchen, usdt, seed, deployerJettonWallet, thunderMintJettonWallet };
+        return { deployer, user, kitchen, usdt, seed, deployerJettonWallet };
     }
 
     beforeEach(async () => {
@@ -272,7 +264,6 @@ describe('Jetton MasterChef Tests', () => {
         // Characters
         deployer = await blockchain.treasury('deployer'); // Owner of MasterChef
         user = await blockchain.treasury('user'); // User who deposits, withdraws, and harvests
-        thunderMint = await blockchain.treasury('thunderMint'); // Dev team who receives the fees
 
         // Contracts
         kitchen = await blockchain.openContract(await Kitchen.fromInit(deployer.address, 0n)); // MasterChef Factory
@@ -280,9 +271,6 @@ describe('Jetton MasterChef Tests', () => {
         seed = BigInt(`0x${beginCell().storeUint(Date.now(), 64).endCell().hash().toString('hex')}`); // Seed for MasterChef
 
         deployerJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(deployer.address, usdt.address)); // Deployer USDT JettonWallet
-        thunderMintJettonWallet = blockchain.openContract(
-            await JettonWalletUSDT.fromInit(thunderMint.address, usdt.address),
-        ); // ThunderMint USDT JettonWallet
 
         // Setup all the contracts
         await usdt.send(deployer.getSender(), { value: toNano('1') }, 'Mint:1'); // Mint USDT to deployer so that he can start the MasterChef
@@ -325,7 +313,6 @@ describe('Jetton MasterChef Tests', () => {
                 $$type: 'BuildJettonMasterChef',
                 owner: deployer.address,
                 seed: seed,
-                thunderMintWallet: thunderMint.address,
                 thunderMintJettonWallet: deployerJettonWallet.address,
                 mcRewardJettonWallet: masterChefJettonWallet.address,
                 metaData: beginCell().storeStringTail('httpppp').endCell(),
@@ -831,7 +818,6 @@ describe('Jetton MasterChef Tests', () => {
         await harvest(masterChef, user, masterChefJettonWallet);
 
         // Send Collect Msg to MasterChef
-        let thunderMintTonBefore = await thunderMint.getBalance();
         //let thunderJettonBefore = (await thunderMintJettonWallet.getGetWalletData()).balance;
         let count = 5n;
         // Increase fees for devs
@@ -842,17 +828,14 @@ describe('Jetton MasterChef Tests', () => {
             await withdraw(masterChef, user, masterChefJettonWallet, userWithdrawAmount);
         }
         const masterChefData = await masterChef.getGetJettonMasterChefData();
+        let thunderJettonBefore = (await deployerJettonWallet.getGetWalletData()).balance;
         const collectResult = await masterChef.send(deployer.getSender(), { value: toNano('1') }, 'Collect');
-        let thunderMintTonAfter = await thunderMint.getBalance();
-        let thunderJettonAfter = (await thunderMintJettonWallet.getGetWalletData()).balance;
-        let diffTON = thunderMintTonAfter - thunderMintTonBefore;
+        let thunderJettonAfter = (await deployerJettonWallet.getGetWalletData()).balance;
 
-        // Check if the MasterChef send TON to ThunderMint
-        expect(diffTON).toBeGreaterThan(0);
         // Check if the MasterChef send TON for Devs to ThunderMint
 
         // Check if the MasterChef send Reward jetton to ThunderMint
-        expect(thunderJettonAfter).toEqual(masterChefData.jettonForDevs);
+        expect(thunderJettonAfter).toEqual(thunderJettonBefore + masterChefData.feeForDevs);
 
         // Check if deployer send Collect msg to MasterChef
         expect(collectResult.transactions).toHaveTransaction({
@@ -869,20 +852,19 @@ describe('Jetton MasterChef Tests', () => {
         // Check if MasterChef send Jetton to ThunderMint JettonWallet
         expect(collectResult.transactions).toHaveTransaction({
             from: masterChefJettonWallet.address,
-            to: thunderMintJettonWallet.address,
+            to: deployerJettonWallet.address,
             success: true,
         });
         // Check if ThunderMint send JettonNotify to ThunderMint
         expect(collectResult.transactions).toHaveTransaction({
-            from: thunderMintJettonWallet.address,
-            to: thunderMint.address,
+            from: deployerJettonWallet.address,
+            to: deployer.address,
             success: true,
         });
     });
 
     it('Should not initialize if not enough reward', async () => {
-        ({ deployer, user, thunderMint, kitchen, usdt, seed, deployerJettonWallet, thunderMintJettonWallet } =
-            await setupRevertEnv());
+        ({ deployer, user, kitchen, usdt, seed, deployerJettonWallet } = await setupRevertEnv());
         await deployerJettonWallet.send(
             deployer.getSender(),
             {
@@ -966,8 +948,8 @@ describe('Jetton MasterChef Tests', () => {
                 $$type: 'SetUpJettonMC',
                 owner: user.address,
                 mcRewardJettonWallet: masterChefJettonWallet.address,
-                thunderMintWallet: thunderMint.address,
-                thunderMintJettonWallet: thunderMintJettonWallet.address,
+                thunderMintWallet: deployer.address,
+                thunderMintJettonWallet: deployerJettonWallet.address,
                 metaData: beginCell().storeStringTail('httpppp').endCell(),
                 totalReward: 1000n * 10n ** 5n,
                 deadline: deadline,
@@ -982,8 +964,7 @@ describe('Jetton MasterChef Tests', () => {
         });
     });
     it('Should reject if Send SetUpJettonMC before owner deposit rewaed', async () => {
-        ({ deployer, user, thunderMint, kitchen, usdt, seed, deployerJettonWallet, thunderMintJettonWallet } =
-            await setupRevertEnv());
+        ({ deployer, user, kitchen, usdt, seed, deployerJettonWallet } = await setupRevertEnv());
 
         const result = await masterChef.send(
             user.getSender(),
@@ -992,8 +973,8 @@ describe('Jetton MasterChef Tests', () => {
                 $$type: 'SetUpJettonMC',
                 owner: user.address,
                 mcRewardJettonWallet: masterChefJettonWallet.address,
-                thunderMintWallet: thunderMint.address,
-                thunderMintJettonWallet: thunderMintJettonWallet.address,
+                thunderMintWallet: deployer.address,
+                thunderMintJettonWallet: deployerJettonWallet.address,
                 metaData: beginCell().storeStringTail('httpppp').endCell(),
                 totalReward: 1000n * 10n ** 5n,
                 deadline: deadline,
@@ -1009,8 +990,7 @@ describe('Jetton MasterChef Tests', () => {
     });
 
     it('Should reject jetton transfers from non-reward jetton wallets', async () => {
-        ({ deployer, user, thunderMint, kitchen, usdt, seed, deployerJettonWallet, thunderMintJettonWallet } =
-            await setupRevertEnv());
+        ({ deployer, user, kitchen, usdt, seed, deployerJettonWallet } = await setupRevertEnv());
         const result = await masterChef.send(
             user.getSender(),
             { value: toNano('2') },
@@ -1034,8 +1014,7 @@ describe('Jetton MasterChef Tests', () => {
 
     // Test contract initialization by a non-owner entity.
     it('Should only allow the contract owner to initiate the contract', async () => {
-        ({ deployer, user, thunderMint, kitchen, usdt, seed, deployerJettonWallet, thunderMintJettonWallet } =
-            await setupRevertEnv());
+        ({ deployer, user, kitchen, usdt, seed, deployerJettonWallet } = await setupRevertEnv());
         const feeAmont = (totalReward * 3n) / 1000n;
         const extraAmount = 2000000n;
 
@@ -1071,8 +1050,7 @@ describe('Jetton MasterChef Tests', () => {
     // Test the behavior when the reward amount sent is insufficient.
     it('Should return the entire amount if the reward sent is not sufficient for initialization', async () => {
         // Send an insufficient reward amount and verify that it is returned in full.
-        ({ deployer, user, thunderMint, kitchen, usdt, seed, deployerJettonWallet, thunderMintJettonWallet } =
-            await setupRevertEnv());
+        ({ deployer, user, kitchen, usdt, seed, deployerJettonWallet } = await setupRevertEnv());
 
         const ownerBalanceBefore = (await deployerJettonWallet.getGetWalletData()).balance;
         const feeAmont = (totalReward * 3n) / 1000n;
@@ -1140,8 +1118,7 @@ describe('Jetton MasterChef Tests', () => {
     // Test withdraw functionality when the contract is not initialized.
     it('Should not allow withdrawals when the contract is not initialized', async () => {
         // Attempt a withdrawal from an uninitialized contract and expect it to fail.
-        ({ deployer, user, thunderMint, kitchen, usdt, seed, deployerJettonWallet, thunderMintJettonWallet } =
-            await setupRevertEnv());
+        ({ deployer, user, kitchen, usdt, seed, deployerJettonWallet } = await setupRevertEnv());
         const withdrawResult = await masterChef.send(
             user.getSender(),
             { value: toNano('1') },
@@ -1265,8 +1242,7 @@ describe('Jetton MasterChef Tests', () => {
     // Test the Harvest function when the contract is not initialized.
     it('Should not allow harvesting when the contract is not initialized', async () => {
         // Attempt to call the Harvest function on an uninitialized contract and expect it to fail.
-        ({ deployer, user, thunderMint, kitchen, usdt, seed, deployerJettonWallet, thunderMintJettonWallet } =
-            await setupRevertEnv());
+        ({ deployer, user, kitchen, usdt, seed, deployerJettonWallet } = await setupRevertEnv());
         const harvestResult = await masterChef.send(
             user.getSender(),
             { value: toNano('1') },

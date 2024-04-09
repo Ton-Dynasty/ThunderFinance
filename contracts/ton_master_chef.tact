@@ -20,6 +20,7 @@ contract TonMasterChef with Deployable, MasterChef {
 
     // For ThunderMint
     thunderMintWallet: Address;
+    tonForDevs: Int = 0;
 
     // initialize the contract with owner and seed
     init(_owner: Address, _seed: Int) {
@@ -44,6 +45,7 @@ contract TonMasterChef with Deployable, MasterChef {
         self.basicSetUp(msg.thunderMintWallet, msg.metaData, msg.totalReward, msg.deadline);
         let sendedTon: Int = ctx.value;
         let feeForDevs: Int = msg.totalReward * FEE_PERCENT_FOR_DEV / 1000;
+        self.tonForDevs = feeForDevs;
         let expectedTon: Int = msg.totalReward + feeForDevs;
         if (sendedTon < expectedTon) {
             self.sendTon(msg.owner, sendedTon - ctx.readForwardFee(), 0);
@@ -95,12 +97,12 @@ contract TonMasterChef with Deployable, MasterChef {
     
 
     // Pay the fee to Thunder Mint
-    // receive("CollectTON") {
-    //     require(now() > self.deadline, "deadline not reached");
-    //     // Send ton to devs
-    //     self.sendTon(self.thunderMintWallet, self.tonForDevs, 0);
-    //     self.tonForDevs = 0;
-    // }
+    receive("CollectTON") {
+        require(now() > self.deadline, "deadline not reached");
+        // Send ton to devs
+        self.sendTon(self.thunderMintWallet, self.tonForDevs, 0);
+        self.tonForDevs = 0;
+    }
 
     // Get Methods //
 
@@ -113,8 +115,8 @@ contract TonMasterChef with Deployable, MasterChef {
             createdAt: self.createdAt,
             deadline: self.deadline,
             isInitialized: self.isInitialized,
+            feeForDevs: self.tonForDevs,
             totalAllocPoint: self.totalAllocPoint,
-            jettonForDevs: 0, // not used in TonMasterChef
             pools: self.pools,
             metaData: self.metaData,
             totalReward: self.totalReward

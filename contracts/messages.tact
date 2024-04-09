@@ -21,7 +21,6 @@ message(0x7362d09c) JettonTransferNotification {
 message(0x89265822) BuildJettonMasterChef {
     owner: Address; // Owner of the MasterChef
     seed: Int as uint256; // Seed for the MasterChef
-    thunderMintWallet: Address; // ThunderMint Wallet address to collect the fee in TON
     thunderMintJettonWallet: Address; // ThunderMint Wallet address to collect the fee in Jetton
     mcRewardJettonWallet: Address; // MasterChef Wallet address for reward jetton
     metaData: Slice; // MetaData for the MasterChef
@@ -142,7 +141,6 @@ message(0x8bf38613) SetUpTonMC {
 message(0xd449b642) BuildTonMasterChef {
     owner: Address; // Owner of the MasterChef
     seed: Int as uint256; // Seed for the MasterChef
-    thunderMintWallet: Address; // ThunderMint Wallet address to collect the fee in TON
     metaData: Slice; // MetaData for the MasterChef
     totalReward: Int as coins; // Total reward for the MasterChef
     deadline: Int as uint64; // MasterChef distribution deadline
@@ -177,7 +175,7 @@ struct MasterChefData {
     deadline: Int as uint64; // MasterChef distribution deadline
     isInitialized: Bool; // MasterChef is initialized or not
     totalAllocPoint: Int; // Total allocation point
-    jettonForDevs: Int; // Jetton for ThunderMint
+    feeForDevs: Int; // Jetton for ThunderMint
     pools: map<Address, PoolInfo>; // Pool Info
     metaData: Cell; // MetaData for the MasterChef
     totalReward: Int; // Total reward

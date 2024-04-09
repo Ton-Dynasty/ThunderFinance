@@ -130,7 +130,7 @@ contract JettonMasterChef with Deployable, MasterChef {
             deadline: self.deadline,
             isInitialized: self.isInitialized,
             totalAllocPoint: self.totalAllocPoint,
-            jettonForDevs: self.jettonForDevs,
+            feeForDevs: self.jettonForDevs,
             pools: self.pools,
             metaData: self.metaData,
             totalReward: self.totalReward
