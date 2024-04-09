@@ -7,6 +7,7 @@ import { JettonWalletUSDT } from '../wrappers/JettonWallet';
 import { JettonMasterUSDT } from '../wrappers/JettonMaster';
 import '@ton/test-utils';
 import * as fs from 'fs';
+import exp from 'constants';
 
 describe('TON MasterChef Tests', () => {
     let blockchain: Blockchain;
@@ -683,7 +684,7 @@ describe('TON MasterChef Tests', () => {
         const userDepositAmount = 1n * 10n ** 6n;
         const userWithdrawAmount = 5n * 10n ** 5n;
         const periodTime = 10;
-        const rewardTONForDev = totalReward * 3n / 1000n;
+        const rewardTONForDev = (totalReward * 3n) / 1000n;
         // deposit first
         await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
 
@@ -1185,4 +1186,87 @@ describe('TON MasterChef Tests', () => {
             exitCode: 33311, //unexpected sender
         });
     });
+
+    // Test the behavior when the reward amount sent is insufficient.
+    it('Should return the entire amount if the reward sent is not sufficient for initialization', async () => {
+        // Send an insufficient reward amount and verify that it is returned in full.
+        // Init the blockchain
+        blockchain = await Blockchain.create();
+        blockchain.now = Math.floor(Date.now() / 1000);
+
+        // Characters
+        deployer = await blockchain.treasury('deployer'); // Owner of MasterChef
+        user = await blockchain.treasury('user'); // User who deposits, withdraws, and harvests
+
+        // Contracts
+        kitchen = await blockchain.openContract(await Kitchen.fromInit(deployer.address, 666n)); // MasterChef Factory
+        usdt = blockchain.openContract(await JettonMasterUSDT.fromInit(deployer.address, beginCell().endCell())); // Reward token and LP token
+        seed = 666n; // Seed for MasterChef
+
+        // Setup all the contracts
+        await usdt.send(deployer.getSender(), { value: toNano('1') }, 'Mint:1'); // Mint USDT to deployer so that he can start the MasterChef
+        const kitcherResult = await kitchen.send(
+            deployer.getSender(),
+            {
+                value: toNano('0.5'),
+            },
+            {
+                $$type: 'Deploy',
+                queryId: 0n,
+            },
+        );
+
+        expect(kitcherResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: kitchen.address,
+            deploy: true,
+            success: true,
+        });
+
+        let masterChefAddress = await kitchen.getGetTonMasterChefAddress(deployer.address, seed); // MasterChef address
+        masterChef = blockchain.openContract(await TonMasterChef.fromAddress(masterChefAddress)); // MasterChef
+        masterChefJettonWalletAddress = await usdt.getGetWalletAddress(masterChefAddress); // MasterChef USDT JettonWallet address
+        masterChefJettonWallet = blockchain.openContract(
+            await JettonWalletUSDT.fromAddress(masterChefJettonWalletAddress),
+        ); // MasterChef USDT JettonWallet
+
+        deadline = BigInt(blockchain.now!! + 100000000000000);
+        totalReward = toNano('10');
+        let sendingTon = (totalReward * 1003n) / 1000n - toNano('1');
+        const balanceBefore = await deployer.getBalance();
+        // Build the MasterChef contract from kitchen
+        const masterChefResult = await kitchen.send(
+            deployer.getSender(),
+            {
+                value: sendingTon,
+            },
+            {
+                $$type: 'BuildTonMasterChef',
+                owner: deployer.address,
+                seed: seed,
+                metaData: beginCell().storeStringTail('httpppp').endCell(),
+                deadline: deadline,
+                totalReward: totalReward,
+            },
+        );
+        const balanceAfter = await deployer.getBalance();
+
+        // Check that MasterChef is destroyed
+        (await masterChef.getGetTonMasterChefData().catch((e) => {
+            console.log(e.toString());
+            expect(e.toString()).toEqual('Error: Trying to run get method on non-active contract');
+        }));
+
+        // Check that the TON is returned
+        expect(masterChefResult.transactions).toHaveTransaction({
+            from: masterChef.address,
+            to: deployer.address,
+        });
+
+        let gasFee = toNano('0.5');
+        expect(balanceAfter + gasFee).toBeGreaterThanOrEqual(balanceBefore);
+
+
+    });
+
 });

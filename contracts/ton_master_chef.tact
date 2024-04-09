@@ -43,6 +43,15 @@ contract TonMasterChef with Deployable, MasterChef {
         let ctx: Context = context();
         // Calculate reward per second in basicSetUp() and also other basic setup
         self.basicSetUp(msg.thunderMintWallet, msg.metaData, msg.totalReward, msg.deadline);
+        if(self.rewardPerSecond <= 0) {
+            send(SendParameters{
+                to: self.owner,
+                value: 0,
+                mode: 128 + 32,
+                body: "Send All TON Back".asComment()
+            });
+            return;
+        }
         let sendedTon: Int = ctx.value;
         let feeForDevs: Int = msg.totalReward * FEE_PERCENT_FOR_DEV / 1000;
         self.tonForDevs = feeForDevs;

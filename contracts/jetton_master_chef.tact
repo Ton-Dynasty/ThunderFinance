@@ -42,6 +42,15 @@ contract JettonMasterChef with Deployable, MasterChef {
         self.mcRewardJettonWallet = msg.mcRewardJettonWallet;
         // Calculate reward per second in basicSetUp() and also other basic setup
         self.basicSetUp(msg.thunderMintWallet, msg.metaData, msg.totalReward, msg.deadline);
+        if(self.rewardPerSecond <= 0) {
+            send(SendParameters{
+                to: self.owner,
+                value: 0,
+                mode: 128 + 32,
+                body: "Send All TON Back".asComment()
+            });
+            return;
+        }
     }
     
     // 1. Owner has to send Reward Jetton to the MasterChef first, so that MasterChef can distribute the reward to the users
