@@ -6,7 +6,7 @@ import { MiniChef } from '../wrappers/MiniChef';
 import { JettonWalletUSDT } from '../wrappers/JettonWallet';
 import { JettonMasterUSDT } from '../wrappers/JettonMaster';
 import '@ton/test-utils';
-import exp from 'constants';
+import * as fs from 'fs';
 
 describe('TON MasterChef Tests', () => {
     let blockchain: Blockchain;
@@ -25,6 +25,17 @@ describe('TON MasterChef Tests', () => {
     let totalReward: bigint;
     let masterChefJettonWalletAddress: Address;
     const fee = 55000000n; // This fee is for GAS_FEE and THUNDERMINT_FEE
+    const gasFile = 'TONMasterChefCosts.txt';
+
+    // Helper function to append data to a file
+    function appendToFile(filename: string, data: string) {
+        fs.appendFileSync(filename, data + '\n', 'utf8'); // Append data with a newline at the end
+    }
+
+    // Helper function to clear data in a file
+    function clearFile(filename: string) {
+        fs.writeFileSync(filename, 'TON MasterChef Costs in each operation: \n', 'utf8'); // Clear the file
+    }
 
     // User deposits USDT to MasterChef by send JettonTransfer to his JettonWallet
     async function depositJetton(
@@ -294,8 +305,10 @@ describe('TON MasterChef Tests', () => {
         const userDepositCostTonAfter = await user.getBalance();
         const userDepositCostTon =
             Number(userDepositCostTonBefore - userDepositCostTonAfter - userDepositAmount) / 10 ** 10;
+        clearFile(gasFile);
         // console.log('Ton MasterChef Cost:');
         // console.log('userDepositCost', userDepositCostTon, 'TON');
+        appendToFile(gasFile, `Deposit Cost: ${userDepositCostTon} TON`);
         // send the deposit to MasterChef
         expect(depositResult.transactions).toHaveTransaction({
             from: masterChefJettonWallet.address,
@@ -388,6 +401,7 @@ describe('TON MasterChef Tests', () => {
         expect(userTonBalanceAfter - userTonBalanceBefore + feeInHarvest).toBeGreaterThanOrEqual(benefit);
         const userHarvestCost = Number(benefit - (userTonBalanceAfter - userTonBalanceBefore)) / 10 ** 10;
         // console.log('userHarvestCost', userHarvestCost, 'TON');
+        appendToFile(gasFile, `Harvest Cost: ${userHarvestCost} TON`);
     });
 
     it('Should deposit and harvest twice', async () => {
@@ -434,42 +448,6 @@ describe('TON MasterChef Tests', () => {
         // check the benefit of user1 and user2 are correct
         const benefit1 = BigInt(periodTime) * rewardPerSecond;
         expect(userTonBalanceAfter2rdHarvest + fee).toBeGreaterThanOrEqual(userTonBalanceBefore2rdHarvest + benefit1);
-    });
-
-    it('Should withdraw and harvest in one step', async () => {
-        const userDepositAmount = 1n * 10n ** 6n;
-        const userWithdrawAmount = 5n * 10n ** 5n;
-        const periodTime = 1000;
-        const userJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(user.address, usdt.address));
-        // deposit first
-        await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
-        // get the balance of usdt before withdraw
-        const userUSDTBalanceBeforeWH = (await userJettonWallet.getGetWalletData()).balance;
-        const userTonBalanceBeforeWH = await user.getBalance();
-
-        // Update time to periodTime, so that we can withdraw
-        blockchain.now!! += periodTime;
-
-        const WithdrawAndHarvestResult = await masterChef.send(
-            user.getSender(),
-            { value: toNano('2') },
-            {
-                $$type: 'WithdrawAndHarvest',
-                queryId: 0n,
-                lpTokenAddress: masterChefJettonWallet.address,
-                amount: userWithdrawAmount,
-                beneficiary: user.address,
-            },
-        );
-        const userUSDTBalanceAfterWH = (await userJettonWallet.getGetWalletData()).balance;
-        const userTonBalanceAfterWH = await user.getBalance();
-        // expect that the userUSDTBalanceAfterWH is equal to userUSDTBalanceBeforeWH + userWithdrawAmount
-        expect(userUSDTBalanceAfterWH).toEqual(userUSDTBalanceBeforeWH + userWithdrawAmount);
-
-        // Expect that the userTonBalanceAfterWH > userTonBalanceBeforeWH
-        const benefit1 = BigInt(periodTime) * rewardPerSecond;
-        const extraFee = 170708059n; // Because We did withdraw and harvest in one step, so there are 0.2 TON extra fee
-        expect(userTonBalanceAfterWH + extraFee + fee).toBeGreaterThanOrEqual(userTonBalanceBeforeWH + benefit1);
     });
 
     it('Should Harvest After Deadline', async () => {
@@ -538,6 +516,8 @@ describe('TON MasterChef Tests', () => {
 
         const userWithdrawCost = Number(userWithdrawBefore - userWithdrawAfter) / 10 ** 10;
         // console.log('userWithdrawCost', userWithdrawCost, 'TON');
+        appendToFile(gasFile, `Withdraw Cost: ${userWithdrawCost} TON`);
+
         // console.log('-----------------');
         // check the depositAndWithdrawResult is sucess
         expect(withdrawResult.transactions).toHaveTransaction({
@@ -609,6 +589,45 @@ describe('TON MasterChef Tests', () => {
             op: 0xdc4c8b1a,
             exitCode: 33311, //unexpected sender
         });
+    });
+
+    it('Should withdraw and harvest in one step', async () => {
+        const userDepositAmount = 1n * 10n ** 6n;
+        const userWithdrawAmount = 5n * 10n ** 5n;
+        const periodTime = 1000;
+        const userJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(user.address, usdt.address));
+        // deposit first
+        await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
+        // get the balance of usdt before withdraw
+        const userUSDTBalanceBeforeWH = (await userJettonWallet.getGetWalletData()).balance;
+        const userTonBalanceBeforeWH = await user.getBalance();
+
+        // Update time to periodTime, so that we can withdraw
+        blockchain.now!! += periodTime;
+
+        const WithdrawAndHarvestResult = await masterChef.send(
+            user.getSender(),
+            { value: toNano('2') },
+            {
+                $$type: 'WithdrawAndHarvest',
+                queryId: 0n,
+                lpTokenAddress: masterChefJettonWallet.address,
+                amount: userWithdrawAmount,
+                beneficiary: user.address,
+            },
+        );
+        const userUSDTBalanceAfterWH = (await userJettonWallet.getGetWalletData()).balance;
+        const userTonBalanceAfterWH = await user.getBalance();
+        // expect that the userUSDTBalanceAfterWH is equal to userUSDTBalanceBeforeWH + userWithdrawAmount
+        expect(userUSDTBalanceAfterWH).toEqual(userUSDTBalanceBeforeWH + userWithdrawAmount);
+
+        // Expect that the userTonBalanceAfterWH > userTonBalanceBeforeWH
+        const benefit1 = BigInt(periodTime) * rewardPerSecond;
+        const extraFee = 170708059n; // Because We did withdraw and harvest in one step, so there are 0.2 TON extra fee
+        expect(userTonBalanceAfterWH + extraFee + fee).toBeGreaterThanOrEqual(userTonBalanceBeforeWH + benefit1);
+        const userWHCost = Number(userTonBalanceBeforeWH - userTonBalanceAfterWH + benefit1) / 10 ** 10;
+        // console.log('userWHCost', userWHCost, 'TON');
+        appendToFile(gasFile, `Withdraw & Harvest Cost: ${userWHCost} TON`);
     });
 
     it('Should not harvest internal reply by user', async () => {

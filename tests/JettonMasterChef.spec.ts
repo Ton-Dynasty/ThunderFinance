@@ -7,6 +7,7 @@ import { MiniChef } from '../wrappers/MiniChef';
 import { JettonWalletUSDT } from '../wrappers/JettonWallet';
 import { JettonMasterUSDT } from '../wrappers/JettonMaster';
 import '@ton/test-utils';
+import * as fs from 'fs';
 
 describe('Jetton MasterChef Tests', () => {
     let blockchain: Blockchain;
@@ -24,6 +25,17 @@ describe('Jetton MasterChef Tests', () => {
     let deadline: bigint;
     let totalReward: bigint;
     let masterChefJettonWalletAddress: Address;
+    const gasFile = 'JettonMasterChefCosts.txt';
+
+    // Helper function to append data to a file
+    function appendToFile(filename: string, data: string) {
+        fs.appendFileSync(filename, data + '\n', 'utf8'); // Append data with a newline at the end
+    }
+
+    // Helper function to clear data in a file
+    function clearFile(filename: string) {
+        fs.writeFileSync(filename, 'Jetton MasterChef Costs in each operation: \n', 'utf8'); // Clear the file
+    }
 
     // User deposits USDT to MasterChef by send JettonTransfer to his JettonWallet
     async function depositJetton(
@@ -418,9 +430,12 @@ describe('Jetton MasterChef Tests', () => {
         const userBeforeTonBalance = await user.getBalance();
         await depositJetton(usdt, user, masterChef, userDepositAmount);
         const userAfterTonBalance = await user.getBalance();
+        clearFile(gasFile);
         const UserDepositCostTon = Number(userBeforeTonBalance - userAfterTonBalance) / 10 ** 10;
         // console.log("Jetton MasterChef Cost:")
         // console.log('UserDepositCost', UserDepositCostTon, 'TON');
+        appendToFile(gasFile, `Deposit Cost: ${UserDepositCostTon} TON`);
+
         // Update time to periodTime, so that we can harvest
         blockchain.now!! += periodTime;
         const userJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(user.address, usdt.address));
@@ -431,6 +446,7 @@ describe('Jetton MasterChef Tests', () => {
         const userAfterTonBalance2 = await user.getBalance();
         const UserHarvestCostTon = Number(userAfterTonBalance - userAfterTonBalance2) / 10 ** 10;
         //console.log('UserHarvestCost', UserHarvestCostTon, 'TON');
+        appendToFile(gasFile, `Harvest Cost: ${UserHarvestCostTon} TON`);
 
         // Check if the user send Harvest to MasterChef
         expect(harvestResult.transactions).toHaveTransaction({
@@ -612,6 +628,7 @@ describe('Jetton MasterChef Tests', () => {
         const userAfterWithdrawCostTon = await user.getBalance();
         const userWithdrawCost = Number(userWithdrawCostTon - userAfterWithdrawCostTon) / 10 ** 10;
         // console.log('UserWithdrawCost', userWithdrawCost, 'TON');
+        appendToFile(gasFile, `Withdraw Cost: ${userWithdrawCost} TON`);
         // console.log("-----------------")
         const userUSDTBalanceBeforeHarvest = (await userJettonWallet.getGetWalletData()).balance;
 
@@ -641,7 +658,7 @@ describe('Jetton MasterChef Tests', () => {
 
         // Update time to periodTime, so that we can withdraw
         blockchain.now!! += periodTime;
-
+        const userTonBalBefore = await user.getBalance();
         const WithdrawAndHarvestResult = await masterChef.send(
             user.getSender(),
             { value: toNano('2') },
@@ -653,6 +670,10 @@ describe('Jetton MasterChef Tests', () => {
                 beneficiary: user.address,
             },
         );
+        const userTonBalAfter = await user.getBalance();
+        const userWHCost = Number(userTonBalBefore - userTonBalAfter) / 10 ** 10;
+        //console.log('UserWithdraw & Harvest Cost', userWHCost, 'TON');
+        appendToFile(gasFile, `Withdraw & Harvest Cost: ${userWHCost} TON`);
         // Check that user send WithdrawAndHarvest to MasterChef
         expect(WithdrawAndHarvestResult.transactions).toHaveTransaction({
             from: user.address,
