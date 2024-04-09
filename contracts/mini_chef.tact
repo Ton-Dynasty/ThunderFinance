@@ -24,6 +24,13 @@ contract MiniChef with Deployable {
         userInfo.amount  = userInfo.amount + msg.amount;
         userInfo.rewardDebt = userInfo.rewardDebt + msg.rewardDebt; 
         self.userInfo.set(msg.lpTokenAddress, userInfo);
+        // Send remain Ton to owner
+        send(SendParameters{
+            to: self.owner,
+            value: 0,
+            mode: SendRemainingValue,
+            body: "Deposit Successfully".asComment()
+        });
     }
     
 
