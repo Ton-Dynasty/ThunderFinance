@@ -231,7 +231,7 @@ trait MasterChef {
                 response_destination: _response_destination,
                 custom_payload: null,
                 forward_ton_amount: 0,
-                forward_payload: emptySlice()
+                forward_payload: beginCell().endCell().asSlice()
             }.toCell()    
         });
     }
