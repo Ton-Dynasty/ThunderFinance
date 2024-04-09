@@ -108,8 +108,8 @@ message (0xa1114e19) WithdrawAndHarvestReply {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
     beneficiary: Address; // the one who will receive the reward
-    reward: Int as coins;
-    amount: Int as coins;
+    reward: Int as coins; // @ipromise2324 these two fields are toooo confusing 
+    amount: Int as coins; // @ipromise2324 these two fields are toooo confusing
     sender: Address;
 }
 
