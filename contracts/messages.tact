@@ -171,6 +171,8 @@ struct MasterChefData {
 // Constants
 const THUNDER_FEE: Int = ton("0.01"); // User have to pay the fee to ThunderMint
 const ACC_PRECISION: Int = 1000000; // Precision for the accumulated reward per share
+const ZERO_ADDRESS: Address = address("0QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACkT");
+const FEE_PERCENT_FOR_DEV: Int =3; // 0.3% of the reward will be given to the ThunderMint
 
 // ERROR CODES
 const ERROR_NOT_INITIALIZED: Int = 1006;

@@ -28,7 +28,6 @@ trait MasterChef {
 
     // For ThunderMint
     thunderMintWallet: Address;
-    Fee: Int = 3; // 0.3%
     tonForDevs: Int = 0;
 
     // Owner send AddPool message to add a new pool, so that users can deposit their LP tokens

@@ -21,14 +21,13 @@ contract TonMasterChef with Deployable, MasterChef {
 
     // For ThunderMint
     thunderMintWallet: Address;
-    Fee: Int = 3; // 0.3%
     tonForDevs: Int = 0;
 
     // initialize the contract with owner and seed
     init(_owner: Address, _seed: Int) {
         self.owner = _owner;
         self.isInitialized = false;
-        self.thunderMintWallet = address("0QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACkT");
+        self.thunderMintWallet = ZERO_ADDRESS;
         self.metaData = emptyCell();
         emit(DeployMasterChef{owner: _owner, seed: _seed}.toCell());
     }
@@ -46,7 +45,7 @@ contract TonMasterChef with Deployable, MasterChef {
         // Calculate reward per second in basicSetUp() and also other basic setup
         self.basicSetUp(msg.thunderMintWallet, msg.metaData, msg.totalReward, msg.deadline);
         let sendedTon: Int = ctx.value;
-        let feeForDevs: Int = msg.totalReward * self.Fee / 1000;
+        let feeForDevs: Int = msg.totalReward * FEE_PERCENT_FOR_DEV / 1000;
         let expectedTon: Int = msg.totalReward + feeForDevs;
         if (sendedTon < expectedTon) {
             self.sendTon(msg.owner, sendedTon - THUNDER_FEE*2, 0);
@@ -116,7 +115,7 @@ contract TonMasterChef with Deployable, MasterChef {
     get fun getTonMasterChefData(): MasterChefData {
         return MasterChefData{
             owner: self.owner,
-            mcRewardJettonWallet: address("0QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACkT"), // not used in TonMasterChef
+            mcRewardJettonWallet: ZERO_ADDRESS, // not used in TonMasterChef
             rewardPerSecond: self.rewardPerSecond,
             createdAt: self.createdAt,
             deadline: self.deadline,
