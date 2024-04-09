@@ -28,7 +28,7 @@ export async function run(provider: NetworkProvider) {
         forwardAmount,
         beginCell().endCell(),
     );
-    // Before User Deposit: 50.95 TON
+    // Before User Deposit: 49.9 TON
     // After User Deposit:  49.9 TON
     // 50.95 - 49.9 = 1.05 TON
 }
