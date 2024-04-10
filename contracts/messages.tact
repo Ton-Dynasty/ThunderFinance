@@ -106,7 +106,7 @@ message(0x925d0240) HarvestInternal {
 
 message (0x4212017c) WithdrawAndHarvest {
     queryId: Int as uint64;
-    lpTokenAddress: Address; // Pool Factory LP token Wallet address
+    lpTokenAddress: Address;  // Pool Factory LP token Wallet address
     withdrawAmount: Int as coins;
     beneficiary: Address;
 }
@@ -148,49 +148,48 @@ message(0xd449b642) BuildTonMasterChef {
 
 // Event: Deploy MasterChef
 message(0xd1a0507d) DeployMasterChef {
-    owner: Address; // Owner of the MasterChef
-    seed: Int as uint256; // Seed for the MasterChef
+    owner: Address;        // Owner of the MasterChef
+    seed: Int as uint256;  // Seed for the MasterChef
 }
 
 // Structs
 
 struct PoolInfo {
-    allocPoint: Int; // How many allocation points assigned to this pool. (Total Allocation Point must be less than or equal to 10000)
+    allocPoint: Int;                 // How many allocation points assigned to this pool. (Total Allocation Point must be less than or equal to 10000)
     lastRewardBlock: Int as uint256; // Last block number that reward distribution occurs
     accRewardPerShare: Int as coins; // Accumulated reward per share
-    lpSupply: Int as coins; // Total amount of LP token that user deposited in the pool
-    lpTokenAddress: Address; // Pool Factory LP token Wallet address
+    lpSupply: Int as coins;          // Total amount of LP token that user deposited in the pool
+    lpTokenAddress: Address;         // Pool Factory LP token Wallet address
 }
 
 struct UserInfo {
     amount: Int as coins; // How many LP tokens the user has provided
-    rewardDebt: Int; // Reward user received
+    rewardDebt: Int;      // Reward user received
 }
 
 struct MasterChefData {
-    owner: Address; // Owner of the MasterChef
-    mcRewardJettonWallet: Address; // MasterChef Wallet address for reward jetton
-    rewardPerSecond: Int as coins; // Reward per second
-    createdAt: Int as uint64; // MasterChef Created at block number
-    deadline: Int as uint64; // MasterChef distribution deadline
-    isInitialized: Bool; // MasterChef is initialized or not
+    owner: Address;                 // Owner of the MasterChef
+    mcRewardJettonWallet: Address;  // MasterChef Wallet address for reward jetton
+    rewardPerSecond: Int as coins;  // Reward per second
+    createdAt: Int as uint64;       // MasterChef Created at block number
+    deadline: Int as uint64;        // MasterChef distribution deadline
+    isInitialized: Bool;            // MasterChef is initialized or not
     totalAllocPoint: Int as uint16; // Total allocation point
-    feeForDevs: Int as coins; // Jetton for ThunderMint
-    pools: map<Address, PoolInfo>; // Pool Info
-    metaData: Cell; // MetaData for the MasterChef
-    totalReward: Int as coins; // Total reward
+    feeForDevs: Int as coins;       // Jetton for ThunderMint
+    pools: map<Address, PoolInfo>;  // Pool Info
+    metaData: Cell;                 // MetaData for the MasterChef
+    totalReward: Int as coins;      // Total reward
 }
 
 
 // Constants
 const THUNDER_FEE: Int = ton("0.01"); // User have to pay the fee to ThunderMint
-const ACC_PRECISION: Int = 1000000; // Precision for the accumulated reward per share
+const ACC_PRECISION: Int = 1000000;   // Precision for the accumulated reward per share
 const ZERO_ADDRESS: Address = address("0QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACkT");
-const FEE_PERCENT_FOR_DEV: Int =3; // 0.3% of the reward will be given to the ThunderMint
+const FEE_PERCENT_FOR_DEV: Int = 3;   // 0.3% of the reward will be given to the ThunderMint
 
 // ERROR CODES
-const ERROR_NOT_INITIALIZED: Int = 1006;
 const ERROR_POOL_NOT_FOUND: Int = 1002;
-const ERROR_RPS_UNDER_ZERO: Int = 1003;
 const ERROR_WRONG_AUTH: Int = 1004;
 const ERROR_NO_REWARD: Int = 1005;
+const ERROR_NOT_INITIALIZED: Int = 1006;
