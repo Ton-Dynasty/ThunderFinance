@@ -1400,6 +1400,4 @@ describe('Jetton MasterChef Tests', () => {
             });
         }
     });
-
-    // TODO: @ipromise2324 test the maximum pool limit under same THUNDER_FEE
 });
