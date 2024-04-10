@@ -1335,7 +1335,71 @@ describe('Jetton MasterChef Tests', () => {
         });
     });
 
-    // TODO: @ipromise2324 Collect first, then withdraw and harvest twice
+    // MasterChef Max Pool Limit  = 101
+    it('Should macsterchef has lots of pool', async () => {
+        for (let i = 0; i <= 1; i++) {
+            let lpToken = blockchain.openContract(
+                await JettonMasterUSDT.fromInit(deployer.address, beginCell().storeInt(i, 16).endCell()),
+            ); // Reward token and LP token
+            let masterChefLpWallet = blockchain.openContract(
+                await JettonWalletUSDT.fromInit(masterChef.address, lpToken.address),
+            );
+            let result = await addPool(masterChef, masterChefLpWallet);
+            await lpToken.send(user.getSender(), { value: toNano('1') }, 'Mint:1');
+            // User deposit
+            const userDepositAmount = 1n * 10n ** 6n;
+            let depositResult = await deposit(masterChef, user, masterChefLpWallet, lpToken, userDepositAmount);
+            // Check the depositResult is successful
+            expect(depositResult.transactions).toHaveTransaction({
+                from: masterChefLpWallet.address,
+                to: masterChef.address,
+                success: true,
+            });
+
+            expect(result.transactions).toHaveTransaction({
+                from: deployer.address,
+                to: masterChef.address,
+                success: true,
+            });
+
+            // User Withdraw
+            const userWithdrawAmount = 5n * 10n ** 5n;
+            let withdrawResult = await withdraw(masterChef, user, masterChefLpWallet, userWithdrawAmount);
+            // Check the withdrawResult is successful
+            expect(withdrawResult.transactions).toHaveTransaction({
+                from: user.address,
+                to: masterChef.address,
+                success: true,
+            });
+            // Check that masterchef send withdrawInternal to MiniChef
+            let miniChefAddress = await masterChef.getGetMiniChefAddress(user.address);
+            expect(withdrawResult.transactions).toHaveTransaction({
+                from: masterChef.address,
+                to: miniChefAddress,
+                success: true,
+            });
+
+            // Check that MiniChef send withdrawInternalReply to MasterChef
+            expect(withdrawResult.transactions).toHaveTransaction({
+                from: miniChefAddress,
+                to: masterChef.address,
+                success: true,
+            });
+
+            // MasterChef transfer the reward to user
+            expect(withdrawResult.transactions).toHaveTransaction({
+                from: masterChef.address,
+                to: masterChefLpWallet.address,
+                success: true,
+            });
+            let userLpWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(user.address, lpToken.address));
+            expect(withdrawResult.transactions).toHaveTransaction({
+                from: masterChefLpWallet.address,
+                to: userLpWallet.address,
+                success: true,
+            });
+        }
+    });
 
     // TODO: @ipromise2324 test the maximum pool limit under same THUNDER_FEE
 });
