@@ -7,10 +7,9 @@ import "./ton_master_chef.tact";
 // Kithcen Contract (MasterChef Factory) is used to deploy the MasterChef
 contract Kitchen with Deployable {
     owner: Address;
-    version: Int;
+
     init(_owner: Address, _version: Int) {
         self.owner = _owner;
-        self.version = _version;
     }
 
     // Deploy MasterChef for jetton

@@ -1,16 +1,18 @@
 import "@stdlib/deploy";
 import "./messages";
 
-
+// MiniChef Contract is used to record the user's deposit, such as the actual amount of LP token in each pool
+// and the reward debt of each user in each pool.
+// We use a map to store the user's information. Gas will be high when the map is large, yet the number of pools is limited, so it is acceptable.
 contract MiniChef with Deployable {
     rewardDebt: Int;
     owner: Address;
     userInfo: map <Address, UserInfo>;
     masterChef: Address;
     
-    init(owner: Address, masterchef: Address) {
+    init(owner: Address, masterChef: Address) {
         self.owner = owner; 
-        self.masterChef = masterchef;  
+        self.masterChef = masterChef;  
         self.rewardDebt = 0;
     }
 
