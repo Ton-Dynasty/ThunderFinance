@@ -225,7 +225,7 @@ trait MasterChef {
         send(SendParameters{
             to: _to,
             value: _tonValue,
-            mode: _mode, // add SendIgnoreErrors
+            mode: _mode,
             body: JettonTransfer{
                 query_id: 0,
                 amount: _amount,
