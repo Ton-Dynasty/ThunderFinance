@@ -1335,7 +1335,7 @@ describe('Jetton MasterChef Tests', () => {
         });
     });
 
-    // MasterChef Max Pool Limit  = 101
+    // MasterChef Max Pool Limit  = 400
     it('Should macsterchef has lots of pool', async () => {
         for (let i = 0; i <= 1; i++) {
             let lpToken = blockchain.openContract(
@@ -1344,7 +1344,7 @@ describe('Jetton MasterChef Tests', () => {
             let masterChefLpWallet = blockchain.openContract(
                 await JettonWalletUSDT.fromInit(masterChef.address, lpToken.address),
             );
-            let result = await addPool(masterChef, masterChefLpWallet);
+            let result = await addPool(masterChef, masterChefLpWallet, 20n);
             await lpToken.send(user.getSender(), { value: toNano('1') }, 'Mint:1');
             // User deposit
             const userDepositAmount = 1n * 10n ** 6n;
