@@ -23,7 +23,6 @@ contract JettonMasterChef with Deployable, MasterChef {
     // For ThunderMint
     thunderMintWallet: Address;
     jettonForDevs: Int = 0;
-    tonForDevs: Int = 0;
 
     // initialize the contract with owner and seed
     init(_owner: Address, _seed: Int) {
@@ -117,14 +116,10 @@ contract JettonMasterChef with Deployable, MasterChef {
     receive("Collect") {
         // Reward jetton for devs can only be sent to ThunderMint once
         if (self.jettonForDevs > 0) {
-            self.sendJetton(self.mcRewardJettonWallet, self.tonForDevs, self.jettonForDevs, self.thunderMintWallet, self.thunderMintWallet, SendRemainingValue);
-            self.tonForDevs = 0;
+            self.sendJetton(self.mcRewardJettonWallet, 0, self.jettonForDevs, self.thunderMintWallet, self.thunderMintWallet, SendRemainingValue);
             self.jettonForDevs = 0;
             return;
         }
-        // Only send ton to devs
-        self.sendTon(self.thunderMintWallet, self.tonForDevs, 0);
-        self.tonForDevs = 0;
     }
 
     // Get Methods //
