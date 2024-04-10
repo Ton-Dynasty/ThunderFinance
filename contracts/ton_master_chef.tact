@@ -19,8 +19,8 @@ contract TonMasterChef with Deployable, MasterChef {
     totalReward: Int = 0;
 
     // For ThunderMint
-    thunderMintWallet: Address;
-    tonForDevs: Int = 0;
+    thunderMintWallet: Address; // The wallet address for thunder mint to collect fee
+    tonForDevs: Int = 0;        // The fee for devs
 
     // initialize the contract with owner and seed
     init(_owner: Address, _seed: Int) {
