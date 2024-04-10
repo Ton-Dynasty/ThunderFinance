@@ -1,5 +1,7 @@
 TON MasterChef Costs in each operation: 
-Deposit Cost: 0.0325886 TON
-Harvest Cost: 0.0052760059 TON
-Withdraw Cost: 0.0157455006 TON
+Deposit Cost: 0.0325562 TON
+Harvest Cost: 0.0052436059 TON
+Withdraw Cost: 0.0157131006 TON
+Withdraw Cost: 0.0157131006 TON
+Withdraw & Harvest Cost: 0.0172006059 TON
 Withdraw & Harvest Cost: 0.0172006059 TON

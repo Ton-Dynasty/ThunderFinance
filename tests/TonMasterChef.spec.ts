@@ -699,7 +699,7 @@ describe('TON MasterChef Tests', () => {
             op: 0x097bb407,
         });
         const masterChefDataAfterWithdraw = await masterChef.getGetTonMasterChefData();
-        // Make sure that tonForDevs is recorded after user withdraw
+        // Make sure that feeForDevs is recorded after user withdraw
         expect(masterChefDataAfterWithdraw.feeForDevs).toEqual(rewardTONForDev); // REWARD_FEE = 0.3 TON (0.3% of the reward)
 
         // Update time to periodTime, so that we can harvest
@@ -720,7 +720,7 @@ describe('TON MasterChef Tests', () => {
             await withdraw(masterChef, user, masterChefJettonWallet, userWithdrawAmount);
         }
         const masterChefData = await masterChef.getGetTonMasterChefData();
-        const collectResult = await masterChef.send(deployer.getSender(), { value: toNano('1') }, 'CollectTON');
+        const collectResult = await masterChef.send(deployer.getSender(), { value: toNano('1') }, 'Collect');
         let thunderMintTonAfter = await deployer.getBalance();
 
         // Deployer can't collect before deadline
@@ -733,7 +733,7 @@ describe('TON MasterChef Tests', () => {
 
         blockchain.now!! += 5000;
         thunderMintTonBefore = await deployer.getBalance();
-        const collectResultAfterDL = await masterChef.send(deployer.getSender(), { value: toNano('1') }, 'CollectTON');
+        const collectResultAfterDL = await masterChef.send(deployer.getSender(), { value: toNano('1') }, 'Collect');
         thunderMintTonAfter = await deployer.getBalance();
 
         // Check if deployer send Collect msg to MasterChef
@@ -1252,10 +1252,10 @@ describe('TON MasterChef Tests', () => {
         const balanceAfter = await deployer.getBalance();
 
         // Check that MasterChef is destroyed
-        (await masterChef.getGetTonMasterChefData().catch((e) => {
+        await masterChef.getGetTonMasterChefData().catch((e) => {
             console.log(e.toString());
             expect(e.toString()).toEqual('Error: Trying to run get method on non-active contract');
-        }));
+        });
 
         // Check that the TON is returned
         expect(masterChefResult.transactions).toHaveTransaction({
@@ -1265,8 +1265,5 @@ describe('TON MasterChef Tests', () => {
 
         let gasFee = toNano('0.5');
         expect(balanceAfter + gasFee).toBeGreaterThanOrEqual(balanceBefore);
-
-
     });
-
 });

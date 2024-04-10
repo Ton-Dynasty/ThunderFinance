@@ -9,7 +9,7 @@ contract JettonMasterChef with Deployable, MasterChef {
     // Pool Info
     owner: Address;
     pools: map<Address, PoolInfo>;
-    totalAllocPoint: Int = 0;
+    totalAllocPoint: Int as uint16 = 0;
     createdAt: Int as uint64 = 0;
     deadline: Int as uint64 = 0;
     metaData: Cell;
@@ -17,12 +17,11 @@ contract JettonMasterChef with Deployable, MasterChef {
     // For Reward Jetton
     mcRewardJettonWallet: Address;
     rewardPerSecond: Int as coins = 0;
-    totalReward: Int = 0;
-
+    totalReward: Int as coins = 0;
 
     // For ThunderMint
     thunderMintWallet: Address;
-    jettonForDevs: Int = 0;
+    feeForDevs: Int as coins = 0;
 
     // initialize the contract with owner and seed
     init(_owner: Address, _seed: Int) {
@@ -45,7 +44,7 @@ contract JettonMasterChef with Deployable, MasterChef {
             send(SendParameters{
                 to: self.owner,
                 value: 0,
-                mode: 128 + 32,
+                mode: SendRemainingBalance + SendDestroyIfZero,
                 body: "Send All TON Back".asComment()
             });
             return;
@@ -64,15 +63,16 @@ contract JettonMasterChef with Deployable, MasterChef {
                 throw(ERROR_WRONG_AUTH);
             }
             // Calculate the reward jetton for ThunderMint team
-            self.jettonForDevs = self.totalReward * FEE_PERCENT_FOR_DEV / 1000; // 0.3% fee
+            self.feeForDevs = self.totalReward * FEE_PERCENT_FOR_DEV / 1000; // 0.3% fee
             // Have to transfer reward jetton and fee to the contract
-            let expectedAmount: Int = self.totalReward + self.jettonForDevs;
+            let expectedAmount: Int = self.totalReward + self.feeForDevs;
             if(msg.amount < expectedAmount) {
-                self.sendJetton(self.mcRewardJettonWallet,0 ,msg.amount, msg.sender, msg.sender, SendRemainingValue);
+                self.sendJetton(self.mcRewardJettonWallet, 0 ,msg.amount, msg.sender, msg.sender, SendRemainingValue);
                 return;
             }
             self.isInitialized = true;
             // Send the remaining jetton back to the sender
+            // TODO: @ipromise2324 Do we really need to send the remaining jetton back to the sender? I think the actual amount should be sent to the contract
             let remainingJetton: Int = msg.amount - expectedAmount;
             if (remainingJetton > 0) {
                 self.sendJetton(self.mcRewardJettonWallet, 0, remainingJetton, msg.sender, msg.sender, SendRemainingValue);
@@ -92,7 +92,7 @@ contract JettonMasterChef with Deployable, MasterChef {
 
     // MiniChef will send this message to ask MasterChef to send reward
     receive(msg: HarvestInternalReply) {
-        self.miniChefChek(msg.sender);
+        self.requireMiniChef(msg.sender);
         self.sendJetton(self.mcRewardJettonWallet, 0, msg.reward, msg.beneficiary, msg.beneficiary, SendRemainingValue);
     }
 
@@ -115,9 +115,9 @@ contract JettonMasterChef with Deployable, MasterChef {
     // Pay the fee to ThunderMint team
     receive("Collect") {
         // Reward jetton for devs can only be sent to ThunderMint once
-        if (self.jettonForDevs > 0) {
-            self.sendJetton(self.mcRewardJettonWallet, 0, self.jettonForDevs, self.thunderMintWallet, self.thunderMintWallet, SendRemainingValue);
-            self.jettonForDevs = 0;
+        if (self.feeForDevs > 0) {
+            self.sendJetton(self.mcRewardJettonWallet, 0, self.feeForDevs, self.thunderMintWallet, self.thunderMintWallet, SendRemainingValue);
+            self.feeForDevs = 0;
             return;
         }
     }
@@ -134,7 +134,7 @@ contract JettonMasterChef with Deployable, MasterChef {
             deadline: self.deadline,
             isInitialized: self.isInitialized,
             totalAllocPoint: self.totalAllocPoint,
-            feeForDevs: self.jettonForDevs,
+            feeForDevs: self.feeForDevs,
             pools: self.pools,
             metaData: self.metaData,
             totalReward: self.totalReward

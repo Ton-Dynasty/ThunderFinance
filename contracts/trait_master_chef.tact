@@ -10,23 +10,26 @@ native build_content_cell(metadata_uri: Slice): Cell;
 // MasterChef Contract Trait: This contract will have basic fuctions and receive messages to interact with the MasterChef contract 
 trait MasterChef {
     // Initializer
+    // Only the owner can initialize the contract with the basic setup
+    // The contract should be initialized before any other operations 
     isInitialized: Bool = false;
 
     // Pool Info
-    owner: Address;
-    pools: map<Address, PoolInfo>;
-    totalAllocPoint: Int = 0;
-    createdAt: Int = 0;
-    deadline: Int = 0;
-    metaData: Cell;
+    owner: Address;                    // The owner of this contract, may be the deployer
+    pools: map<Address, PoolInfo>;     // All the pools in the MasterChef, the key is the "LP Jetton Wallet" address
+    totalAllocPoint: Int;              // Total alloc point (uint16) should be less than or equal to 10000, means the weight of the pools
+    createdAt: Int = 0;                // The time when the contract is created (initialize in basic setup)
+    deadline: Int = 0;                 // The time when the reward distribution ends (initialize in basic setup)
+    metaData: Cell;                    // The meta data of the contract, such as the name, image url, description, etc.
 
     // For Reward jetton
-    rewardPerSecond: Int = 0;
-    totalReward: Int = 0;
+    rewardPerSecond: Int = 0;          // The reward per second (coins), so called RPS.
+    totalReward: Int = 0;              // The total distribution reward (initialize in basic setup)
 
 
     // For ThunderMint
-    thunderMintWallet: Address;
+    thunderMintWallet: Address;        // The owner address of Kitchen contract (ThunderMint)
+    feeForDevs: Int = 0;               // The fee for the developers
 
     // Owner send AddPool message to add a new pool, so that users can deposit their LP tokens
     // NOTE that all the pools should have a total alloc point less than or equal to 10000
@@ -78,7 +81,7 @@ trait MasterChef {
 
     // Users' MiniChef will send this message to ask MasterChef to withdraw LP tokens
     receive(msg: WithdrawInternalReply) {
-        self.miniChefChek(msg.sender);
+        self.requireMiniChef(msg.sender);
         let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
         self.sendJetton(pool.lpTokenAddress, 0, msg.amount, msg.beneficiary, msg.beneficiary, SendRemainingValue);
     }
@@ -157,7 +160,7 @@ trait MasterChef {
     }
 
     // Check if the sender is the MiniChef
-    inline fun miniChefChek(sender: Address) {
+    inline fun requireMiniChef(sender: Address) {
         let initCode: StateInit = self._calculateMiniChefInit(sender);
         let expectedSender: Address = contractAddress(initCode);
         require(expectedSender == sender(), "unexpected sender");
@@ -248,7 +251,7 @@ trait MasterChef {
 
     // Calculate MiniChef init code
     inline fun _calculateMiniChefInit(userAddress: Address): StateInit {
-        return initOf MiniChef(userAddress,myAddress());
+        return initOf MiniChef(userAddress, myAddress());
     }
 
     // Get Methods // 

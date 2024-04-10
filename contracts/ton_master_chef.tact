@@ -9,18 +9,18 @@ contract TonMasterChef with Deployable, MasterChef {
     // Pool Info
     owner: Address;
     pools: map<Address, PoolInfo>;
-    totalAllocPoint: Int = 0;
+    totalAllocPoint: Int as uint16 = 0;
     createdAt: Int as uint64 = 0;
     deadline: Int as uint64 = 0;
     metaData: Cell;
 
-    // For Reward jetton
+    // For Reward TON
     rewardPerSecond: Int as coins = 0;
-    totalReward: Int = 0;
+    totalReward: Int as coins = 0;
 
     // For ThunderMint
-    thunderMintWallet: Address; // The wallet address for thunder mint to collect fee
-    tonForDevs: Int = 0;        // The fee for devs
+    thunderMintWallet: Address;       // The wallet address for thunder mint to collect fee
+    feeForDevs: Int as coins = 0;     // The fee for devs
 
     // initialize the contract with owner and seed
     init(_owner: Address, _seed: Int) {
@@ -47,14 +47,14 @@ contract TonMasterChef with Deployable, MasterChef {
             send(SendParameters{
                 to: self.owner,
                 value: 0,
-                mode: 128 + 32,
+                mode: SendRemainingBalance + SendDestroyIfZero,
                 body: "Send All TON Back".asComment()
             });
             return;
         }
         let sendedTon: Int = ctx.value;
         let feeForDevs: Int = msg.totalReward * FEE_PERCENT_FOR_DEV / 1000;
-        self.tonForDevs = feeForDevs;
+        self.feeForDevs = feeForDevs;
         let expectedTon: Int = msg.totalReward + feeForDevs;
         if (sendedTon < expectedTon) {
             self.sendTon(msg.owner, sendedTon - ctx.readForwardFee(), 0);
@@ -85,13 +85,13 @@ contract TonMasterChef with Deployable, MasterChef {
 
     // MiniChef will send this message to ask MasterChef to send reward
     receive(msg: HarvestInternalReply) {
-        self.miniChefChek(msg.sender);
+        self.requireMiniChef(msg.sender);
         self.sendTon(msg.beneficiary, msg.reward, SendRemainingValue);
     }
 
     // MiniChef send this message to ask MasterChef to withdraw LP tokens and harvest reward
     receive(msg: WithdrawAndHarvestReply) {
-        self.miniChefChek(msg.sender);
+        self.requireMiniChef(msg.sender);
 
         let ctx: Context = context();
         let sendTon: Int = ctx.value;
@@ -106,11 +106,11 @@ contract TonMasterChef with Deployable, MasterChef {
     
 
     // Pay the fee to Thunder Mint
-    receive("CollectTON") {
+    receive("Collect") {
         require(now() > self.deadline, "deadline not reached");
         // Send ton to devs
-        self.sendTon(self.thunderMintWallet, self.tonForDevs, 0);
-        self.tonForDevs = 0;
+        self.sendTon(self.thunderMintWallet, self.feeForDevs, 0);
+        self.feeForDevs = 0;
     }
 
     // Get Methods //
@@ -124,7 +124,7 @@ contract TonMasterChef with Deployable, MasterChef {
             createdAt: self.createdAt,
             deadline: self.deadline,
             isInitialized: self.isInitialized,
-            feeForDevs: self.tonForDevs,
+            feeForDevs: self.feeForDevs,
             totalAllocPoint: self.totalAllocPoint,
             pools: self.pools,
             metaData: self.metaData,

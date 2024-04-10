@@ -59,12 +59,12 @@ contract Kitchen with Deployable {
 
     // Calculate Jetton MasterChef init code
     inline fun calculateJettonMasterChef(owner: Address, seed: Int): StateInit {
-        return initOf JettonMasterChef(owner,seed);
+        return initOf JettonMasterChef(owner, seed);
     }
 
     // Calculate TonMasterChef init code
     inline fun calculateTonMasterChef(owner: Address, seed: Int): StateInit {
-        return initOf TonMasterChef(owner,seed);
+        return initOf TonMasterChef(owner, seed);
     }
 
     // Get Methods //

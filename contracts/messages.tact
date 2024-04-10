@@ -19,13 +19,13 @@ message(0x7362d09c) JettonTransferNotification {
 }
 // For Kithcen Contract
 message(0x89265822) BuildJettonMasterChef {
-    owner: Address; // Owner of the MasterChef
-    seed: Int as uint256; // Seed for the MasterChef
-    thunderMintJettonWallet: Address; // ThunderMint Wallet address to collect the fee in Jetton
-    mcRewardJettonWallet: Address; // MasterChef Wallet address for reward jetton
-    metaData: Slice; // MetaData for the MasterChef
-    totalReward: Int as coins; // Total reward for the MasterChef
-    deadline: Int as uint64; // MasterChef distribution deadline
+    owner: Address;                    // Owner of the MasterChef
+    seed: Int as uint256;              // Seed for the MasterChef
+    thunderMintJettonWallet: Address;  // ThunderMint Wallet address to collect the fee in Jetton
+    mcRewardJettonWallet: Address;     // MasterChef Wallet address for reward jetton
+    metaData: Slice;                   // MetaData for the MasterChef, such as name, image url and description
+    totalReward: Int as coins;         // Total reward for the MasterChef
+    deadline: Int as uint64;           // MasterChef distribution deadline
 }
 
 // For MasterChef Contract
@@ -34,17 +34,17 @@ message(0xc1c45a7c) Initialize {
 }
 
 message(0xf6cf7e6c) SetUpJettonMC {
-    owner: Address; // Owner of the MasterChef
-    mcRewardJettonWallet: Address; // MasterChef Wallet address for reward jetton
-    thunderMintWallet: Address; // ThunderMint Wallet address to collect the fee in TON
+    owner: Address;                   // Owner (deployer) of the MasterChef
+    mcRewardJettonWallet: Address;    // MasterChef Wallet address for reward jetton
+    thunderMintWallet: Address;       // ThunderMint Wallet address to collect the fee in TON
     thunderMintJettonWallet: Address; // ThunderMint Wallet address to collect the fee in Jetton
-    metaData: Slice; // MetaData for the MasterChef
-    totalReward: Int as coins; // Total reward for the MasterChef
-    deadline: Int as uint64; // MasterChef distribution deadline
+    metaData: Slice;                  // MetaData for the MasterChef
+    totalReward: Int as coins;        // Total reward for the MasterChef
+    deadline: Int as uint64;          // MasterChef distribution deadline
 }
 message(0x4b7d1ae4) AddPool{
-    lpTokenAddress: Address; // Pool Factory LP token Wallet address
-    allocPoint: Int; // How many allocation points assigned to this pool. (Total Allocation Point must be less than or equal to 10000)
+    lpTokenAddress: Address;    // Pool Factory LP token Wallet address
+    allocPoint: Int as uint16;  // How many allocation points assigned to this pool. (Total Allocation Point must be less than or equal to 10000)
 }
 
 message(0x5e653b7f) UpdatePool {
@@ -54,53 +54,53 @@ message(0x5e653b7f) UpdatePool {
 message(0x097bb407) Withdraw {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
-    amount: Int as coins; // Amount of LP token user want to withdraw
-    beneficiary: Address; // The one who will receive the LP token
+    amount: Int as coins;    // Amount of LP token user want to withdraw
+    beneficiary: Address;    // The one who will receive the LP token
 }
 
 message(0xdc4c8b1a)WithdrawInternalReply {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
-    amount: Int as coins; // Amount of LP token user want to withdraw
-    sender: Address; // The one who withdrawed the LP token
-    beneficiary: Address; // The one who will receive the LP token
+    amount: Int as coins;    // Amount of LP token user want to withdraw
+    sender: Address;         // The one who withdrawed the LP token
+    beneficiary: Address;    // The one who will receive the LP token
 }
 
 message(0x8839dc49) Harvest {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
-    beneficiary: Address; // the one who will receive the reward
+    beneficiary: Address;    // the one who will receive the reward
 }
 
 message(0x952bcd19) HarvestInternalReply {
     queryId: Int as uint64;
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
-    beneficiary: Address; // the one who will receive the reward
-    reward: Int as coins; // Amount of reward user will receive
-    sender: Address; // The one who harvested the reward
+    beneficiary: Address;    // the one who will receive the reward
+    reward: Int as coins;    // Amount of reward user will receive
+    sender: Address;         // The one who harvested the reward
 }
 
 // For MiniChef Contract
 message(0x6ba1d82e) UserDeposit {
-    queryId: Int as uint64;
+    queryId: Int as uint64;  // To identify the request
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
-    amount: Int as coins; // Amount of LP token user sended to the pool
-    rewardDebt: Int; // Users new reward debt after deposit
+    amount: Int as coins;    // Amount of LP token user sended to the pool
+    rewardDebt: Int;         // Users new reward debt after deposit (this value may be negative)
 }
 
 message(0x81732891) WithdrawInternal {
-    queryId: Int as uint64;
+    queryId: Int as uint64;  // To identify the request
     lpTokenAddress: Address; // Pool Factory LP token Wallet address
-    amount: Int as coins; // Amount of LP token user want to withdraw
-    rewardDebt: Int; // Users new reward debt after withdraw
-    beneficiary: Address; // The one who will receive the LP token
-    sender: Address; // The one who withdrawed the LP token
+    amount: Int as coins;    // Amount of LP token user want to withdraw
+    rewardDebt: Int;         // Users new reward debt after withdraw
+    beneficiary: Address;    // The one who will receive the LP token
+    sender: Address;         // The one who withdrawed the LP token
 }
 
 message(0x925d0240) HarvestInternal {
-    queryId: Int as uint64;
-    lpTokenAddress: Address; // Pool Factory LP token Wallet address
-    beneficiary: Address; // the one who will receive the reward
+    queryId: Int as uint64;          // To identify the request
+    lpTokenAddress: Address;         // Pool Factory LP token Wallet address
+    beneficiary: Address;            // the one who will receive the reward
     accRewardPerShare: Int as coins; // New accumulated reward per share after harvest
 }
 
@@ -121,29 +121,29 @@ message (0x16a5d563) WithdrawAndHarvestInternal {
 }
 
 message (0xa1114e19) WithdrawAndHarvestReply {
-    queryId: Int as uint64;
-    lpTokenAddress: Address; // Pool Factory LP token Wallet address
-    beneficiary: Address; // the one who will receive the reward
-    rewardAmount: Int as coins; 
-    withdrawAmount: Int as coins;
-    sender: Address;
+    queryId: Int as uint64;       // To identify the request
+    lpTokenAddress: Address;      // Pool Factory LP token Wallet address
+    beneficiary: Address;         // the one who will receive the reward
+    rewardAmount: Int as coins;   // The reward jetton amount that user will receive
+    withdrawAmount: Int as coins; // The LP token amount that user will receive
+    sender: Address;              // User who requested to withdraw and harvest
 }
 
 // TonMasterChef Messages
 message(0x8bf38613) SetUpTonMC {
-    owner: Address; // Owner of the MasterChef
-    thunderMintWallet: Address; // ThunderMint Wallet address to collect the fee in TON
-    metaData: Slice; // MetaData for the MasterChef
-    totalReward: Int as coins; // Total reward for the MasterChef
-    deadline: Int as uint64; // MasterChef distribution deadline
+    owner: Address;              // Owner of the MasterChef
+    thunderMintWallet: Address;  // ThunderMint Wallet address to collect the fee in TON
+    metaData: Slice;             // MetaData for the MasterChef
+    totalReward: Int as coins;   // Total reward for the MasterChef
+    deadline: Int as uint64;     // MasterChef distribution deadline
 }
 
 message(0xd449b642) BuildTonMasterChef {
-    owner: Address; // Owner of the MasterChef
-    seed: Int as uint256; // Seed for the MasterChef
-    metaData: Slice; // MetaData for the MasterChef
+    owner: Address;            // Owner of the MasterChef
+    seed: Int as uint256;      // Seed for the MasterChef
+    metaData: Slice;           // MetaData for the MasterChef
     totalReward: Int as coins; // Total reward for the MasterChef
-    deadline: Int as uint64; // MasterChef distribution deadline
+    deadline: Int as uint64;   // MasterChef distribution deadline
 }
 
 // Event: Deploy MasterChef
@@ -174,11 +174,11 @@ struct MasterChefData {
     createdAt: Int as uint64; // MasterChef Created at block number
     deadline: Int as uint64; // MasterChef distribution deadline
     isInitialized: Bool; // MasterChef is initialized or not
-    totalAllocPoint: Int; // Total allocation point
-    feeForDevs: Int; // Jetton for ThunderMint
+    totalAllocPoint: Int as uint16; // Total allocation point
+    feeForDevs: Int as coins; // Jetton for ThunderMint
     pools: map<Address, PoolInfo>; // Pool Info
     metaData: Cell; // MetaData for the MasterChef
-    totalReward: Int; // Total reward
+    totalReward: Int as coins; // Total reward
 }
 
 
@@ -190,7 +190,6 @@ const FEE_PERCENT_FOR_DEV: Int =3; // 0.3% of the reward will be given to the Th
 
 // ERROR CODES
 const ERROR_NOT_INITIALIZED: Int = 1006;
-const ERROR_NOT_ENOUGH_REWARD: Int = 1;
 const ERROR_POOL_NOT_FOUND: Int = 1002;
 const ERROR_RPS_UNDER_ZERO: Int = 1003;
 const ERROR_WRONG_AUTH: Int = 1004;
