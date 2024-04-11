@@ -30,7 +30,6 @@ export async function run(provider: NetworkProvider) {
             $$type: 'BuildJettonMasterChef',
             owner: provider.sender().address!!,
             seed: seed,
-            thunderMintWallet: provider.sender().address!!,
             thunderMintJettonWallet: senderUSDTWallet.address, // owner jettonWallet
             mcRewardJettonWallet: masterchefUSDTWallet.address,
             metaData: beginCell().storeStringTail('httpppp').endCell(),
