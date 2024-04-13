@@ -34,6 +34,7 @@ export async function run(provider: NetworkProvider) {
             mcRewardJettonWallet: masterchefUSDTWallet.address,
             metaData: beginCell().storeStringTail('httpppp').endCell(),
             deadline: deadline,
+            startTime: BigInt(Math.floor(Date.now() / 1000)) + 10n,
             totalReward: totalReward,
         },
     );
