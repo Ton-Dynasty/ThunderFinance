@@ -1449,7 +1449,6 @@ describe('Jetton MasterChef Tests', () => {
             success: false,
             exitCode: 48992, // contract not initialized
         });
-        
     });
 
     it('Should not let user harvest before start time', async () => {
@@ -1491,6 +1490,45 @@ describe('Jetton MasterChef Tests', () => {
             to: masterChef.address,
             success: false,
             exitCode: 48992, // contract not initialized
+        });
+    });
+
+    it('Should not let protocols transfer reward token after deadline', async () => {
+        // Send an insufficient reward amount and verify that it is returned in full.
+        ({ deployer, user, kitchen, usdt, seed, deployerJettonWallet } = await setupRevertEnv());
+
+        const ownerBalanceBefore = (await deployerJettonWallet.getGetWalletData()).balance;
+        // Update time to let it pass the deadline
+        blockchain.now!! += 5000;
+        const feeAmont = (totalReward * 3n) / 1000n;
+        const extraAmount = 2000000n;
+        const initResult = await deployerJettonWallet.send(
+            deployer.getSender(),
+            {
+                value: toNano('1.5'),
+            },
+            {
+                $$type: 'JettonTransfer',
+                query_id: 0n,
+                amount: totalReward - feeAmont - extraAmount, // Make it insufficient
+                destination: masterChef.address,
+                response_destination: deployer.address,
+                custom_payload: null,
+                forward_ton_amount: toNano('1'),
+                forward_payload: beginCell().endCell(),
+            },
+        );
+
+        const ownerBalanceAfter = (await deployerJettonWallet.getGetWalletData()).balance;
+
+        // expect that ownerBalanceBefore and ownerBalanceAfter are equal, which means the entire amount was returned.
+        expect(ownerBalanceAfter).toEqual(ownerBalanceBefore);
+
+        // MasterChef Jetton Wallet should return the reward to deployer Jettton Wallet
+        expect(initResult.transactions).toHaveTransaction({
+            from: masterChefJettonWalletAddress,
+            to: deployerJettonWallet.address,
+            success: true,
         });
     });
 });
