@@ -12,6 +12,7 @@ contract JettonMasterChef with Deployable, MasterChef {
     totalAllocPoint: Int as uint16 = 0;
     createdAt: Int as uint64 = 0;
     deadline: Int as uint64 = 0;
+    startTime: Int as uint64 = 0;
     metaData: Cell;
 
     // For Reward Jetton
@@ -39,7 +40,7 @@ contract JettonMasterChef with Deployable, MasterChef {
         // Jetton MasterChef Set Up
         self.mcRewardJettonWallet = msg.mcRewardJettonWallet;
         // Calculate reward per second in basicSetUp() and also other basic setup
-        self.basicSetUp(msg.thunderMintWallet, msg.metaData, msg.totalReward, msg.deadline);
+        self.basicSetUp(msg.thunderMintWallet, msg.metaData, msg.totalReward, msg.deadline, msg.startTime);
         if(self.rewardPerSecond <= 0) {
             send(SendParameters{
                 to: self.owner,
@@ -81,7 +82,7 @@ contract JettonMasterChef with Deployable, MasterChef {
         }
 
         // check if pool exists or exceed the deadline
-        if(self.pools.get(ctx.sender) == null || now() > self.deadline) {
+        if(self.pools.get(ctx.sender) == null || now() > self.deadline || now() < self.startTime){
             // Send the jetton back to the sender if pool does not exist
             self.sendJetton(ctx.sender, 0, msg.amount, msg.sender, msg.sender, SendRemainingValue);
             return;
@@ -130,7 +131,7 @@ contract JettonMasterChef with Deployable, MasterChef {
             owner: self.owner,
             mcRewardJettonWallet: self.mcRewardJettonWallet,
             rewardPerSecond: self.rewardPerSecond,
-            createdAt: self.createdAt,
+            startTime: self.startTime,
             deadline: self.deadline,
             isInitialized: self.isInitialized,
             totalAllocPoint: self.totalAllocPoint,

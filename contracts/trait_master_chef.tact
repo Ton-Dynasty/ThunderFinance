@@ -21,6 +21,7 @@ trait MasterChef {
     createdAt: Int = 0;                // The time when the contract is created (initialize in basic setup)
     deadline: Int = 0;                 // The time when the reward distribution ends (initialize in basic setup)
     metaData: Cell;                    // The meta data of the contract, such as the name, image url, description, etc.
+    startTime: Int = 0;                // The time when the reward distribution starts (initialize in basic setup)
 
     // For Reward jetton
     rewardPerSecond: Int = 0;          // The reward per second (coins), so called RPS.
@@ -140,18 +141,20 @@ trait MasterChef {
     // Internal Functions //
 
     // Baise setup function
-    inline fun basicSetUp(_thunderMintWallet: Address, _metaData: Slice, _totalReward: Int, _deadline: Int) {
+    inline fun basicSetUp(_thunderMintWallet: Address, _metaData: Slice, _totalReward: Int, _deadline: Int, _startTime: Int) {
         self.thunderMintWallet = _thunderMintWallet;
         self.metaData = build_content_cell(_metaData);
         self.totalReward = _totalReward;
         self.deadline = _deadline;
+        self.startTime = _startTime;
         self.createdAt = now();
-        self.rewardPerSecond = self.totalReward / (self.deadline - self.createdAt);
+        self.rewardPerSecond = self.totalReward / (self.deadline - self.startTime);
     }
 
     // Check contract is initialized and pool exists and then Update the pool
     inline fun userOpSetUp(lpTokenAddress: Address) {
         self.requireInitialized();
+        require(now() > self.startTime, "reward distribution not started");
         // check if pool exists
         require(self.pools.get(lpTokenAddress) != null , "pool not exists");
 

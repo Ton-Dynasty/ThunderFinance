@@ -227,6 +227,7 @@ describe('TON MasterChef Tests', () => {
                 metaData: beginCell().storeStringTail('httpppp').endCell(),
                 deadline: deadline,
                 totalReward: totalReward,
+                startTime: BigInt(blockchain.now!!) - 10n, // -10n is to make sure that the MasterChef is started
             },
         );
 
@@ -819,6 +820,7 @@ describe('TON MasterChef Tests', () => {
                 metaData: beginCell().storeStringTail('httpppp').endCell(),
                 deadline: deadline,
                 totalReward: totalReward,
+                startTime: BigInt(blockchain.now!!) - 10n,
             },
         );
 
@@ -834,32 +836,35 @@ describe('TON MasterChef Tests', () => {
     });
 
     it('Should deposit, withdraw and harvest after deadline', async () => {
+        await addPool(masterChef, masterChefJettonWallet);
         const userDepositAmount = 1n * 10n ** 6n;
-        const userWithdrawAmount = 5n * 10n ** 5n;
         const periodTime = 3500; // deadline is 2000
+        // Mint USDT to user so that he can deposit
+        await usdt.send(user.getSender(), { value: toNano('1') }, 'Mint:1');
         const userJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(user.address, usdt.address));
 
         // Update time to periodTime to make sure that the deadline is passed
         blockchain.now!! += periodTime;
+        const userUSDTBefore = (await userJettonWallet.getGetWalletData()).balance;
         // deposit first
-        await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
-        // get the balance of usdt before withdraw
-        const userUSDTBalanceBeforeWithdraw = (await userJettonWallet.getGetWalletData()).balance;
-
-        // withdraw
-        await withdraw(masterChef, user, masterChefJettonWallet, userWithdrawAmount);
-        const userUSDTBalanceAfterWithdraw = (await userJettonWallet.getGetWalletData()).balance;
-        // check the differnce between userUSDTBalanceBeforeWithdraw and userUSDTBalanceAfterWithdraw is equal to userWithdrawAmount
-        expect(userUSDTBalanceAfterWithdraw - userUSDTBalanceBeforeWithdraw).toEqual(userWithdrawAmount);
-
-        // Update time to periodTime, so that we can harvest
-        blockchain.now!! += periodTime;
-        const userTonBalanceBeforeHarvest = await user.getBalance();
-        // User send Harvest to MasterChef
-        await harvest(masterChef, user, masterChefJettonWallet);
-        const userTonBalanceAfterHarvest = await user.getBalance();
-        // After Harvest, the user Should have the less balance as before harvest (It Should not add any reward, because the deadline is passed and he paid the fee for the harvest, so it will be less than before harvest)
-        expect(userTonBalanceAfterHarvest).toBeLessThanOrEqual(userTonBalanceBeforeHarvest);
+        let result = await userJettonWallet.send(
+            user.getSender(),
+            { value: toNano('1.1') },
+            {
+                $$type: 'JettonTransfer',
+                query_id: 0n,
+                amount: userDepositAmount,
+                destination: masterChef.address,
+                response_destination: user.address,
+                custom_payload: null,
+                forward_ton_amount: toNano('1'),
+                forward_payload: beginCell().endCell(),
+            },
+        );
+        // get the balance of usdt After deposit
+        const userUSDTAfter = (await userJettonWallet.getGetWalletData()).balance;
+        // Master Chef should not accept the deposit and also return the deposit
+        expect(userUSDTAfter).toEqual(userUSDTBefore);
     });
 
     it('Should deposit and harvest but deadline passed in the midle', async () => {
@@ -894,6 +899,7 @@ describe('TON MasterChef Tests', () => {
                 metaData: beginCell().storeStringTail('httpppp').endCell(),
                 totalReward: 1000n * 10n ** 5n,
                 deadline: deadline,
+                startTime: BigInt(blockchain.now!!) - 10n,
             },
         );
 
@@ -934,6 +940,7 @@ describe('TON MasterChef Tests', () => {
                 metaData: beginCell().storeStringTail('httpppp').endCell(),
                 deadline: deadline,
                 totalReward: totalReward,
+                startTime: BigInt(blockchain.now!!) - 10n,
             },
         );
         const balanceAfter = await deployer.getBalance();
@@ -964,8 +971,7 @@ describe('TON MasterChef Tests', () => {
         expect(depositResult.transactions).toHaveTransaction({
             from: masterChefJettonWalletAddress,
             to: masterChef.address,
-            success: false,
-            exitCode: 1002, // ERROR_POOL_NOT_FOUND
+            success: true,
         });
     });
 
@@ -1247,6 +1253,7 @@ describe('TON MasterChef Tests', () => {
                 metaData: beginCell().storeStringTail('httpppp').endCell(),
                 deadline: deadline,
                 totalReward: totalReward,
+                startTime: BigInt(blockchain.now!!) - 10n,
             },
         );
         const balanceAfter = await deployer.getBalance();

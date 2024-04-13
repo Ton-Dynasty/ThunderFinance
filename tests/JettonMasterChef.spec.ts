@@ -245,6 +245,7 @@ describe('Jetton MasterChef Tests', () => {
                 metaData: beginCell().storeStringTail('httpppp').endCell(),
                 deadline: deadline,
                 totalReward: totalReward,
+                startTime: BigInt(blockchain.now!!) - 10n,
             },
         );
         expect(masterChefResult.transactions).toHaveTransaction({
@@ -318,6 +319,7 @@ describe('Jetton MasterChef Tests', () => {
                 metaData: beginCell().storeStringTail('httpppp').endCell(),
                 deadline: deadline,
                 totalReward: totalReward,
+                startTime: BigInt(blockchain.now!!) - 10n // -10n is to make sure that the MasterChef is started, 
             },
         );
         expect(masterChefResult.transactions).toHaveTransaction({
@@ -953,6 +955,7 @@ describe('Jetton MasterChef Tests', () => {
                 metaData: beginCell().storeStringTail('httpppp').endCell(),
                 totalReward: 1000n * 10n ** 5n,
                 deadline: deadline,
+                startTime: BigInt(blockchain.now!!) - 10n,
             },
         );
 
@@ -978,6 +981,7 @@ describe('Jetton MasterChef Tests', () => {
                 metaData: beginCell().storeStringTail('httpppp').endCell(),
                 totalReward: 1000n * 10n ** 5n,
                 deadline: deadline,
+                startTime: BigInt(blockchain.now!!) - 10n,
             },
         );
 
