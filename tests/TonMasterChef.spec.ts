@@ -835,7 +835,7 @@ describe('TON MasterChef Tests', () => {
         expect(isInitialized).toBe(false);
     });
 
-    it('Should deposit, withdraw and harvest after deadline', async () => {
+    it('Should not deposit after deadline', async () => {
         await addPool(masterChef, masterChefJettonWallet);
         const userDepositAmount = 1n * 10n ** 6n;
         const periodTime = 3500; // deadline is 2000
@@ -1260,7 +1260,6 @@ describe('TON MasterChef Tests', () => {
 
         // Check that MasterChef is destroyed
         await masterChef.getGetTonMasterChefData().catch((e) => {
-            console.log(e.toString());
             expect(e.toString()).toEqual('Error: Trying to run get method on non-active contract');
         });
 
@@ -1272,5 +1271,168 @@ describe('TON MasterChef Tests', () => {
 
         let gasFee = toNano('0.5');
         expect(balanceAfter + gasFee).toBeGreaterThanOrEqual(balanceBefore);
+    });
+
+    it('Should not let user deposit before start time', async () => {
+        ({ deployer, user, kitchen, usdt, masterChef } = await setupRevertEnv());
+
+        deadline = BigInt(blockchain.now!! + 2000);
+        totalReward = toNano('10');
+        let sendingTon = (totalReward * 1003n) / 1000n;
+        // Build the MasterChef contract from kitchen
+        await kitchen.send(
+            deployer.getSender(),
+            {
+                value: sendingTon,
+            },
+            {
+                $$type: 'BuildTonMasterChef',
+                owner: deployer.address,
+                seed: seed,
+                metaData: beginCell().storeStringTail('httpppp').endCell(),
+                deadline: deadline,
+                totalReward: totalReward,
+                startTime: BigInt(blockchain.now!!) + 20n,
+            },
+        );
+        await addPool(masterChef, masterChefJettonWallet);
+        const userDepositAmount = 1n * 10n ** 6n;
+        // Mint USDT to user so that he can deposit
+        await usdt.send(user.getSender(), { value: toNano('1') }, 'Mint:1');
+        const userJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(user.address, usdt.address));
+
+        const userUSDTBefore = (await userJettonWallet.getGetWalletData()).balance;
+        // deposit first
+        await userJettonWallet.send(
+            user.getSender(),
+            { value: toNano('1.1') },
+            {
+                $$type: 'JettonTransfer',
+                query_id: 0n,
+                amount: userDepositAmount,
+                destination: masterChef.address,
+                response_destination: user.address,
+                custom_payload: null,
+                forward_ton_amount: toNano('1'),
+                forward_payload: beginCell().endCell(),
+            },
+        );
+        // get the balance of usdt After deposit
+        const userUSDTAfter = (await userJettonWallet.getGetWalletData()).balance;
+        // Because the start time is not reached, MasterChef should return the deposit
+        expect(userUSDTAfter).toEqual(userUSDTBefore);
+    });
+
+    it('Should not let user withdraw before start time', async () => {
+        ({ deployer, user, kitchen, usdt, masterChef } = await setupRevertEnv());
+        deadline = BigInt(blockchain.now!! + 2000);
+        totalReward = toNano('1000');
+        let sendingTon2 = (totalReward * 1003n) / 1000n + toNano('1');
+        // Build the MasterChef contract from kitchen
+        const masterChefResult = await kitchen.send(
+            deployer.getSender(),
+            {
+                value: sendingTon2,
+            },
+            {
+                $$type: 'BuildTonMasterChef',
+                owner: deployer.address,
+                seed: seed,
+                metaData: beginCell().storeStringTail('httpppp').endCell(),
+                deadline: deadline,
+                totalReward: totalReward,
+                startTime: BigInt(blockchain.now!!) + 10n,
+            },
+        );
+
+        await addPool(masterChef, masterChefJettonWallet);
+        // Mint USDT to user so that he can deposit
+
+        const withdrawResult = await withdraw(masterChef, user, masterChefJettonWallet, 100n);
+        // Should not let user withdraw before start time
+        expect(withdrawResult.transactions).toHaveTransaction({
+            from: user.address,
+            to: masterChef.address,
+            success: false,
+            exitCode: 48992, // contract not initialized
+        });
+    });
+
+    it('Should not let user harvest before start time', async () => {
+        ({ deployer, user, kitchen, usdt, masterChef } = await setupRevertEnv());
+        deadline = BigInt(blockchain.now!! + 2000);
+        totalReward = toNano('1000');
+        let sendingTon2 = (totalReward * 1003n) / 1000n + toNano('1');
+        // Build the MasterChef contract from kitchen
+        await kitchen.send(
+            deployer.getSender(),
+            {
+                value: sendingTon2,
+            },
+            {
+                $$type: 'BuildTonMasterChef',
+                owner: deployer.address,
+                seed: seed,
+                metaData: beginCell().storeStringTail('httpppp').endCell(),
+                deadline: deadline,
+                totalReward: totalReward,
+                startTime: BigInt(blockchain.now!!) + 10n,
+            },
+        );
+        await addPool(masterChef, masterChefJettonWallet);
+        // Mint USDT to user so that he can deposit
+
+        const harvestResult = await harvest(masterChef, user, masterChefJettonWallet);
+        // Should not let user withdraw before start time
+        expect(harvestResult.transactions).toHaveTransaction({
+            from: user.address,
+            to: masterChef.address,
+            success: false,
+            exitCode: 48992, // contract not initialized
+        });
+    });
+
+    it('Should not let user WithdrawAndHarvest before start time', async () => {
+        ({ deployer, user, kitchen, usdt, masterChef } = await setupRevertEnv());
+        deadline = BigInt(blockchain.now!! + 2000);
+        totalReward = toNano('1000');
+        let sendingTon2 = (totalReward * 1003n) / 1000n + toNano('1');
+        // Build the MasterChef contract from kitchen
+        await kitchen.send(
+            deployer.getSender(),
+            {
+                value: sendingTon2,
+            },
+            {
+                $$type: 'BuildTonMasterChef',
+                owner: deployer.address,
+                seed: seed,
+                metaData: beginCell().storeStringTail('httpppp').endCell(),
+                deadline: deadline,
+                totalReward: totalReward,
+                startTime: BigInt(blockchain.now!!) + 10n,
+            },
+        );
+        await addPool(masterChef, masterChefJettonWallet);
+        // Mint USDT to user so that he can deposit
+
+        const WithdrawAndHarvestResult = await masterChef.send(
+            user.getSender(),
+            { value: toNano('2') },
+            {
+                $$type: 'WithdrawAndHarvest',
+                queryId: 0n,
+                lpTokenAddress: masterChefJettonWallet.address,
+                withdrawAmount: 100n,
+                beneficiary: user.address,
+            },
+        );
+        // Should not let user withdraw before start time
+        expect(WithdrawAndHarvestResult.transactions).toHaveTransaction({
+            from: user.address,
+            to: masterChef.address,
+            success: false,
+            exitCode: 48992, // contract not initialized
+        });
     });
 });
