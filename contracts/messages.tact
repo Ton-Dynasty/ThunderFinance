@@ -26,6 +26,7 @@ message(0x89265822) BuildJettonMasterChef {
     metaData: Slice;                   // MetaData for the MasterChef, such as name, image url and description
     totalReward: Int as coins;         // Total reward for the MasterChef
     deadline: Int as uint64;           // MasterChef distribution deadline
+    startTime: Int as uint64;          // Start Mining Time
 }
 
 // For MasterChef Contract
@@ -41,6 +42,7 @@ message(0xf6cf7e6c) SetUpJettonMC {
     metaData: Slice;                  // MetaData for the MasterChef
     totalReward: Int as coins;        // Total reward for the MasterChef
     deadline: Int as uint64;          // MasterChef distribution deadline
+    startTime: Int as uint64;         // Start Mining Time
 }
 message(0x4b7d1ae4) AddPool{
     lpTokenAddress: Address;    // Pool Factory LP token Wallet address
@@ -136,6 +138,7 @@ message(0x8bf38613) SetUpTonMC {
     metaData: Slice;             // MetaData for the MasterChef
     totalReward: Int as coins;   // Total reward for the MasterChef
     deadline: Int as uint64;     // MasterChef distribution deadline
+    startTime: Int as uint64;          // Start Mining Time
 }
 
 message(0xd449b642) BuildTonMasterChef {
@@ -144,6 +147,7 @@ message(0xd449b642) BuildTonMasterChef {
     metaData: Slice;           // MetaData for the MasterChef
     totalReward: Int as coins; // Total reward for the MasterChef
     deadline: Int as uint64;   // MasterChef distribution deadline
+    startTime: Int as uint64;          // Start Mining Time
 }
 
 // Event: Deploy MasterChef
@@ -171,7 +175,7 @@ struct MasterChefData {
     owner: Address;                 // Owner of the MasterChef
     mcRewardJettonWallet: Address;  // MasterChef Wallet address for reward jetton
     rewardPerSecond: Int as coins;  // Reward per second
-    createdAt: Int as uint64;       // MasterChef Created at block number
+    startTime: Int as uint64;       // // Start Mining Time
     deadline: Int as uint64;        // MasterChef distribution deadline
     isInitialized: Bool;            // MasterChef is initialized or not
     totalAllocPoint: Int as uint16; // Total allocation point

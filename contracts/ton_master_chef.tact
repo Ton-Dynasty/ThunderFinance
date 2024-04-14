@@ -12,6 +12,7 @@ contract TonMasterChef with Deployable, MasterChef {
     totalAllocPoint: Int as uint16 = 0;
     createdAt: Int as uint64 = 0;
     deadline: Int as uint64 = 0;
+    startTime: Int as uint64 = 0;
     metaData: Cell;
 
     // For Reward TON
@@ -42,7 +43,7 @@ contract TonMasterChef with Deployable, MasterChef {
         // Check if the sended TON is enough to cover the total reward and fee
         let ctx: Context = context();
         // Calculate reward per second in basicSetUp() and also other basic setup
-        self.basicSetUp(msg.thunderMintWallet, msg.metaData, msg.totalReward, msg.deadline);
+        self.basicSetUp(msg.thunderMintWallet, msg.metaData, msg.totalReward, msg.deadline, msg.startTime);
         if(self.rewardPerSecond <= 0) {
             send(SendParameters{
                 to: self.owner,
@@ -73,12 +74,13 @@ contract TonMasterChef with Deployable, MasterChef {
         // context sender is from different kind of jetton wallet 
         let ctx: Context = context();
 
-        // check if pool exists
-        if(self.pools.get(ctx.sender) == null) {
-            // If the pool does not exist, then return the jetton to the sender
-            self.sendJetton(ctx.sender, 0 ,msg.amount, msg.sender, msg.sender, SendRemainingValue);
-            throw(ERROR_POOL_NOT_FOUND);
+        // check if pool exists or exceed the deadline
+        if(self.pools.get(ctx.sender) == null || now() > self.deadline || now() < self.startTime) {
+            // Send the jetton back to the sender if pool does not exist
+            self.sendJetton(ctx.sender, 0, msg.amount, msg.sender, msg.sender, SendRemainingValue);
+            return;
         }
+        
         // Deposit the LP tokens for the user
         self.userDeposit(msg,ctx);
     }
@@ -121,7 +123,7 @@ contract TonMasterChef with Deployable, MasterChef {
             owner: self.owner,
             mcRewardJettonWallet: ZERO_ADDRESS, // not used in TonMasterChef
             rewardPerSecond: self.rewardPerSecond,
-            createdAt: self.createdAt,
+            startTime: self.startTime,
             deadline: self.deadline,
             isInitialized: self.isInitialized,
             feeForDevs: self.feeForDevs,

@@ -26,7 +26,8 @@ contract Kitchen with Deployable {
                     mcRewardJettonWallet: msg.mcRewardJettonWallet,
                     metaData: msg.metaData,
                     totalReward: msg.totalReward,
-                    deadline: msg.deadline
+                    deadline: msg.deadline,
+                    startTime: msg.startTime
                 }.toCell(),
                 code: initCode.code,
                 data: initCode.data
@@ -46,7 +47,8 @@ contract Kitchen with Deployable {
                     thunderMintWallet: self.owner,
                     metaData: msg.metaData,
                     totalReward: msg.totalReward,
-                    deadline: msg.deadline
+                    deadline: msg.deadline,
+                    startTime: msg.startTime
                 }.toCell(),
                 code: initCode.code,
                 data: initCode.data
