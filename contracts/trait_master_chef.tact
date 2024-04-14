@@ -42,7 +42,7 @@ trait MasterChef {
         self.totalAllocPoint = self.totalAllocPoint + msg.allocPoint;
         let poolInfo: PoolInfo = PoolInfo{
             allocPoint: msg.allocPoint,
-            lastRewardBlock: now(),
+            lastRewardBlock: self.startTime,
             accRewardPerShare: 0,
             lpSupply: 0,
             lpTokenAddress: msg.lpTokenAddress
