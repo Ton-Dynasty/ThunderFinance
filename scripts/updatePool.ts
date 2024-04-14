@@ -1,7 +1,5 @@
-import { Withdraw } from './../build/MasterChef/tact_MasterChef';
 import { toNano, Address, beginCell } from '@ton/core';
-import { MasterChef } from '../wrappers/MasterChef';
-import { JettonWalletUSDT } from '../wrappers/JettonWallet';
+import { JettonMasterChef } from '../wrappers/JettonMasterChef';
 import { JettonMasterUSDT } from '../wrappers/JettonMaster';
 
 import { NetworkProvider } from '@ton/blueprint';
@@ -9,7 +7,7 @@ import { loadDeployment } from '../utils/helper';
 
 export async function run(provider: NetworkProvider) {
     const deployment = await loadDeployment();
-    const masterchef = provider.open(MasterChef.fromAddress(Address.parse(deployment.MasterChef)));
+    const masterchef = provider.open(JettonMasterChef.fromAddress(Address.parse(deployment.MasterChef)));
 
     const usdt = provider.open(JettonMasterUSDT.fromAddress(Address.parse(deployment.USDT)));
 
