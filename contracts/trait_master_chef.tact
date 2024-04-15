@@ -275,4 +275,26 @@ trait MasterChef {
     get fun getMetaData(): Cell {
         return self.metaData;
     }
+
+    // Get AccRewardPerShare
+    get fun getAccRewardPerShare(lpTokenAddress: Address): Int {
+        require(self.pools.get(lpTokenAddress) != null , "pool not exists");
+        let pool: PoolInfo = self.pools.get(lpTokenAddress)!!;
+        // The time should be the minimum of now and deadline
+        let _time: Int = min(now(), self.deadline);
+
+        // If the last reward block is greater than now,
+        // or the last reward block is equal to pool.lastRewardBlock, return
+        if (_time <= pool.lastRewardBlock){
+            return pool.accRewardPerShare;
+        }
+
+        // Calculate the reward
+        if (pool.lpSupply > 0 ) {
+            let reward: Int = (_time - pool.lastRewardBlock) * self.rewardPerSecond;
+            let rewardAmount: Int = ACC_PRECISION * reward * pool.allocPoint / self.totalAllocPoint;
+            return pool.accRewardPerShare + (rewardAmount / pool.lpSupply);
+        } 
+        return 0;
+    }
 }
