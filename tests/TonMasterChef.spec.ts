@@ -11,6 +11,7 @@ import * as fs from 'fs';
 describe('TON MasterChef Tests', () => {
     let blockchain: Blockchain;
     let deployer: SandboxContract<TreasuryContract>;
+    let ThunderFi: SandboxContract<TreasuryContract>;
     let user: SandboxContract<TreasuryContract>;
     let masterChef: SandboxContract<TonMasterChef>;
     let usdt: SandboxContract<JettonMasterUSDT>;
@@ -135,17 +136,18 @@ describe('TON MasterChef Tests', () => {
 
         // Characters
         deployer = await blockchain.treasury('deployer'); // Owner of MasterChef
+        ThunderFi = await blockchain.treasury('ThunderFi'); // Owner of MasterChef
         user = await blockchain.treasury('user'); // User who deposits, withdraws, and harvests
 
         // Contracts
-        kitchen = await blockchain.openContract(await Kitchen.fromInit(deployer.address, 0n)); // MasterChef Factory
+        kitchen = await blockchain.openContract(await Kitchen.fromInit(ThunderFi.address, 0n)); // MasterChef Factory
         usdt = blockchain.openContract(await JettonMasterUSDT.fromInit(deployer.address, beginCell().endCell())); // Reward token and LP token
         seed = BigInt(`0x${beginCell().storeUint(Date.now(), 64).endCell().hash().toString('hex')}`); // Seed for MasterChef
 
         // Setup all the contracts
         await usdt.send(deployer.getSender(), { value: toNano('1') }, 'Mint:1'); // Mint USDT to deployer so that he can start the MasterChef
         const kitcherResult = await kitchen.send(
-            deployer.getSender(),
+            ThunderFi.getSender(),
             {
                 value: toNano('0.5'),
             },
@@ -156,7 +158,7 @@ describe('TON MasterChef Tests', () => {
         );
 
         expect(kitcherResult.transactions).toHaveTransaction({
-            from: deployer.address,
+            from: ThunderFi.address,
             to: kitchen.address,
             deploy: true,
             success: true,
@@ -178,17 +180,18 @@ describe('TON MasterChef Tests', () => {
 
         // Characters
         deployer = await blockchain.treasury('deployer'); // Owner of MasterChef
+        ThunderFi = await blockchain.treasury('ThunderFi'); // Owner of MasterChef
         user = await blockchain.treasury('user'); // User who deposits, withdraws, and harvests
 
         // Contracts
-        kitchen = await blockchain.openContract(await Kitchen.fromInit(deployer.address, 0n)); // MasterChef Factory
+        kitchen = await blockchain.openContract(await Kitchen.fromInit(ThunderFi.address, 0n)); // MasterChef Factory
         usdt = blockchain.openContract(await JettonMasterUSDT.fromInit(deployer.address, beginCell().endCell())); // Reward token and LP token
         seed = BigInt(`0x${beginCell().storeUint(Date.now(), 64).endCell().hash().toString('hex')}`); // Seed for MasterChef
 
         // Setup all the contracts
         await usdt.send(deployer.getSender(), { value: toNano('1') }, 'Mint:1'); // Mint USDT to deployer so that he can start the MasterChef
         const kitcherResult = await kitchen.send(
-            deployer.getSender(),
+            ThunderFi.getSender(),
             {
                 value: toNano('0.5'),
             },
@@ -199,7 +202,7 @@ describe('TON MasterChef Tests', () => {
         );
 
         expect(kitcherResult.transactions).toHaveTransaction({
-            from: deployer.address,
+            from: ThunderFi.address,
             to: kitchen.address,
             deploy: true,
             success: true,
@@ -235,12 +238,17 @@ describe('TON MasterChef Tests', () => {
             },
         );
         let thunderMintTonAfter = await deployer.getBalance();
-        let GAS_FEE = toNano('0.5')
+        let GAS_FEE = toNano('0.5');
 
-        // Check if the MasterChef send TON for Devs to ThunderFi
-        // Because ThunderFi is ownwer of the MasterChef, so the MasterChef should send the fee to ThunderFi
-        // Thereforem owner only has to send totalReward & GAS_FEE in the process (he will get feeForDevs back)
-        expect(thunderMintTonBefore - thunderMintTonAfter - totalReward).toBeLessThanOrEqual(GAS_FEE);
+        // Check if Deployer send the TON to MasterChef
+        expect(thunderMintTonBefore - thunderMintTonAfter).toBeGreaterThanOrEqual(totalReward + feeForDevs);
+
+        // Check that MaterChef send the TON to ThunderFi
+        expect(masterChefResult.transactions).toHaveTransaction({
+            from: masterChef.address,
+            to: ThunderFi.address,
+            success: true,
+        });
 
         // Kitchen Deploy MasterChef
         expect(masterChefResult.transactions).toHaveTransaction({
