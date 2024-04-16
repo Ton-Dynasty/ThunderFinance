@@ -10,13 +10,15 @@ import * as fs from 'fs';
 
 describe('Jetton MasterChef Tests', () => {
     let blockchain: Blockchain;
+    let ThunderFi: SandboxContract<TreasuryContract>;
     let deployer: SandboxContract<TreasuryContract>;
     let user: SandboxContract<TreasuryContract>;
     let masterChef: SandboxContract<JettonMasterChef>;
     let usdt: SandboxContract<JettonMasterUSDT>;
-    
+
     let masterChefJettonWallet: SandboxContract<JettonWalletUSDT>;
     let deployerJettonWallet: SandboxContract<JettonWalletUSDT>;
+    let thunderFiJettonWallet: SandboxContract<JettonWalletUSDT>;
     let kitchen: SandboxContract<Kitchen>;
     let rewardPerSecond: bigint;
     let seed: bigint;
@@ -69,6 +71,7 @@ describe('Jetton MasterChef Tests', () => {
         deployer: SandboxContract<TreasuryContract>,
     ) {
         const ownerBalanceBefore = (await deployerJettonWallet.getGetWalletData()).balance;
+        const thunderFiBalanceBefore = (await thunderFiJettonWallet.getGetWalletData()).balance;  
         const feeAmont = (totalReward * 3n) / 1000n;
         const initResult = await deployerJettonWallet.send(
             deployer.getSender(),
@@ -87,18 +90,19 @@ describe('Jetton MasterChef Tests', () => {
             },
         );
         const ownerBalanceAfter = (await deployerJettonWallet.getGetWalletData()).balance;
-        // Eexpect that the ThunderFi has received the fee
-        // Because ThunderFi is the owner of the MasterChef, the fee should be sent back to the owner
-        // Therefore, the owner only have to pay the reward
-        expect(ownerBalanceBefore - ownerBalanceAfter).toBe(totalReward);
+        const thunderFiBalanceAfter = (await thunderFiJettonWallet.getGetWalletData()).balance;
+        // Deployer Should send totalReward + feeAmont to MasterChef JettonWallet
+        expect(ownerBalanceBefore - ownerBalanceAfter).toBe(totalReward + feeAmont);
 
-        // deployerJettonWallet send jetton to MasterChef JettonWallet
+        // MasterChef should send FeeForDevs(Jetton) to ThunderFi JettonWallet
         expect(initResult.transactions).toHaveTransaction({
             from: masterChefJettonWallet.address,
-            to: deployerJettonWallet.address,
+            to: thunderFiJettonWallet.address,
             success: true,
         });
 
+        // ThunderFi JettonWallet should receive FeeForDevs(Jetton)
+        expect(thunderFiBalanceAfter - thunderFiBalanceBefore).toBe(feeAmont);
 
         rewardPerSecond = await (await masterChef.getGetJettonMasterChefData()).rewardPerSecond;
 
@@ -115,6 +119,7 @@ describe('Jetton MasterChef Tests', () => {
             to: masterChefJettonWallet.address,
             success: true,
         });
+
         // MasterChef should send JettonNotify to MasterChef
         expect(initResult.transactions).toHaveTransaction({
             from: masterChefJettonWallet.address,
@@ -202,18 +207,22 @@ describe('Jetton MasterChef Tests', () => {
 
         // Characters
         deployer = await blockchain.treasury('deployer'); // Owner of MasterChef
+        ThunderFi = await blockchain.treasury('ThunderFi'); // Owner of MasterChef
         user = await blockchain.treasury('user'); // User who deposits, withdraws, and harvests
 
         // Contracts
-        kitchen = await blockchain.openContract(await Kitchen.fromInit(deployer.address, 0n)); // MasterChef Factory
+        kitchen = await blockchain.openContract(await Kitchen.fromInit(ThunderFi.address, 0n)); // MasterChef Factory
         usdt = blockchain.openContract(await JettonMasterUSDT.fromInit(deployer.address, beginCell().endCell())); // Reward token and LP token
         seed = BigInt(`0x${beginCell().storeUint(Date.now(), 64).endCell().hash().toString('hex')}`); // Seed for MasterChef
 
         deployerJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(deployer.address, usdt.address)); // Deployer USDT JettonWallet
+        thunderFiJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(ThunderFi.address, usdt.address));
         // Setup all the contracts
         await usdt.send(deployer.getSender(), { value: toNano('1') }, 'Mint:1'); // Mint USDT to deployer so that he can start the MasterChef
+        await usdt.send(ThunderFi.getSender(), { value: toNano('1') }, 'Mint:1'); // Mint USDT to deployer so that he can start the MasterChef
+
         const kitcherResult = await kitchen.send(
-            deployer.getSender(),
+            ThunderFi.getSender(),
             {
                 value: toNano('0.5'),
             },
@@ -224,7 +233,7 @@ describe('Jetton MasterChef Tests', () => {
         );
 
         expect(kitcherResult.transactions).toHaveTransaction({
-            from: deployer.address,
+            from: ThunderFi.address,
             to: kitchen.address,
             deploy: true,
             success: true,
@@ -274,20 +283,26 @@ describe('Jetton MasterChef Tests', () => {
         blockchain.now = Math.floor(Date.now() / 1000);
 
         // Characters
+        ThunderFi = await blockchain.treasury('ThunderFi'); // Owner of MasterChef
         deployer = await blockchain.treasury('deployer'); // Owner of MasterChef
         user = await blockchain.treasury('user'); // User who deposits, withdraws, and harvests
 
         // Contracts
-        kitchen = await blockchain.openContract(await Kitchen.fromInit(deployer.address, 0n)); // MasterChef Factory
+        kitchen = await blockchain.openContract(await Kitchen.fromInit(ThunderFi.address, 0n)); // MasterChef Factory
         usdt = blockchain.openContract(await JettonMasterUSDT.fromInit(deployer.address, beginCell().endCell())); // Reward token and LP token
         seed = BigInt(`0x${beginCell().storeUint(Date.now(), 64).endCell().hash().toString('hex')}`); // Seed for MasterChef
 
         deployerJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(deployer.address, usdt.address)); // Deployer USDT JettonWallet
+        thunderFiJettonWallet = blockchain.openContract(
+            await JettonWalletUSDT.fromInit(ThunderFi.address, usdt.address),
+        );
 
         // Setup all the contracts
         await usdt.send(deployer.getSender(), { value: toNano('1') }, 'Mint:1'); // Mint USDT to deployer so that he can start the MasterChef
+        await usdt.send(ThunderFi.getSender(), { value: toNano('1') }, 'Mint:1'); // Mint USDT to deployer so that he can start the MasterChef
+
         const kitcherResult = await kitchen.send(
-            deployer.getSender(),
+            ThunderFi.getSender(),
             {
                 value: toNano('0.5'),
             },
@@ -298,7 +313,7 @@ describe('Jetton MasterChef Tests', () => {
         );
 
         expect(kitcherResult.transactions).toHaveTransaction({
-            from: deployer.address,
+            from: ThunderFi.address,
             to: kitchen.address,
             deploy: true,
             success: true,
