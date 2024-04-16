@@ -276,7 +276,7 @@ trait MasterChef {
         return self.metaData;
     }
 
-    // Get AccRewardPerShare
+    // Get AccRewardPerShare, for offchain calculation
     get fun getAccRewardPerShare(lpTokenAddress: Address): Int {
         require(self.pools.get(lpTokenAddress) != null , "pool not exists");
         let pool: PoolInfo = self.pools.get(lpTokenAddress)!!;
