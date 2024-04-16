@@ -1,18 +1,19 @@
-# Thunder Mint
+# Thunder Finance
 
 <a href="https://t.me/Thunder_Finance" target="_blank"><img alt="Telegram" src="https://img.shields.io/badge/Telegram-2CA5E0.svg?&style=for-the-badge&logo=telegram&logoColor=white" /></a>
 <img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/Ton-Dynasty/ThunderFinance/ci.yaml?branch=main&style=for-the-badge">
+<img alt="Website" src="https://img.shields.io/website?url=https%3A%2F%2Flinktr.ee%2Fthunder.finance&up_message=Linktree&up_color=orange&style=for-the-badge&label=Ref">
 
 
 
-Welcome to Thunder Mint, the revolutionary platform that empowers project creators to launch their liquidity mining pools with just a click. By offering a seamless way to reward users with platform tokens for their liquidity provider (LP) tokens, we're setting a new standard in enhancing DEX liquidity through our innovative incentive mechanisms. Our goal is to make entering the TON blockchain as easy as possible for everyone, with our one-click token creation and airdrop distribution system powered by Merkle Distributor.
+Welcome to Thunder Finance 👋. As a one-stop yield farming platform, existing GameFi, Meme Tokens, and DeFi projects can effortlessly activate liquidity mining with just one click on Thunder Finance. Setting up a liquidity pool is straightforward, enhancing the value of their protocols.
 
 ## Features
 
 - **One-Click Liquidity Pool Launch**: Create your liquidity mining pools effortlessly, allowing you to focus on building your community and project.
 - **Reward Distribution**: Reward your users with platform tokens for contributing their LP tokens, enhancing the liquidity of your DEX.
 - **Seamless Token Creation**: With our one-click solution, anyone can create tokens on the TON blockchain, democratizing access to DeFi tools.
-- **Merkle Distributor for Airdrops**: Distribute airdrops efficiently and securely, ensuring your tokens reach their intended recipients.
+
 
 
 ThunderMint Contracts aims to resolve key issues in the TON blockchain's DeFi ecosystem by providing innovative solutions for liquidity and secure smart contract development.
@@ -41,21 +42,21 @@ ThunderMint Contracts aims to resolve key issues in the TON blockchain's DeFi ec
 ### DeFi Toolkit Enhancements
 
 - **Flash Minting:** Provide a method for instantaneous token minting for flexible DeFi operations.
-- **Merkle Lightning Airdrop:** Facilitate a rapid and secure method of token distribution.
 
 ## Target Market Insights
 
+- **For Users:**
+  - **Need:** 
+    - Simplify the complex process of yield farming into a user-friendly experience accessible even for beginners.
+  - **Value Proposition:** 
+    - Thunder Finance uses a suite of advanced algorithms and a friendly interface to provide a secure, efficient, and easily accessible environment for earning passive income effortlessly. The utilization of the TON blockchain's high transaction throughput and low fees further enhances the user experience, making Thunder Finance stand out in the competitive DeFi market.
+
 - **For Protocols:**
-  - **Need:** Augment liquidity and user attraction.
-  - **Value Proposition:** Enable one-click setup for liquidity mining, fostering enhanced user participation.
+  - **Need:** 
+    - Enable existing projects on the TON blockchain, like GameFi, Meme Tokens, and other DeFi Protocols, to activate yield farming effortlessly.
+  - **Value Proposition:** 
+    - Thunder Finance offers a turnkey solution that allows project owners to focus on their core business logic while it handles the complexities of activating yield farming. This service amplifies the value of tokens through incentive mechanisms, promoting a thriving DeFi ecosystem on the TON platform.
 
-- **For Founders:**
-  - **Need:** Streamline token issuance and ensure broad distribution.
-  - **Value Proposition:** Offer flash minting and Merkle lightning airdrops for efficient and secure token dissemination.
-
-- **For LP Providers:**
-  - **Need:** Simplify and make liquidity provision profitable.
-  - **Value Proposition:** Provide easier staking options, alluring rewards, and reduced barriers for newcomers.
 
 <!-- ## Deployment Guide
 
