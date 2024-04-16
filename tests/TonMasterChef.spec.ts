@@ -220,7 +220,8 @@ describe('TON MasterChef Tests', () => {
         let feeForDevs = (totalReward * 3n) / 1000n;
         let sendingTon = totalReward + feeForDevs + toNano('1');
 
-        let thunderMintTonBefore = await deployer.getBalance();
+        let deployerTonBefore = await deployer.getBalance();
+        let ThunderFiTonBefore = await ThunderFi.getBalance();
         // Build the MasterChef contract from kitchen
         const masterChefResult = await kitchen.send(
             deployer.getSender(),
@@ -237,11 +238,14 @@ describe('TON MasterChef Tests', () => {
                 startTime: BigInt(blockchain.now!!) - 10n, // -10n is to make sure that the MasterChef is started
             },
         );
-        let thunderMintTonAfter = await deployer.getBalance();
-        let GAS_FEE = toNano('0.5');
+        let deployerTonAfter = await deployer.getBalance();
+        let ThunderFiTonAfter = await ThunderFi.getBalance();
 
         // Check if Deployer send the TON to MasterChef
-        expect(thunderMintTonBefore - thunderMintTonAfter).toBeGreaterThanOrEqual(totalReward + feeForDevs);
+        expect(deployerTonBefore - deployerTonAfter).toBeGreaterThanOrEqual(totalReward + feeForDevs);
+
+        // Check if ThunderFi receive the fee
+        expect(ThunderFiTonAfter).toBeGreaterThan(ThunderFiTonBefore)
 
         // Check that MaterChef send the TON to ThunderFi
         expect(masterChefResult.transactions).toHaveTransaction({
