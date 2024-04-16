@@ -211,7 +211,6 @@ trait MasterChef {
         if (_time <= pool.lastRewardBlock){
             return;
         }
-
         // Calculate the reward
         if (pool.lpSupply > 0 ) {
             let reward: Int = (_time - pool.lastRewardBlock) * self.rewardPerSecond;

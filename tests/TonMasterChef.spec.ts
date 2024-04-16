@@ -7,7 +7,6 @@ import { JettonWalletUSDT } from '../wrappers/JettonWallet';
 import { JettonMasterUSDT } from '../wrappers/JettonMaster';
 import '@ton/test-utils';
 import * as fs from 'fs';
-import exp from 'constants';
 
 describe('TON MasterChef Tests', () => {
     let blockchain: Blockchain;
@@ -23,6 +22,8 @@ describe('TON MasterChef Tests', () => {
     let totalReward: bigint;
     let masterChefJettonWalletAddress: Address;
     const fee = 55000000n; // This fee is for GAS_FEE and THUNDERMINT_FEE
+    const ACC_PRECISION = 10n ** 12n;
+    const TOKEN_DECIMALS = 10n ** 6n;
     const gasFile = 'TONMasterChefCosts.txt';
 
     // Helper function to append data to a file
@@ -83,7 +84,7 @@ describe('TON MasterChef Tests', () => {
         user: SandboxContract<TreasuryContract>,
         masterChefJettonWallet: SandboxContract<JettonWalletUSDT>,
         usdt: SandboxContract<JettonMasterUSDT>,
-        userDepositAmount = 1n * 10n ** 6n,
+        userDepositAmount = 1n * TOKEN_DECIMALS,
     ) {
         await addPool(masterChef, masterChefJettonWallet);
         return await depositJetton(usdt, user, masterChef, userDepositAmount);
@@ -284,7 +285,7 @@ describe('TON MasterChef Tests', () => {
 
     it('Should user deposit usdt to master chef and update pool', async () => {
         await addPool(masterChef, masterChefJettonWallet);
-        const userDepositAmount = 1n * 10n ** 6n;
+        const userDepositAmount = 1n * TOKEN_DECIMALS;
         const periodTime = 10;
         const userDepositCostTonBefore = await user.getBalance();
         const depositResult = await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
@@ -336,13 +337,13 @@ describe('TON MasterChef Tests', () => {
         const poolDataAfter: PoolInfo = await masterChef.getGetPoolInfo(masterChefJettonWallet.address);
         // check the accRewardPerShare is updated
         expect(poolDataAfter.accRewardPerShare).toEqual(
-            poolDataBefore.accRewardPerShare + BigInt(periodTime) * rewardPerSecond,
+            poolDataBefore.accRewardPerShare + (BigInt(periodTime) * rewardPerSecond * ACC_PRECISION) / TOKEN_DECIMALS,
         );
     });
 
     it('Should deposit and harvest', async () => {
         await addPool(masterChef, masterChefJettonWallet);
-        const userDepositAmount = 1n * 10n ** 6n;
+        const userDepositAmount = 1n * TOKEN_DECIMALS;
         const periodTime = 1000;
         await depositJetton(usdt, user, masterChef, userDepositAmount);
         // Update time to periodTime, so that we can harvest
@@ -381,7 +382,7 @@ describe('TON MasterChef Tests', () => {
             success: true,
         });
 
-        const benefit = (userDepositAmount * BigInt(periodTime) * rewardPerSecond) / 10n ** 6n;
+        const benefit = (userDepositAmount * BigInt(periodTime) * rewardPerSecond) / TOKEN_DECIMALS;
         // Check if user get the reward
         let feeInHarvest = 54659059n;
         expect(userTonBalanceAfter - userTonBalanceBefore + feeInHarvest).toBeGreaterThanOrEqual(benefit);
@@ -392,7 +393,7 @@ describe('TON MasterChef Tests', () => {
 
     it('Should deposit and harvest twice', async () => {
         await addPool(masterChef, masterChefJettonWallet);
-        const userDepositAmount = 1n * 10n ** 6n;
+        const userDepositAmount = 1n * TOKEN_DECIMALS;
         const periodTime = 1000;
         await depositJetton(usdt, user, masterChef, userDepositAmount);
         // Update time to periodTime, so that we can harvest
@@ -404,7 +405,7 @@ describe('TON MasterChef Tests', () => {
 
         // User JettonWallet Should have received the reward
         const userTonBalanceAfter = await user.getBalance();
-        const benefit = (userDepositAmount * BigInt(periodTime) * rewardPerSecond) / 10n ** 6n;
+        const benefit = (userDepositAmount * BigInt(periodTime) * rewardPerSecond) / TOKEN_DECIMALS;
         expect(userTonBalanceAfter + fee).toBeGreaterThanOrEqual(userTonBalanceBefore + benefit);
 
         // User Deposit Again
@@ -438,7 +439,7 @@ describe('TON MasterChef Tests', () => {
 
     it('Should Harvest After Deadline', async () => {
         await addPool(masterChef, masterChefJettonWallet);
-        const userDepositAmount = 1n * 10n ** 6n;
+        const userDepositAmount = 1n * TOKEN_DECIMALS;
         const periodTime = 1000;
         await depositJetton(usdt, user, masterChef, userDepositAmount);
         // Update time to periodTime, so that we can harvest
@@ -450,7 +451,7 @@ describe('TON MasterChef Tests', () => {
 
         // User JettonWallet Should have received the reward
         const userTonBalanceAfter = await user.getBalance();
-        const benefit = (userDepositAmount * BigInt(periodTime) * rewardPerSecond) / 10n ** 6n;
+        const benefit = (userDepositAmount * BigInt(periodTime) * rewardPerSecond) / TOKEN_DECIMALS;
         expect(userTonBalanceAfter + fee).toBeGreaterThanOrEqual(userTonBalanceBefore + benefit);
 
         // User Deposit Again
@@ -485,7 +486,7 @@ describe('TON MasterChef Tests', () => {
     });
 
     it('Should deposit and withdraw', async () => {
-        const userDepositAmount = 1n * 10n ** 6n;
+        const userDepositAmount = 1n * TOKEN_DECIMALS;
         const userWithdrawAmount = 5n * 10n ** 5n;
         const periodTime = 100;
         const userJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(user.address, usdt.address));
@@ -520,7 +521,7 @@ describe('TON MasterChef Tests', () => {
     });
 
     it('Should deposit and withdarw with harvest', async () => {
-        const userDepositAmount = 1n * 10n ** 6n;
+        const userDepositAmount = 1n * TOKEN_DECIMALS;
         const userWithdrawAmount = 5n * 10n ** 5n;
         const periodTime = 100;
         const userJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(user.address, usdt.address));
@@ -544,13 +545,13 @@ describe('TON MasterChef Tests', () => {
         //expect(userUSDTBalanceBeforeHarvest).toEqual(userUSDTBalanceBeforeWithdraw + userWithdrawAmount);
         // check the differnce between userUSDTBalanceBeforeWithdraw and userUSDTBalanceAfterHarvest is equal to userWithdrawAmount
         const remainDeposit = userDepositAmount - userWithdrawAmount;
-        const benefit = ((userDepositAmount + remainDeposit) * BigInt(periodTime) * rewardPerSecond) / 10n ** 6n;
+        const benefit = ((userDepositAmount + remainDeposit) * BigInt(periodTime) * rewardPerSecond) / TOKEN_DECIMALS;
 
         expect(userTonBalanceAfterHarvest + fee).toBeGreaterThanOrEqual(userTonBalanceBeforeHarvest + benefit);
     });
 
     it('Should not withdraw internal reply by user', async () => {
-        const userDepositAmount = 1n * 10n ** 6n;
+        const userDepositAmount = 1n * TOKEN_DECIMALS;
         const userWithdrawAmount = 5n * 10n ** 5n;
         // deposit first
         await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
@@ -578,7 +579,7 @@ describe('TON MasterChef Tests', () => {
     });
 
     it('Should withdraw and harvest in one step', async () => {
-        const userDepositAmount = 1n * 10n ** 6n;
+        const userDepositAmount = 1n * TOKEN_DECIMALS;
         const userWithdrawAmount = 5n * 10n ** 5n;
         const periodTime = 1000;
         const userJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(user.address, usdt.address));
@@ -646,8 +647,8 @@ describe('TON MasterChef Tests', () => {
     it('Should harvest by different user', async () => {
         const user1 = await blockchain.treasury('user1');
         const user2 = await blockchain.treasury('user2');
-        const user1DepositAmount = 1n * 10n ** 6n;
-        const user2DepositAmount = 2n * 10n ** 6n;
+        const user1DepositAmount = 1n * TOKEN_DECIMALS;
+        const user2DepositAmount = 2n * TOKEN_DECIMALS;
         const periodTime = 100;
         // addpool
         await addPool(masterChef, masterChefJettonWallet);
@@ -673,16 +674,16 @@ describe('TON MasterChef Tests', () => {
 
         // check the benefit of user1 and user2 are correct
         const totalDeposit = user1DepositAmount + user2DepositAmount;
-        const rewardPerShare = (10n ** 6n * (BigInt(periodTime) * rewardPerSecond)) / totalDeposit;
-        const benefit1 = (user1DepositAmount * rewardPerShare) / 10n ** 6n;
-        const benefit2 = (user2DepositAmount * rewardPerShare) / 10n ** 6n;
+        const rewardPerShare = (TOKEN_DECIMALS * (BigInt(periodTime) * rewardPerSecond)) / totalDeposit;
+        const benefit1 = (user1DepositAmount * rewardPerShare) / TOKEN_DECIMALS;
+        const benefit2 = (user2DepositAmount * rewardPerShare) / TOKEN_DECIMALS;
 
         expect(user1TonBalanceAfter + fee).toBeGreaterThanOrEqual(user1TonBalanceBefore + benefit1);
         expect(user2TonBalanceAfter + fee).toBeGreaterThanOrEqual(user2TonBalanceBefore + benefit2);
     });
 
     it('Should ThunderMint can collect the Fees from projcet party and users', async () => {
-        const userDepositAmount = 1n * 10n ** 6n;
+        const userDepositAmount = 1n * TOKEN_DECIMALS;
         const userWithdrawAmount = 5n * 10n ** 5n;
         const periodTime = 10;
         const rewardTONForDev = (totalReward * 3n) / 1000n;
@@ -837,7 +838,7 @@ describe('TON MasterChef Tests', () => {
 
     it('Should not deposit after deadline', async () => {
         await addPool(masterChef, masterChefJettonWallet);
-        const userDepositAmount = 1n * 10n ** 6n;
+        const userDepositAmount = 1n * TOKEN_DECIMALS;
         const periodTime = 3500; // deadline is 2000
         // Mint USDT to user so that he can deposit
         await usdt.send(user.getSender(), { value: toNano('1') }, 'Mint:1');
@@ -868,7 +869,7 @@ describe('TON MasterChef Tests', () => {
     });
 
     it('Should deposit and harvest but deadline passed in the midle', async () => {
-        const userDepositAmount = 1n * 10n ** 6n;
+        const userDepositAmount = 1n * TOKEN_DECIMALS;
         const periodTime = 2500;
         const userJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(user.address, usdt.address));
         // deposit first
@@ -883,7 +884,7 @@ describe('TON MasterChef Tests', () => {
         await harvest(masterChef, user, masterChefJettonWallet);
         const userTonBalanceAfterHarvest = await user.getBalance();
         // It can only get the benefit until the deadline
-        const benefit = (userDepositAmount * BigInt(deadline - startBlock) * rewardPerSecond) / 10n ** 6n;
+        const benefit = (userDepositAmount * BigInt(deadline - startBlock) * rewardPerSecond) / TOKEN_DECIMALS;
         expect(userTonBalanceAfterHarvest).toBeLessThanOrEqual(userTonBalanceBeforeHarvest + benefit);
     });
 
@@ -966,7 +967,7 @@ describe('TON MasterChef Tests', () => {
     // Test user deposit behavior before a pool is added.
     it('Should reject user deposits before any pool is added', async () => {
         // Attempt to make a deposit before any pool has been added to the contract and expect failure.
-        const userDepositAmount = 1n * 10n ** 6n;
+        const userDepositAmount = 1n * TOKEN_DECIMALS;
         const depositResult = await depositJetton(usdt, user, masterChef, userDepositAmount);
         expect(depositResult.transactions).toHaveTransaction({
             from: masterChefJettonWalletAddress,
@@ -1022,7 +1023,7 @@ describe('TON MasterChef Tests', () => {
     // Test unauthorized internal withdraw messages sent to MiniChef.
     it('Should reject WithdrawInternal messages from non-MasterChef contracts', async () => {
         // Simulate a WithdrawInternal message from an unauthorized source and expect rejection.
-        const userDepositAmount = 1n * 10n ** 6n;
+        const userDepositAmount = 1n * TOKEN_DECIMALS;
         // deposit first
         await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
         const miniChefAddress = await masterChef.getGetMiniChefAddress(user.address);
@@ -1052,7 +1053,7 @@ describe('TON MasterChef Tests', () => {
     it('Should prevent users from withdrawing more than their current balance', async () => {
         // Attempt to withdraw an amount greater than the user's balance and expect failure.
 
-        const userDepositAmount = 1n * 10n ** 6n;
+        const userDepositAmount = 1n * TOKEN_DECIMALS;
         const userWithdrawAmount = userDepositAmount * 2n;
         const periodTime = 10;
         // deposit first
@@ -1074,7 +1075,7 @@ describe('TON MasterChef Tests', () => {
     // Test handling of WithdrawInternalReply by an entity other than MiniChef.
     it('Should ignore WithdrawInternalReply messages not sent by MiniChef', async () => {
         // Simulate receiving a WithdrawInternalReply message from an unauthorized source and verify it's ignored.
-        const userDepositAmount = 1n * 10n ** 6n;
+        const userDepositAmount = 1n * TOKEN_DECIMALS;
         // deposit first
         await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
         const withdrawInternalReplyResult = await masterChef.send(
@@ -1143,7 +1144,7 @@ describe('TON MasterChef Tests', () => {
     // Test unauthorized internal harvest messages sent to MiniChef.
     it('Should reject HarvestInternal messages from non-MasterChef contracts', async () => {
         // Simulate a HarvestInternal message from an unauthorized source and expect rejection.
-        const userDepositAmount = 1n * 10n ** 6n;
+        const userDepositAmount = 1n * TOKEN_DECIMALS;
         // deposit first
         await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
         const miniChefAddress = await masterChef.getGetMiniChefAddress(user.address);
@@ -1170,7 +1171,7 @@ describe('TON MasterChef Tests', () => {
     // Test handling of HarvestInternalReply by an entity other than MiniChef.
     it('Should ignore HarvestInternalReply messages not sent by MiniChef', async () => {
         // Simulate receiving a HarvestInternalReply message from an unauthorized source and verify it's ignored.
-        const userDepositAmount = 1n * 10n ** 6n;
+        const userDepositAmount = 1n * TOKEN_DECIMALS;
         // deposit first
         await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
         const harvestInternalReplyResult = await masterChef.send(
@@ -1296,7 +1297,7 @@ describe('TON MasterChef Tests', () => {
             },
         );
         await addPool(masterChef, masterChefJettonWallet);
-        const userDepositAmount = 1n * 10n ** 6n;
+        const userDepositAmount = 1n * TOKEN_DECIMALS;
         // Mint USDT to user so that he can deposit
         await usdt.send(user.getSender(), { value: toNano('1') }, 'Mint:1');
         const userJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(user.address, usdt.address));
