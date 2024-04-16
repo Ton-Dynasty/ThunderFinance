@@ -2,9 +2,8 @@
 
 <a href="https://t.me/Thunder_Finance" target="_blank"><img alt="Telegram" src="https://img.shields.io/badge/Telegram-2CA5E0.svg?&style=for-the-badge&logo=telegram&logoColor=white" /></a>
 <img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/Ton-Dynasty/ThunderFinance/ci.yaml?branch=main&style=for-the-badge">
+<a href="https://discord.gg/T8D6QtCz" target="_blank"><img alt="Discord" src="https://img.shields.io/discord/1226736947813158952?style=for-the-badge&logo=discord&label=Discord&cacheSeconds=30"></a>
 <a href="https://linktr.ee/thunder.finance" target="_blank"><img alt="Website" src="https://img.shields.io/website?url=https%3A%2F%2Flinktr.ee%2Fthunder.finance&up_message=Linktree&up_color=orange&style=for-the-badge&label=Ref"></a>
-
-
 
 
 Welcome to Thunder Finance 👋. As a one-stop yield farming platform, existing GameFi, Meme Tokens, and DeFi projects can effortlessly activate liquidity mining with just one click on Thunder Finance. Setting up a liquidity pool is straightforward, enhancing the value of their protocols.
