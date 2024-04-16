@@ -62,10 +62,11 @@ contract TonMasterChef with Deployable, MasterChef {
             return;
         }
         self.isInitialized = true;
+        self.sendTon(self.thunderMintWallet, self.feeForDevs - ctx.readForwardFee(), 0);
 
         // Sending the remaining TON to the owner
         if(sendedTon > expectedTon) {
-            self.sendTon(self.owner, sendedTon - expectedTon, 0);
+            self.sendTon(self.owner, sendedTon - expectedTon , 0);
         }
     }
     
@@ -108,12 +109,12 @@ contract TonMasterChef with Deployable, MasterChef {
     
 
     // Pay the fee to Thunder Mint
-    receive("Collect") {
-        require(now() > self.deadline, "deadline not reached");
-        // Send ton to devs
-        self.sendTon(self.thunderMintWallet, self.feeForDevs, 0);
-        self.feeForDevs = 0;
-    }
+    // receive("Collect") {
+    //     require(now() > self.deadline, "deadline not reached");
+    //     // Send ton to devs
+    //     self.sendTon(self.thunderMintWallet, self.feeForDevs, 0);
+    //     self.feeForDevs = 0;
+    // }
 
     // Get Methods //
 

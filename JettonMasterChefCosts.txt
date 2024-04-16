@@ -1,5 +1,5 @@
 Jetton MasterChef Costs in each operation: 
-Deposit Cost: 0.0331554 TON
-Harvest Cost: 0.0154814059 TON
-Withdraw Cost: 0.0158851001 TON
-Withdraw & Harvest Cost: 0.0259785059 TON
+Deposit Cost: 0.0331534 TON
+Harvest Cost: 0.0154778059 TON
+Withdraw Cost: 0.0158799001 TON
+Withdraw & Harvest Cost: 0.0259833059 TON

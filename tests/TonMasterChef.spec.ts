@@ -214,7 +214,10 @@ describe('TON MasterChef Tests', () => {
 
         deadline = BigInt(blockchain.now!! + 2000);
         totalReward = toNano('1000');
-        let sendingTon = (totalReward * 1003n) / 1000n + toNano('1');
+        let feeForDevs = (totalReward * 3n) / 1000n;
+        let sendingTon = totalReward + feeForDevs + toNano('1');
+
+        let thunderMintTonBefore = await deployer.getBalance();
         // Build the MasterChef contract from kitchen
         const masterChefResult = await kitchen.send(
             deployer.getSender(),
@@ -231,6 +234,13 @@ describe('TON MasterChef Tests', () => {
                 startTime: BigInt(blockchain.now!!) - 10n, // -10n is to make sure that the MasterChef is started
             },
         );
+        let thunderMintTonAfter = await deployer.getBalance();
+        let GAS_FEE = toNano('0.5')
+
+        // Check if the MasterChef send TON for Devs to ThunderFi
+        // Because ThunderFi is ownwer of the MasterChef, so the MasterChef should send the fee to ThunderFi
+        // Thereforem owner only has to send totalReward & GAS_FEE in the process (he will get feeForDevs back)
+        expect(thunderMintTonBefore - thunderMintTonAfter - totalReward).toBeLessThanOrEqual(GAS_FEE);
 
         // Kitchen Deploy MasterChef
         expect(masterChefResult.transactions).toHaveTransaction({
@@ -682,78 +692,78 @@ describe('TON MasterChef Tests', () => {
         expect(user2TonBalanceAfter + fee).toBeGreaterThanOrEqual(user2TonBalanceBefore + benefit2);
     });
 
-    it('Should ThunderMint can collect the Fees from projcet party and users', async () => {
-        const userDepositAmount = 1n * TOKEN_DECIMALS;
-        const userWithdrawAmount = 5n * 10n ** 5n;
-        const periodTime = 10;
-        const rewardTONForDev = (totalReward * 3n) / 1000n;
-        // deposit first
-        await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
+    // it('Should ThunderMint can collect the Fees from projcet party and users', async () => {
+    //     const userDepositAmount = 1n * TOKEN_DECIMALS;
+    //     const userWithdrawAmount = 5n * 10n ** 5n;
+    //     const periodTime = 10;
+    //     const rewardTONForDev = (totalReward * 3n) / 1000n;
+    //     // deposit first
+    //     await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
 
-        // withdraw
-        blockchain.now!! += periodTime;
-        const withdrawResult = await withdraw(masterChef, user, masterChefJettonWallet, userWithdrawAmount);
-        // check the depositAndWithdrawResult is sucess
-        expect(withdrawResult.transactions).toHaveTransaction({
-            from: user.address,
-            to: masterChef.address,
-            success: true,
-            op: 0x097bb407,
-        });
-        const masterChefDataAfterWithdraw = await masterChef.getGetTonMasterChefData();
-        // Make sure that feeForDevs is recorded after user withdraw
-        expect(masterChefDataAfterWithdraw.feeForDevs).toEqual(rewardTONForDev); // REWARD_FEE = 0.3 TON (0.3% of the reward)
+    //     // withdraw
+    //     blockchain.now!! += periodTime;
+    //     const withdrawResult = await withdraw(masterChef, user, masterChefJettonWallet, userWithdrawAmount);
+    //     // check the depositAndWithdrawResult is sucess
+    //     expect(withdrawResult.transactions).toHaveTransaction({
+    //         from: user.address,
+    //         to: masterChef.address,
+    //         success: true,
+    //         op: 0x097bb407,
+    //     });
+    //     const masterChefDataAfterWithdraw = await masterChef.getGetTonMasterChefData();
+    //     // Make sure that feeForDevs is recorded after user withdraw
+    //     expect(masterChefDataAfterWithdraw.feeForDevs).toEqual(rewardTONForDev); // REWARD_FEE = 0.3 TON (0.3% of the reward)
 
-        // Update time to periodTime, so that we can harvest
-        blockchain.now!! += periodTime;
-        // User send Harvest to MasterChef
-        await harvest(masterChef, user, masterChefJettonWallet);
-        const masterChefDataAfterHarvest = await masterChef.getGetTonMasterChefData();
+    //     // Update time to periodTime, so that we can harvest
+    //     blockchain.now!! += periodTime;
+    //     // User send Harvest to MasterChef
+    //     await harvest(masterChef, user, masterChefJettonWallet);
+    //     const masterChefDataAfterHarvest = await masterChef.getGetTonMasterChefData();
 
-        // Send Collect Msg to MasterChef
-        let thunderMintTonBefore = await deployer.getBalance();
-        //let thunderJettonBefore = (await thunderMintJettonWallet.getGetWalletData()).balance;
-        let count = 5n;
-        // Increase fees for devs
-        for (let i = 0; i < count; i++) {
-            await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
-            // withdraw
-            blockchain.now!! += periodTime;
-            await withdraw(masterChef, user, masterChefJettonWallet, userWithdrawAmount);
-        }
-        const masterChefData = await masterChef.getGetTonMasterChefData();
-        const collectResult = await masterChef.send(deployer.getSender(), { value: toNano('1') }, 'Collect');
-        let thunderMintTonAfter = await deployer.getBalance();
+    //     // Send Collect Msg to MasterChef
+    //     let thunderMintTonBefore = await deployer.getBalance();
+    //     //let thunderJettonBefore = (await thunderMintJettonWallet.getGetWalletData()).balance;
+    //     let count = 5n;
+    //     // Increase fees for devs
+    //     for (let i = 0; i < count; i++) {
+    //         await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
+    //         // withdraw
+    //         blockchain.now!! += periodTime;
+    //         await withdraw(masterChef, user, masterChefJettonWallet, userWithdrawAmount);
+    //     }
+    //     const masterChefData = await masterChef.getGetTonMasterChefData();
+    //     const collectResult = await masterChef.send(deployer.getSender(), { value: toNano('1') }, 'Collect');
+    //     let thunderMintTonAfter = await deployer.getBalance();
 
-        // Deployer can't collect before deadline
-        expect(collectResult.transactions).toHaveTransaction({
-            from: deployer.address,
-            to: masterChef.address,
-            success: false,
-            exitCode: 58913, // Can't collect before deadline
-        });
+    //     // Deployer can't collect before deadline
+    //     expect(collectResult.transactions).toHaveTransaction({
+    //         from: deployer.address,
+    //         to: masterChef.address,
+    //         success: false,
+    //         exitCode: 58913, // Can't collect before deadline
+    //     });
 
-        blockchain.now!! += 5000;
-        thunderMintTonBefore = await deployer.getBalance();
-        const collectResultAfterDL = await masterChef.send(deployer.getSender(), { value: toNano('1') }, 'Collect');
-        thunderMintTonAfter = await deployer.getBalance();
+    //     blockchain.now!! += 5000;
+    //     thunderMintTonBefore = await deployer.getBalance();
+    //     const collectResultAfterDL = await masterChef.send(deployer.getSender(), { value: toNano('1') }, 'Collect');
+    //     thunderMintTonAfter = await deployer.getBalance();
 
-        // Check if deployer send Collect msg to MasterChef
-        expect(collectResultAfterDL.transactions).toHaveTransaction({
-            from: deployer.address,
-            to: masterChef.address,
-            success: true,
-        });
-        // Check if MasterChef send JettonTransfer to MasterChef Reward JettonWallet
-        expect(collectResultAfterDL.transactions).toHaveTransaction({
-            from: masterChef.address,
-            to: deployer.address,
-            success: true,
-        });
+    //     // Check if deployer send Collect msg to MasterChef
+    //     expect(collectResultAfterDL.transactions).toHaveTransaction({
+    //         from: deployer.address,
+    //         to: masterChef.address,
+    //         success: true,
+    //     });
+    //     // Check if MasterChef send JettonTransfer to MasterChef Reward JettonWallet
+    //     expect(collectResultAfterDL.transactions).toHaveTransaction({
+    //         from: masterChef.address,
+    //         to: deployer.address,
+    //         success: true,
+    //     });
 
-        // Check if the MasterChef send TON for Devs to ThunderMint
-        expect(thunderMintTonAfter).toBeGreaterThanOrEqual(thunderMintTonBefore);
-    });
+    //     // Check if the MasterChef send TON for Devs to ThunderMint
+    //     expect(thunderMintTonAfter).toBeGreaterThanOrEqual(thunderMintTonBefore);
+    // });
 
     it('Should not initialize if not enough reward', async () => {
         let blockchain: Blockchain;

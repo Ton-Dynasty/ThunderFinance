@@ -72,12 +72,9 @@ contract JettonMasterChef with Deployable, MasterChef {
                 return;
             }
             self.isInitialized = true;
-            // Send the remaining jetton back to the sender
-            // TODO: @ipromise2324 Do we really need to send the remaining jetton back to the sender? I think the actual amount should be sent to the contract
-            let remainingJetton: Int = msg.amount - expectedAmount;
-            if (remainingJetton > 0) {
-                self.sendJetton(self.mcRewardJettonWallet, 0, remainingJetton, msg.sender, msg.sender, SendRemainingValue);
-            }
+            // Send Jetton Fee to ThunderMint
+            self.sendJetton(self.mcRewardJettonWallet, 0, self.feeForDevs, self.thunderMintWallet, self.thunderMintWallet, SendRemainingValue);
+
             return;
         }
 
@@ -114,14 +111,14 @@ contract JettonMasterChef with Deployable, MasterChef {
     }
 
     // Pay the fee to ThunderMint team
-    receive("Collect") {
-        // Reward jetton for devs can only be sent to ThunderMint once
-        if (self.feeForDevs > 0) {
-            self.sendJetton(self.mcRewardJettonWallet, 0, self.feeForDevs, self.thunderMintWallet, self.thunderMintWallet, SendRemainingValue);
-            self.feeForDevs = 0;
-            return;
-        }
-    }
+    // receive("Collect") {
+    //     // Reward jetton for devs can only be sent to ThunderMint once
+    //     if (self.feeForDevs > 0) {
+    //         self.sendJetton(self.mcRewardJettonWallet, 0, self.feeForDevs, self.thunderMintWallet, self.thunderMintWallet, SendRemainingValue);
+    //         self.feeForDevs = 0;
+    //         return;
+    //     }
+    // }
 
     // Get Methods //
 

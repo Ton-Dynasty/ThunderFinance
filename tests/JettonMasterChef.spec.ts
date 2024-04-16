@@ -14,6 +14,7 @@ describe('Jetton MasterChef Tests', () => {
     let user: SandboxContract<TreasuryContract>;
     let masterChef: SandboxContract<JettonMasterChef>;
     let usdt: SandboxContract<JettonMasterUSDT>;
+    
     let masterChefJettonWallet: SandboxContract<JettonWalletUSDT>;
     let deployerJettonWallet: SandboxContract<JettonWalletUSDT>;
     let kitchen: SandboxContract<Kitchen>;
@@ -69,7 +70,6 @@ describe('Jetton MasterChef Tests', () => {
     ) {
         const ownerBalanceBefore = (await deployerJettonWallet.getGetWalletData()).balance;
         const feeAmont = (totalReward * 3n) / 1000n;
-        const extraAmount = 2000000n;
         const initResult = await deployerJettonWallet.send(
             deployer.getSender(),
             {
@@ -78,7 +78,7 @@ describe('Jetton MasterChef Tests', () => {
             {
                 $$type: 'JettonTransfer',
                 query_id: 0n,
-                amount: totalReward + feeAmont + extraAmount,
+                amount: totalReward + feeAmont,
                 destination: masterChef.address,
                 response_destination: deployer.address,
                 custom_payload: null,
@@ -87,8 +87,19 @@ describe('Jetton MasterChef Tests', () => {
             },
         );
         const ownerBalanceAfter = (await deployerJettonWallet.getGetWalletData()).balance;
-        // Eexpect Masterchef gave the extra amount to the owner
-        expect(ownerBalanceBefore - ownerBalanceAfter).toBe(totalReward + feeAmont);
+        // Eexpect that the ThunderFi has received the fee
+        // Because ThunderFi is the owner of the MasterChef, the fee should be sent back to the owner
+        // Therefore, the owner only have to pay the reward
+        expect(ownerBalanceBefore - ownerBalanceAfter).toBe(totalReward);
+
+        // deployerJettonWallet send jetton to MasterChef JettonWallet
+        expect(initResult.transactions).toHaveTransaction({
+            from: masterChefJettonWallet.address,
+            to: deployerJettonWallet.address,
+            success: true,
+        });
+
+
         rewardPerSecond = await (await masterChef.getGetJettonMasterChefData()).rewardPerSecond;
 
         // Deployer Should send JettonTransfer to his wallet
@@ -793,76 +804,6 @@ describe('Jetton MasterChef Tests', () => {
 
         expect(user1USDTBalanceAfter).toEqual(user1USDTBalanceBefore + benefit1);
         expect(user2USDTBalanceAfter).toEqual(user2USDTBalanceBefore + benefit2);
-    });
-
-    it('Should ThunderMint can collect the Fees from projcet party and users', async () => {
-        const userDepositAmount = 1n * TOKEN_DECIMALS;
-        const userWithdrawAmount = 5n * 10n ** 5n;
-        const periodTime = 10;
-        const userJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(user.address, usdt.address));
-        // deposit first
-        await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
-
-        // withdraw
-        blockchain.now!! += periodTime;
-        const withdrawResult = await withdraw(masterChef, user, masterChefJettonWallet, userWithdrawAmount);
-        // check the depositAndWithdrawResult is sucess
-        expect(withdrawResult.transactions).toHaveTransaction({
-            from: user.address,
-            to: masterChef.address,
-            success: true,
-            op: 0x097bb407,
-        });
-
-        // Update time to periodTime, so that we can harvest
-        blockchain.now!! += periodTime;
-        // User send Harvest to MasterChef
-        await harvest(masterChef, user, masterChefJettonWallet);
-
-        // Send Collect Msg to MasterChef
-        //let thunderJettonBefore = (await thunderMintJettonWallet.getGetWalletData()).balance;
-        let count = 5n;
-        // Increase fees for devs
-        for (let i = 0; i < count; i++) {
-            await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
-            // withdraw
-            blockchain.now!! += periodTime;
-            await withdraw(masterChef, user, masterChefJettonWallet, userWithdrawAmount);
-        }
-        const masterChefData = await masterChef.getGetJettonMasterChefData();
-        let thunderJettonBefore = (await deployerJettonWallet.getGetWalletData()).balance;
-        const collectResult = await masterChef.send(deployer.getSender(), { value: toNano('1') }, 'Collect');
-        let thunderJettonAfter = (await deployerJettonWallet.getGetWalletData()).balance;
-
-        // Check if the MasterChef send TON for Devs to ThunderMint
-
-        // Check if the MasterChef send Reward jetton to ThunderMint
-        expect(thunderJettonAfter).toEqual(thunderJettonBefore + masterChefData.feeForDevs);
-
-        // Check if deployer send Collect msg to MasterChef
-        expect(collectResult.transactions).toHaveTransaction({
-            from: deployer.address,
-            to: masterChef.address,
-            success: true,
-        });
-        // Check if MasterChef send JettonTransfer to MasterChef Reward JettonWallet
-        expect(collectResult.transactions).toHaveTransaction({
-            from: masterChef.address,
-            to: masterChefJettonWallet.address,
-            success: true,
-        });
-        // Check if MasterChef send Jetton to ThunderMint JettonWallet
-        expect(collectResult.transactions).toHaveTransaction({
-            from: masterChefJettonWallet.address,
-            to: deployerJettonWallet.address,
-            success: true,
-        });
-        // Check if ThunderMint send JettonNotify to ThunderMint
-        expect(collectResult.transactions).toHaveTransaction({
-            from: deployerJettonWallet.address,
-            to: deployer.address,
-            success: true,
-        });
     });
 
     it('Should not initialize if not enough reward', async () => {
