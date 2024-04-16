@@ -110,16 +110,6 @@ contract JettonMasterChef with Deployable, MasterChef {
         self.sendJetton(pool.lpTokenAddress, ctx.value / 2, msg.withdrawAmount, msg.beneficiary, msg.beneficiary, 0);
     }
 
-    // Pay the fee to ThunderMint team
-    // receive("Collect") {
-    //     // Reward jetton for devs can only be sent to ThunderMint once
-    //     if (self.feeForDevs > 0) {
-    //         self.sendJetton(self.mcRewardJettonWallet, 0, self.feeForDevs, self.thunderMintWallet, self.thunderMintWallet, SendRemainingValue);
-    //         self.feeForDevs = 0;
-    //         return;
-    //     }
-    // }
-
     // Get Methods //
 
     // Get JettonMasterChef Data

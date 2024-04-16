@@ -106,15 +106,6 @@ contract TonMasterChef with Deployable, MasterChef {
         let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
         self.sendJetton(pool.lpTokenAddress, sendTon - THUNDER_FEE, msg.withdrawAmount, msg.beneficiary, msg.beneficiary, SendIgnoreErrors);
     }
-    
-
-    // Pay the fee to Thunder Mint
-    // receive("Collect") {
-    //     require(now() > self.deadline, "deadline not reached");
-    //     // Send ton to devs
-    //     self.sendTon(self.thunderMintWallet, self.feeForDevs, 0);
-    //     self.feeForDevs = 0;
-    // }
 
     // Get Methods //
 
