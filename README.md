@@ -2,7 +2,8 @@
 
 <a href="https://t.me/Thunder_Finance" target="_blank"><img alt="Telegram" src="https://img.shields.io/badge/Telegram-2CA5E0.svg?&style=for-the-badge&logo=telegram&logoColor=white" /></a>
 <img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/Ton-Dynasty/ThunderFinance/ci.yaml?branch=main&style=for-the-badge">
-<img alt="Website" src="https://img.shields.io/website?url=https%3A%2F%2Flinktr.ee%2Fthunder.finance&up_message=Linktree&up_color=orange&style=for-the-badge&label=Ref">
+<a href="https://linktr.ee/thunder.finance" target="_blank"><img alt="Website" src="https://img.shields.io/website?url=https%3A%2F%2Flinktr.ee%2Fthunder.finance&up_message=Linktree&up_color=orange&style=for-the-badge&label=Ref"></a>
+
 
 
 
