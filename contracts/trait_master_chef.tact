@@ -38,6 +38,7 @@ trait MasterChef {
         self.requireInitialized();
         require(sender() == self.owner, "only owner can add pool");
         require(self.pools.get(msg.lpTokenAddress) == null , "pool already exist");
+        require(msg.allocPoint > 0, "Alloc point must > 0");
         require(self.totalAllocPoint + msg.allocPoint <= 10000, "total alloc point exceeds 10000");
         self.totalAllocPoint = self.totalAllocPoint + msg.allocPoint;
         let poolInfo: PoolInfo = PoolInfo{
