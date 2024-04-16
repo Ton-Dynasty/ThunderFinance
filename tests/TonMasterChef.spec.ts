@@ -245,7 +245,7 @@ describe('TON MasterChef Tests', () => {
         expect(deployerTonBefore - deployerTonAfter).toBeGreaterThanOrEqual(totalReward + feeForDevs);
 
         // Check if ThunderFi receive the fee
-        expect(ThunderFiTonAfter).toBeGreaterThan(ThunderFiTonBefore)
+        expect(ThunderFiTonAfter).toBeGreaterThan(ThunderFiTonBefore);
 
         // Check that MaterChef send the TON to ThunderFi
         expect(masterChefResult.transactions).toHaveTransaction({
@@ -291,6 +291,26 @@ describe('TON MasterChef Tests', () => {
 
         // poolData.lpToken Should be equal to masterChefJettonWallet.address
         expect(poolData.lpTokenAddress.toString()).toBe(masterChefJettonWallet.address.toString());
+    });
+
+    it('Should not add pool with alloc point 0', async () => {
+        const allocPoint = 0n;
+        const addPoolResult = await masterChef.send(
+            deployer.getSender(),
+            { value: toNano('0.05') },
+            {
+                $$type: 'AddPool',
+                lpTokenAddress: masterChefJettonWallet.address,
+                allocPoint: allocPoint,
+            },
+        );
+        // Send AddPool to MasterChef
+        expect(addPoolResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: masterChef.address,
+            success: false,
+            exitCode: 36629,
+        });
     });
 
     it('Should revert if owner add pool and its total allocate point exceeds 10000', async () => {
@@ -703,7 +723,6 @@ describe('TON MasterChef Tests', () => {
         expect(user1TonBalanceAfter + fee).toBeGreaterThanOrEqual(user1TonBalanceBefore + benefit1);
         expect(user2TonBalanceAfter + fee).toBeGreaterThanOrEqual(user2TonBalanceBefore + benefit2);
     });
-
 
     it('Should not initialize if not enough reward', async () => {
         let blockchain: Blockchain;

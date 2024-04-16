@@ -71,7 +71,7 @@ describe('Jetton MasterChef Tests', () => {
         deployer: SandboxContract<TreasuryContract>,
     ) {
         const ownerBalanceBefore = (await deployerJettonWallet.getGetWalletData()).balance;
-        const thunderFiBalanceBefore = (await thunderFiJettonWallet.getGetWalletData()).balance;  
+        const thunderFiBalanceBefore = (await thunderFiJettonWallet.getGetWalletData()).balance;
         const feeAmont = (totalReward * 3n) / 1000n;
         const initResult = await deployerJettonWallet.send(
             deployer.getSender(),
@@ -216,7 +216,9 @@ describe('Jetton MasterChef Tests', () => {
         seed = BigInt(`0x${beginCell().storeUint(Date.now(), 64).endCell().hash().toString('hex')}`); // Seed for MasterChef
 
         deployerJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(deployer.address, usdt.address)); // Deployer USDT JettonWallet
-        thunderFiJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(ThunderFi.address, usdt.address));
+        thunderFiJettonWallet = blockchain.openContract(
+            await JettonWalletUSDT.fromInit(ThunderFi.address, usdt.address),
+        );
         // Setup all the contracts
         await usdt.send(deployer.getSender(), { value: toNano('1') }, 'Mint:1'); // Mint USDT to deployer so that he can start the MasterChef
         await usdt.send(ThunderFi.getSender(), { value: toNano('1') }, 'Mint:1'); // Mint USDT to deployer so that he can start the MasterChef
@@ -375,6 +377,26 @@ describe('Jetton MasterChef Tests', () => {
 
         // poolData.lpToken should be equal to masterChefJettonWallet.address
         expect(poolData.lpTokenAddress.toString()).toBe(masterChefJettonWallet.address.toString());
+    });
+
+    it('Should not add pool with alloc point 0', async () => {
+        const allocPoint = 0n;
+        const addPoolResult = await masterChef.send(
+            deployer.getSender(),
+            { value: toNano('0.05') },
+            {
+                $$type: 'AddPool',
+                lpTokenAddress: masterChefJettonWallet.address,
+                allocPoint: allocPoint,
+            },
+        );
+        // Send AddPool to MasterChef
+        expect(addPoolResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: masterChef.address,
+            success: false,
+            exitCode: 36629,
+        });
     });
 
     it('Should revert if owner add pool and its total allocate point exceeds 10000', async () => {
