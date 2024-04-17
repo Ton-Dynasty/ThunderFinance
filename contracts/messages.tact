@@ -156,7 +156,7 @@ message(0xd1a0507d) DeployMasterChef {
     seed: Int as uint256;  // Seed for the MasterChef
 }
 
-message Set {
+message(0xd8d5ea7f) Set {
     lpTokenAddress: Address;       // LP token jetton wallet address
     allocPoint: Int as uint256;   // new allocation point
 }
