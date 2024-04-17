@@ -313,18 +313,6 @@ describe('TON MasterChef Tests', () => {
         });
     });
 
-    // it('Should revert if owner add pool and its total allocate point exceeds 10000', async () => {
-    //     const allocPoint = 10001n;
-    //     const addPoolResult = await addPool(masterChef, masterChefJettonWallet, allocPoint);
-    //     // Send AddPool to MasterChef
-    //     expect(addPoolResult.transactions).toHaveTransaction({
-    //         from: deployer.address,
-    //         to: masterChef.address,
-    //         success: false,
-    //         exitCode: 25081, // total alloc point exceeds 10000
-    //     });
-    // });
-
     it('Should user deposit usdt to master chef and update pool', async () => {
         await addPool(masterChef, masterChefJettonWallet);
         const userDepositAmount = 1n * TOKEN_DECIMALS;
@@ -431,6 +419,232 @@ describe('TON MasterChef Tests', () => {
         const userHarvestCost = Number(benefit - (userTonBalanceAfter - userTonBalanceBefore)) / 10 ** 10;
         // console.log('userHarvestCost', userHarvestCost, 'TON');
         appendToFile(gasFile, `Harvest Cost: ${userHarvestCost} TON`);
+    });
+
+    it('Should onwer Reallocate pool point', async () => {
+        await addPool(masterChef, masterChefJettonWallet);
+        const userDepositAmount = 1n * TOKEN_DECIMALS;
+        const periodTime = 1000;
+        await depositJetton(usdt, user, masterChef, userDepositAmount);
+        // Update time to periodTime, so that we can harvest
+        blockchain.now!! += periodTime;
+        const userTonBalanceBefore = await user.getBalance();
+        // User send Harvest to MasterChef
+        await harvest(masterChef, user, masterChefJettonWallet);
+        const userTonBalanceAfter = await user.getBalance();
+
+        const benefit = (userDepositAmount * BigInt(periodTime) * rewardPerSecond) / TOKEN_DECIMALS;
+        // Check if user get the reward
+        let feeInHarvest = 54659059n;
+        expect(userTonBalanceAfter - userTonBalanceBefore + feeInHarvest).toBeGreaterThanOrEqual(benefit);
+
+        // Owner reallocate the pool point
+        const reallocateResult = await masterChef.send(
+            deployer.getSender(),
+            { value: toNano('0.05') },
+            {
+                $$type: 'Set',
+                lpTokenAddress: masterChefJettonWallet.address,
+                allocPoint: 200n,
+            },
+        );
+
+        // Make sure that the reallocate is successful
+        expect(reallocateResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: masterChef.address,
+            success: true,
+        });
+
+        // allocate point should be updated
+        const poolData: PoolInfo = await masterChef.getGetPoolInfo(masterChefJettonWallet.address);
+        expect(poolData.allocPoint).toBe(200n);
+
+        // Update time to periodTime, so that we can harvest
+        blockchain.now!! += periodTime;
+        const userTonBalanceBefore2 = await user.getBalance();
+        // User send Harvest to MasterChef
+        await harvest(masterChef, user, masterChefJettonWallet);
+        const userTonBalanceAfter2 = await user.getBalance();
+
+        const benefit2 = (userDepositAmount * BigInt(periodTime) * rewardPerSecond) / TOKEN_DECIMALS;
+        // Check if user get the reward
+        feeInHarvest = 54659059n;
+        expect(userTonBalanceAfter2 - userTonBalanceBefore2 + feeInHarvest).toBeGreaterThanOrEqual(benefit2);
+    });
+
+    it('Should onwer Reallocate pool point within two pools', async () => {
+        await addPool(masterChef, masterChefJettonWallet);
+
+        // Create USDC Jetton Master
+        let usdc = blockchain.openContract(await JettonMasterUSDT.fromInit(user.address, beginCell().endCell()));
+        // Mint USDC
+        await usdc.send(user.getSender(), { value: toNano('1') }, 'Mint:1');
+        await usdc.send(deployer.getSender(), { value: toNano('1') }, 'Mint:1');
+
+        // Get MasterChef USDC JettonWallet
+        const masterChefUSDCJettonWalletAddress = await usdc.getGetWalletAddress(masterChef.address);
+        const masterChefUSDCJettonWallet = blockchain.openContract(
+            await JettonWalletUSDT.fromAddress(masterChefUSDCJettonWalletAddress),
+        ); // MasterChef USDT JettonWallet
+
+        // Add USDC Pool
+        const addUSDCPoolResult = await addPool(masterChef, masterChefUSDCJettonWallet, 100n);
+        expect(addUSDCPoolResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: masterChef.address,
+            success: true,
+        });
+
+        const userDepositAmount = 1n * TOKEN_DECIMALS;
+        const periodTime = 1000;
+        await depositJetton(usdt, user, masterChef, userDepositAmount);
+        // Update time to periodTime, so that we can harvest
+        blockchain.now!! += periodTime;
+        const userTonBalanceBefore = await user.getBalance();
+        // User send Harvest to MasterChef
+        await harvest(masterChef, user, masterChefJettonWallet);
+        const userTonBalanceAfter = await user.getBalance();
+
+        const benefit = (userDepositAmount * BigInt(periodTime) * rewardPerSecond) / TOKEN_DECIMALS / 2n;
+        // Check if user get the reward
+        let feeInHarvest = 54659059n;
+        expect(userTonBalanceAfter - userTonBalanceBefore + feeInHarvest).toBeGreaterThanOrEqual(benefit);
+
+        // Owner reallocate the pool point
+        const reallocateResult = await masterChef.send(
+            deployer.getSender(),
+            { value: toNano('0.05') },
+            {
+                $$type: 'Set',
+                lpTokenAddress: masterChefJettonWallet.address,
+                allocPoint: 200n,
+            },
+        );
+
+        // Make sure that the reallocate is successful
+        expect(reallocateResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: masterChef.address,
+            success: true,
+        });
+
+        // allocate point should be updated
+        const poolData: PoolInfo = await masterChef.getGetPoolInfo(masterChefJettonWallet.address);
+        expect(poolData.allocPoint).toBe(200n);
+
+        // Update time to periodTime, so that we can harvest
+        blockchain.now!! += periodTime;
+        const userTonBalanceBefore2 = await user.getBalance();
+        // User send Harvest to MasterChef
+        await harvest(masterChef, user, masterChefJettonWallet);
+        const userTonBalanceAfter2 = await user.getBalance();
+
+        // benefit should be x 2/3 because USDT Pool's allocPoint is 200 and total allocPoint is 300
+        const benefit2 = (2n * (userDepositAmount * BigInt(periodTime) * rewardPerSecond)) / TOKEN_DECIMALS / 3n;
+        // Check if user get the reward
+        feeInHarvest = 54659059n;
+        expect(userTonBalanceAfter2 - userTonBalanceBefore2 + feeInHarvest).toBeGreaterThanOrEqual(benefit2);
+    });
+
+    it('Should user deposit in two pools and harvest get the all reward', async () => {
+        await addPool(masterChef, masterChefJettonWallet);
+
+        // Create USDC Jetton Master
+        let usdc = blockchain.openContract(await JettonMasterUSDT.fromInit(user.address, beginCell().endCell()));
+        // Mint USDC
+        await usdc.send(user.getSender(), { value: toNano('1') }, 'Mint:1');
+        await usdc.send(deployer.getSender(), { value: toNano('1') }, 'Mint:1');
+
+        // Get MasterChef USDC JettonWallet
+        const masterChefUSDCJettonWalletAddress = await usdc.getGetWalletAddress(masterChef.address);
+        const masterChefUSDCJettonWallet = blockchain.openContract(
+            await JettonWalletUSDT.fromAddress(masterChefUSDCJettonWalletAddress),
+        ); // MasterChef USDT JettonWallet
+
+        // Add USDC Pool
+        const addUSDCPoolResult = await addPool(masterChef, masterChefUSDCJettonWallet, 100n);
+        expect(addUSDCPoolResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: masterChef.address,
+            success: true,
+        });
+
+        const userDepositAmount = 1n * TOKEN_DECIMALS;
+        const periodTime = 1000;
+        await depositJetton(usdt, user, masterChef, userDepositAmount);
+        await depositJetton(usdc, user, masterChef, userDepositAmount);
+
+        // Update time to periodTime, so that we can harvest
+        blockchain.now!! += periodTime;
+        const userTonBalanceBefore = await user.getBalance();
+        // User send Harvest to MasterChef
+        await harvest(masterChef, user, masterChefJettonWallet);
+        await harvest(masterChef, user, masterChefUSDCJettonWallet);
+
+        const userTonBalanceAfter = await user.getBalance();
+
+        const benefit = (2n * (userDepositAmount * BigInt(periodTime) * rewardPerSecond)) / TOKEN_DECIMALS / 2n;
+        // Check if user get the reward
+        let feeInHarvest = 54659059n;
+        // Because we harvest twice, so the fee should be x 2
+        expect(userTonBalanceAfter - userTonBalanceBefore + feeInHarvest * 2n).toBeGreaterThanOrEqual(benefit);
+
+        // Owner reallocate the pool point
+        const reallocateResult = await masterChef.send(
+            deployer.getSender(),
+            { value: toNano('0.05') },
+            {
+                $$type: 'Set',
+                lpTokenAddress: masterChefJettonWallet.address,
+                allocPoint: 200n,
+            },
+        );
+
+        // Make sure that the reallocate is successful
+        expect(reallocateResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: masterChef.address,
+            success: true,
+        });
+
+        // allocate point should be updated
+        const poolData: PoolInfo = await masterChef.getGetPoolInfo(masterChefJettonWallet.address);
+        expect(poolData.allocPoint).toBe(200n);
+
+        // Update time to periodTime, so that we can harvest
+        blockchain.now!! += periodTime;
+        const userTonBalanceBefore2 = await user.getBalance();
+        // User send Harvest to MasterChef
+        await harvest(masterChef, user, masterChefJettonWallet);
+        const userTonBalanceAfter2 = await user.getBalance();
+
+        // benefit should be x 2/3 because USDT Pool's allocPoint is 200 and total allocPoint is 300
+        const benefit2 = (2n * (userDepositAmount * BigInt(periodTime) * rewardPerSecond)) / TOKEN_DECIMALS / 3n;
+        // Check if user get the reward
+        feeInHarvest = 54659059n;
+        expect(userTonBalanceAfter2 - userTonBalanceBefore2 + feeInHarvest).toBeGreaterThanOrEqual(benefit2);
+    });
+
+    it('Should only owner can reallocate pool points', async () => {
+        await addPool(masterChef, masterChefJettonWallet, 100n);
+
+        // not owner reallocate the pool point
+        const reallocateResult = await masterChef.send(
+            user.getSender(),
+            { value: toNano('0.05') },
+            {
+                $$type: 'Set',
+                lpTokenAddress: masterChefJettonWallet.address,
+                allocPoint: 200n,
+            },
+        );
+        expect(reallocateResult.transactions).toHaveTransaction({
+            from: user.address,
+            to: masterChef.address,
+            success: false,
+            exitCode: 36210,
+        });
     });
 
     it('Should deposit and harvest twice', async () => {
