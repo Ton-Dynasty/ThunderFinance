@@ -46,7 +46,7 @@ contract JettonMasterChef with Deployable, MasterChef {
                 to: self.owner,
                 value: 0,
                 mode: SendRemainingBalance + SendDestroyIfZero,
-                body: "Send All TON Back".asComment()
+                body: "Setup Error: non-positive RPS".asComment()
             });
             return;
         }

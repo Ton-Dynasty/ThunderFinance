@@ -49,7 +49,7 @@ contract TonMasterChef with Deployable, MasterChef {
                 to: self.owner,
                 value: 0,
                 mode: SendRemainingBalance + SendDestroyIfZero,
-                body: "Send All TON Back".asComment()
+                body: "Setup Error: non-positive RPS".asComment()
             });
             return;
         }
@@ -83,7 +83,7 @@ contract TonMasterChef with Deployable, MasterChef {
         }
         
         // Deposit the LP tokens for the user
-        self.userDeposit(msg,ctx);
+        self.userDeposit(msg, ctx);
     }
 
     // MiniChef will send this message to ask MasterChef to send reward
