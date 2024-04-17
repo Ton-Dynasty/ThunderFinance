@@ -17,7 +17,7 @@ trait MasterChef {
     // Pool Info
     owner: Address;                    // The owner of this contract, may be the deployer
     pools: map<Address, PoolInfo>;     // All the pools in the MasterChef, the key is the "LP Jetton Wallet" address
-    totalAllocPoint: Int;              // Total alloc point (uint16) should be less than or equal to 10000, means the weight of the pools
+    totalAllocPoint: Int;              // Total alloc point means the weight of the pools
     createdAt: Int = 0;                // The time when the contract is created (initialize in basic setup)
     deadline: Int = 0;                 // The time when the reward distribution ends (initialize in basic setup)
     metaData: Cell;                    // The meta data of the contract, such as the name, image url, description, etc.
@@ -33,13 +33,11 @@ trait MasterChef {
     feeForDevs: Int = 0;               // The fee for the developers
 
     // Owner send AddPool message to add a new pool, so that users can deposit their LP tokens
-    // NOTE that all the pools should have a total alloc point less than or equal to 10000
     receive(msg: AddPool){
         self.requireInitialized();
         require(sender() == self.owner, "only owner can add pool");
         require(self.pools.get(msg.lpTokenAddress) == null , "pool already exist");
         require(msg.allocPoint > 0, "Alloc point must > 0");
-        require(self.totalAllocPoint + msg.allocPoint <= 10000, "total alloc point exceeds 10000");
         self.totalAllocPoint = self.totalAllocPoint + msg.allocPoint;
         let poolInfo: PoolInfo = PoolInfo{
             allocPoint: msg.allocPoint,
@@ -137,6 +135,18 @@ trait MasterChef {
                 code: initCode.code,
                 data: initCode.data
             });
+    }
+
+    // Set alloc point for a pool, only owner can do this
+    receive(msg: Set) {
+        self.requireInitialized();
+        require(sender() == self.owner, "only owner can set alloc point");
+        require(self.pools.get(msg.lpTokenAddress) != null , "pool not exists");
+        require(msg.allocPoint > 0, "Alloc point must > 0");
+        let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
+        self.totalAllocPoint = self.totalAllocPoint - pool.allocPoint + msg.allocPoint;
+        pool.allocPoint = msg.allocPoint;
+        self.pools.set(msg.lpTokenAddress, pool);
     }
 
     // Internal Functions //

@@ -45,8 +45,8 @@ message(0xf6cf7e6c) SetUpJettonMC {
     startTime: Int as uint64;         // Start Mining Time
 }
 message(0x4b7d1ae4) AddPool{
-    lpTokenAddress: Address;    // Pool Factory LP token Wallet address
-    allocPoint: Int as uint16;  // How many allocation points assigned to this pool. (Total Allocation Point must be less than or equal to 10000)
+    lpTokenAddress: Address;        // Pool Factory LP token Wallet address
+    allocPoint: Int as uint256;    // How many allocation points assigned to this pool.
 }
 
 message(0x5e653b7f) UpdatePool {
@@ -156,10 +156,15 @@ message(0xd1a0507d) DeployMasterChef {
     seed: Int as uint256;  // Seed for the MasterChef
 }
 
+message Set {
+    lpTokenAddress: Address;       // LP token jetton wallet address
+    allocPoint: Int as uint256;   // new allocation point
+}
+
 // Structs
 
 struct PoolInfo {
-    allocPoint: Int;                 // How many allocation points assigned to this pool. (Total Allocation Point must be less than or equal to 10000)
+    allocPoint: Int as uint256;      // How many allocation points assigned to this pool.
     lastRewardBlock: Int as uint256; // Last block number that reward distribution occurs
     accRewardPerShare: Int as coins; // Accumulated reward per share
     lpSupply: Int as coins;          // Total amount of LP token that user deposited in the pool
@@ -178,7 +183,7 @@ struct MasterChefData {
     startTime: Int as uint64;       // // Start Mining Time
     deadline: Int as uint64;        // MasterChef distribution deadline
     isInitialized: Bool;            // MasterChef is initialized or not
-    totalAllocPoint: Int as uint16; // Total allocation point
+    totalAllocPoint: Int;           // Total allocation point
     feeForDevs: Int as coins;       // Jetton for ThunderMint
     pools: map<Address, PoolInfo>;  // Pool Info
     metaData: Cell;                 // MetaData for the MasterChef
