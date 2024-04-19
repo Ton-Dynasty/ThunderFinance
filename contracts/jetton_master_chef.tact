@@ -64,14 +64,17 @@ contract JettonMasterChef with Deployable, MasterChef {
                 throw(ERROR_WRONG_AUTH);
             }
             // Calculate the reward jetton for ThunderMint team
-            self.feeForDevs = self.totalReward * FEE_PERCENT_FOR_DEV / 1000; // 0.3% fee
+            let feeForDevs: Int = self.totalReward * FEE_PERCENT_FOR_DEV / 1000; // 0.3% fee
             
             // Have to transfer reward jetton and fee to the contract
-            let expectedAmount: Int = self.totalReward + self.feeForDevs;
+            let expectedAmount: Int = self.totalReward + feeForDevs;
             if(msg.amount < expectedAmount || now() > self.deadline) {
                 self.sendJetton(self.mcRewardJettonWallet, 0 ,msg.amount, msg.sender, msg.sender, SendRemainingValue);
                 return;
             }
+
+            // Set the fee for devs
+            self.feeForDevs = feeForDevs;
             self.isInitialized = true;
 
             // Send Jetton Fee to ThunderMint

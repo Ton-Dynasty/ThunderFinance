@@ -53,20 +53,23 @@ contract TonMasterChef with Deployable, MasterChef {
             });
             return;
         }
-        let sendedTon: Int = ctx.value;
+        let remainTon: Int = ctx.value - MIN_GAS_FEE;
         let feeForDevs: Int = msg.totalReward * FEE_PERCENT_FOR_DEV / 1000;
-        self.feeForDevs = feeForDevs;
         let expectedTon: Int = msg.totalReward + feeForDevs;
-        if (sendedTon < expectedTon) {
-            self.sendTon(msg.owner, sendedTon - ctx.readForwardFee(), 0);
+        if (remainTon < expectedTon) {
+            self.sendTon(msg.owner, remainTon, 0);
             return;
         }
+        // Update storage when ton is sufficient
         self.isInitialized = true;
-        self.sendTon(self.thunderMintWallet, self.feeForDevs - ctx.readForwardFee(), 0);
-
+        self.feeForDevs = feeForDevs;
+        if (self.feeForDevs > MIN_GAS_FEE) {
+            self.sendTon(self.thunderMintWallet, self.feeForDevs - MIN_GAS_FEE, 0);
+        }
+        
         // Sending the remaining TON to the owner
-        if(sendedTon > expectedTon) {
-            self.sendTon(self.owner, sendedTon - expectedTon , 0);
+        if(remainTon > expectedTon) {
+            self.sendTon(self.owner, remainTon - expectedTon, 0);
         }
     }
     
