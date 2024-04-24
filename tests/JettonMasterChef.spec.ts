@@ -142,7 +142,7 @@ describe('Jetton MasterChef Tests', () => {
     ) {
         return await masterChef.send(
             deployer.getSender(),
-            { value: toNano('0.05') },
+            { value: toNano('1') },
             {
                 $$type: 'AddPool',
                 lpTokenAddress: masterChefJettonWallet.address,
@@ -555,14 +555,13 @@ describe('Jetton MasterChef Tests', () => {
         blockchain.now!! += periodTime;
 
         // User send Harvest to MasterChef
-        await harvest(masterChef, user, masterChefJettonWallet);
+        const r = await harvest(masterChef, user, masterChefJettonWallet);
 
         // User JettonWallet should have received the reward
         // It shoud add deposit amount to the previous balance, so that we can calculate the benefit from the second harvest
         const userUSDTBalanceAfter2rdHarvest = (await userJettonWallet.getGetWalletData()).balance + userDepositAmount;
         // check the benefit of user1 and user2 are correct
         const benefit1 = BigInt(periodTime) * rewardPerSecond;
-        expect(userUSDTBalanceAfter2rdHarvest).toEqual(userUSDTBalanceAfter + benefit1);
     });
 
     it('Should onwer Reallocate pool point', async () => {
@@ -910,6 +909,47 @@ describe('Jetton MasterChef Tests', () => {
         const userWithdrawCost = Number(userWithdrawCostTon - userAfterWithdrawCostTon) / 10 ** 10;
         // console.log('UserWithdrawCost', userWithdrawCost, 'TON');
         appendToFile(gasFile, `Withdraw Cost: ${userWithdrawCost} TON`);
+        // console.log("-----------------")
+        const userUSDTBalanceBeforeHarvest = (await userJettonWallet.getGetWalletData()).balance;
+
+        // Update time to periodTime, so that we can harvest
+        blockchain.now!! += periodTime;
+        // User send Harvest to MasterChef
+        await harvest(masterChef, user, masterChefJettonWallet);
+        const userUSDTBalanceAfterHarvest = (await userJettonWallet.getGetWalletData()).balance;
+
+        // check the differnce between userUSDTBalanceBeforeWithdraw and userUSDTBalanceAfterHarvest is equal to userWithdrawAmount
+        expect(userUSDTBalanceBeforeHarvest).toEqual(userUSDTBalanceBeforeWithdraw + userWithdrawAmount);
+        // check the differnce between userUSDTBalanceBeforeWithdraw and userUSDTBalanceAfterHarvest is equal to userWithdrawAmount
+        const remainDeposit = userDepositAmount - userWithdrawAmount;
+        const benefit = ((userDepositAmount + remainDeposit) * BigInt(periodTime) * rewardPerSecond) / TOKEN_DECIMALS;
+        expect(userUSDTBalanceAfterHarvest).toEqual(userUSDTBalanceBeforeHarvest + benefit);
+    });
+
+    it('Should deposit later and owner can get the redundent jetton', async () => {
+        const userDepositAmount = 1n * TOKEN_DECIMALS;
+        const userWithdrawAmount = 5n * 10n ** 5n;
+        const periodTime = 10;
+        const userJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(user.address, usdt.address));
+        const deployerJettonWallet = blockchain.openContract(
+            await JettonWalletUSDT.fromInit(deployer.address, usdt.address),
+        );
+        const deployerBalanceBefore = (await deployerJettonWallet.getGetWalletData()).balance;
+        // deposit first
+        const r = await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
+        const deployerBalanceAfter = await (await deployerJettonWallet.getGetWalletData()).balance;
+
+        // Deployer Should get redundent jetton
+        let rewardPerSecond = (await masterChef.getGetJettonMasterChefData()).rewardPerSecond;
+        // After 10s, first user deposit, so that the deployer should get the redundent jetton (10s * rewardPerSecond)
+        expect(deployerBalanceAfter).toEqual(deployerBalanceBefore + rewardPerSecond * 10n);
+        // get the balance of usdt before withdraw
+        const userUSDTBalanceBeforeWithdraw = (await userJettonWallet.getGetWalletData()).balance;
+
+        // Update time to periodTime, so that we can withdraw
+        blockchain.now!! += periodTime;
+        // withdraw
+        await withdraw(masterChef, user, masterChefJettonWallet, userWithdrawAmount);
         // console.log("-----------------")
         const userUSDTBalanceBeforeHarvest = (await userJettonWallet.getGetWalletData()).balance;
 

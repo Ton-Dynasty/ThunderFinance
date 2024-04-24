@@ -14,6 +14,7 @@ contract TonMasterChef with Deployable, MasterChef {
     deadline: Int as uint64 = 0;
     startTime: Int as uint64 = 0;
     metaData: Cell;
+    getRedundant: Bool = false;        // The flag to get the redundant data
 
     // For Reward TON
     rewardPerSecond: Int as coins = 0;

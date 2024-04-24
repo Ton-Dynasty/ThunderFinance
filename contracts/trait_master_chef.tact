@@ -22,6 +22,7 @@ trait MasterChef {
     deadline: Int = 0;                 // The time when the reward distribution ends (initialize in basic setup)
     metaData: Cell;                    // The meta data of the contract, such as the name, image url, description, etc.
     startTime: Int = 0;                // The time when the reward distribution starts (initialize in basic setup)
+    getRedundant: Bool = false;        // The flag to get the redundant data
 
     // For Reward jetton
     rewardPerSecond: Int = 0;          // The reward per second (coins), so called RPS.

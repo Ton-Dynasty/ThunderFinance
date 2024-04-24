@@ -14,6 +14,7 @@ contract JettonMasterChef with Deployable, MasterChef {
     deadline: Int as uint64 = 0;
     startTime: Int as uint64 = 0;
     metaData: Cell;
+    getRedundant: Bool = false;        // The flag to get the redundant data
 
     // For Reward Jetton
     mcRewardJettonWallet: Address;
@@ -91,6 +92,16 @@ contract JettonMasterChef with Deployable, MasterChef {
         }
         // Deposit the LP tokens for the user
         self.userDeposit(msg, ctx);
+
+        // Send the redundant jetton back to the owner
+        if(self.getRedundant == false) {
+            let redundantTime: Int = now() - self.startTime;
+            if(redundantTime > 0) {
+                let rewardBack: Int = redundantTime * self.rewardPerSecond;
+                self.sendJetton(self.mcRewardJettonWallet, ton("0.5"), rewardBack, self.owner, self.owner, 0);
+            }
+            self.getRedundant = true;
+        }
     }
 
     // MiniChef will send this message to ask MasterChef to send reward
