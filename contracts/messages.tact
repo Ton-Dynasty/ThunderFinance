@@ -27,6 +27,7 @@ message(0x89265822) BuildJettonMasterChef {
     totalReward: Int as coins;         // Total reward for the MasterChef
     deadline: Int as uint64;           // MasterChef distribution deadline
     startTime: Int as uint64;          // Start Mining Time
+    queryId: Int as uint64;                // arbitrary request number
 }
 
 // For MasterChef Contract
@@ -43,6 +44,7 @@ message(0xf6cf7e6c) SetUpJettonMC {
     totalReward: Int as coins;        // Total reward for the MasterChef
     deadline: Int as uint64;          // MasterChef distribution deadline
     startTime: Int as uint64;         // Start Mining Time
+    queryId: Int as uint64;                // arbitrary request number
 }
 message(0x4b7d1ae4) AddPool{
     lpTokenAddress: Address;        // Pool Factory LP token Wallet address
@@ -139,6 +141,7 @@ message(0x8bf38613) SetUpTonMC {
     totalReward: Int as coins;   // Total reward for the MasterChef
     deadline: Int as uint64;     // MasterChef distribution deadline
     startTime: Int as uint64;          // Start Mining Time
+    queryId: Int as uint64;                // arbitrary request number
 }
 
 message(0xd449b642) BuildTonMasterChef {
@@ -148,6 +151,7 @@ message(0xd449b642) BuildTonMasterChef {
     totalReward: Int as coins; // Total reward for the MasterChef
     deadline: Int as uint64;   // MasterChef distribution deadline
     startTime: Int as uint64;          // Start Mining Time
+    queryId: Int as uint64;                // arbitrary request number
 }
 
 // Event: Deploy MasterChef

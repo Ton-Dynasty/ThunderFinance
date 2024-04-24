@@ -257,7 +257,7 @@ describe('Jetton MasterChef Tests', () => {
         const masterChefResult = await kitchen.send(
             deployer.getSender(),
             {
-                value: toNano('0.5'),
+                value: toNano('0.2'),
             },
             {
                 $$type: 'BuildJettonMasterChef',
@@ -269,6 +269,7 @@ describe('Jetton MasterChef Tests', () => {
                 deadline: deadline,
                 totalReward: totalReward,
                 startTime: BigInt(blockchain.now!!) + startTime,
+                queryId: 0n,
             },
         );
         expect(masterChefResult.transactions).toHaveTransaction({
@@ -349,6 +350,7 @@ describe('Jetton MasterChef Tests', () => {
                 deadline: deadline,
                 totalReward: totalReward,
                 startTime: BigInt(blockchain.now!!) - 10n, // -10n is to make sure that the MasterChef is started,
+                queryId: 0n,
             },
         );
         expect(masterChefResult.transactions).toHaveTransaction({
@@ -1175,6 +1177,7 @@ describe('Jetton MasterChef Tests', () => {
                 totalReward: 1000n * 10n ** 5n,
                 deadline: deadline,
                 startTime: BigInt(blockchain.now!!) - 10n,
+                queryId: 0n,
             },
         );
 
@@ -1201,6 +1204,7 @@ describe('Jetton MasterChef Tests', () => {
                 totalReward: 1000n * 10n ** 5n,
                 deadline: deadline,
                 startTime: BigInt(blockchain.now!!) - 10n,
+                queryId: 0n,
             },
         );
 

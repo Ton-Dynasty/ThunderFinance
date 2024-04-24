@@ -236,6 +236,7 @@ describe('TON MasterChef Tests', () => {
                 deadline: deadline,
                 totalReward: totalReward,
                 startTime: BigInt(blockchain.now!!) - 10n, // -10n is to make sure that the MasterChef is started
+                queryId: 0n,
             },
         );
         let deployerTonAfter = await deployer.getBalance();
@@ -1005,6 +1006,7 @@ describe('TON MasterChef Tests', () => {
                 deadline: deadline,
                 totalReward: totalReward,
                 startTime: BigInt(blockchain.now!!) - 10n,
+                queryId: 0n,
             },
         );
 
@@ -1084,6 +1086,7 @@ describe('TON MasterChef Tests', () => {
                 totalReward: 1000n * 10n ** 5n,
                 deadline: deadline,
                 startTime: BigInt(blockchain.now!!) - 10n,
+                queryId: 0n,
             },
         );
 
@@ -1125,6 +1128,7 @@ describe('TON MasterChef Tests', () => {
                 deadline: deadline,
                 totalReward: totalReward,
                 startTime: BigInt(blockchain.now!!) - 10n,
+                queryId: 0n,
             },
         );
         const balanceAfter = await deployer.getBalance();
@@ -1438,6 +1442,7 @@ describe('TON MasterChef Tests', () => {
                 deadline: deadline,
                 totalReward: totalReward,
                 startTime: BigInt(blockchain.now!!) - 10n,
+                queryId: 0n,
             },
         );
         const balanceAfter = await deployer.getBalance();
@@ -1477,6 +1482,7 @@ describe('TON MasterChef Tests', () => {
                 deadline: deadline,
                 totalReward: totalReward,
                 startTime: BigInt(blockchain.now!!) + 20n,
+                queryId: 0n,
             },
         );
         await addPool(masterChef, masterChefJettonWallet);
@@ -1526,6 +1532,7 @@ describe('TON MasterChef Tests', () => {
                 deadline: deadline,
                 totalReward: totalReward,
                 startTime: BigInt(blockchain.now!!) + 10n,
+                queryId: 0n,
             },
         );
 
@@ -1561,6 +1568,7 @@ describe('TON MasterChef Tests', () => {
                 deadline: deadline,
                 totalReward: totalReward,
                 startTime: BigInt(blockchain.now!!) + 10n,
+                queryId: 0n,
             },
         );
         await addPool(masterChef, masterChefJettonWallet);
@@ -1595,6 +1603,7 @@ describe('TON MasterChef Tests', () => {
                 deadline: deadline,
                 totalReward: totalReward,
                 startTime: BigInt(blockchain.now!!) + 10n,
+                queryId: 0n,
             },
         );
         await addPool(masterChef, masterChefJettonWallet);
