@@ -25,6 +25,7 @@ export async function run(provider: NetworkProvider) {
             deadline: deadline,
             startTime: startTime,
             totalReward: totalReward,
+            queryId: 10n,
         },
     );
     await provider.waitForDeploy(masterchefAddress);
