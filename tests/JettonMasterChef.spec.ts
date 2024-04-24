@@ -147,6 +147,7 @@ describe('Jetton MasterChef Tests', () => {
                 $$type: 'AddPool',
                 lpTokenAddress: masterChefJettonWallet.address,
                 allocPoint: allocPoint,
+                queryId: 0n,
             },
         );
     }
@@ -391,6 +392,7 @@ describe('Jetton MasterChef Tests', () => {
                 $$type: 'AddPool',
                 lpTokenAddress: masterChefJettonWallet.address,
                 allocPoint: allocPoint,
+                queryId: 0n,
             },
         );
         // Send AddPool to MasterChef

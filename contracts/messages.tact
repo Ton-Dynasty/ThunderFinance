@@ -49,6 +49,7 @@ message(0xf6cf7e6c) SetUpJettonMC {
 message(0x4b7d1ae4) AddPool{
     lpTokenAddress: Address;        // Pool Factory LP token Wallet address
     allocPoint: Int as uint256;    // How many allocation points assigned to this pool.
+    queryId: Int as uint64;                // arbitrary request number
 }
 
 message(0x5e653b7f) UpdatePool {
