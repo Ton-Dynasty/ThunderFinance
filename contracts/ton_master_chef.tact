@@ -88,6 +88,16 @@ contract TonMasterChef with Deployable, MasterChef {
         
         // Deposit the LP tokens for the user
         self.userDeposit(msg, ctx);
+
+        // Send the redundant jetton back to the owner
+        if(self.getRedundant == false) {
+            let redundantTime: Int = now() - self.startTime;
+            if(redundantTime > 0) {
+                let rewardBack: Int = redundantTime * self.rewardPerSecond;
+                self.sendTon(self.owner, rewardBack, 0);
+            }
+            self.getRedundant = true;
+        }
     }
 
     // MiniChef will send this message to ask MasterChef to send reward

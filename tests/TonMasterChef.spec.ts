@@ -777,6 +777,19 @@ describe('TON MasterChef Tests', () => {
         expect(userUSDTBalanceAfter).toEqual(userUSDTBalanceBefore + userWithdrawAmount);
     });
 
+    it('Should deposit and withdraw', async () => {
+        const userDepositAmount = 1n * TOKEN_DECIMALS;
+        const deployerBalanceBefore = await deployer.getBalance();
+
+        // deposit first
+        await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
+        const deployerBalanceAfter = await deployer.getBalance();
+        const rewardPerSecond = await (await masterChef.getGetTonMasterChefData()).rewardPerSecond;
+        const redundentTon = rewardPerSecond * 10n - toNano('0.08'); // 0.08 is gas fee for transfer ton
+        // Deployer should get the redundent TON
+        expect(deployerBalanceAfter - deployerBalanceBefore).toBeGreaterThanOrEqual(redundentTon);
+    });
+
     it('Should deposit and withdarw with harvest', async () => {
         const userDepositAmount = 1n * TOKEN_DECIMALS;
         const userWithdrawAmount = 5n * 10n ** 5n;

@@ -142,7 +142,7 @@ describe('Jetton MasterChef Tests', () => {
     ) {
         return await masterChef.send(
             deployer.getSender(),
-            { value: toNano('1') },
+            { value: toNano('0.06') },
             {
                 $$type: 'AddPool',
                 lpTokenAddress: masterChefJettonWallet.address,
@@ -338,7 +338,7 @@ describe('Jetton MasterChef Tests', () => {
         const masterChefResult = await kitchen.send(
             deployer.getSender(),
             {
-                value: toNano('0.5'),
+                value: toNano('1'),
             },
             {
                 $$type: 'BuildJettonMasterChef',
