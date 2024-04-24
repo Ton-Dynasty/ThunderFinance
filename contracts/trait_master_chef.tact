@@ -48,6 +48,7 @@ trait MasterChef {
             lpTokenAddress: msg.lpTokenAddress
         };
         self.pools.set(msg.lpTokenAddress, poolInfo);
+        self.sendTon(sender(), 0, SendRemainingValue);
     }
 
     // Anyone can send this message to update the pool, recalculate the reward per share
