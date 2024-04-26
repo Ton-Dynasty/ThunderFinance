@@ -96,7 +96,24 @@ contract MiniChef with Deployable {
         let accumulatedReward: Int = userInfo.amount * msg.accRewardPerShare / ACC_PRECISION; 
         let _pendingReward: Int = accumulatedReward - userInfo.rewardDebt;
         if (_pendingReward <= 0) {
-            throw(ERROR_NO_REWARD);
+            userInfo.amount = userInfo.amount - msg.withdrawAmount;
+            userInfo.rewardDebt = userInfo.rewardDebt - msg.withdrawAmount * msg.accRewardPerShare / ACC_PRECISION;
+            // Send Withdraw Internal
+            self.userInfo.set(msg.lpTokenAddress, userInfo);
+
+            send(SendParameters{
+                to: self.masterChef,
+                value: 0,
+                mode: SendRemainingValue,
+                body: WithdrawInternalReply{
+                    queryId: msg.queryId,
+                    lpTokenAddress: msg.lpTokenAddress,
+                    amount: msg.withdrawAmount,
+                    sender: msg.sender,
+                    beneficiary: msg.beneficiary
+                }.toCell()
+            });
+            return ;
         }
         userInfo.rewardDebt = accumulatedReward - msg.withdrawAmount * msg.accRewardPerShare;
         userInfo.amount = userInfo.amount - msg.withdrawAmount;
