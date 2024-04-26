@@ -1833,8 +1833,48 @@ describe('Jetton MasterChef Tests', () => {
             },
         );
 
+        // Users have no reward to harvest but they still can get withdraw amount
         const userUSDTBalanceAfterWH = (await userJettonWallet.getGetWalletData()).balance;
         expect(userUSDTBalanceAfterWH - userUSDTBalanceAfter).toEqual(userWithdrawAmount);
+    });
+
+    it('Should withdraw all before withdraw and harvest so that the staked amount is zero', async () => {
+        const userDepositAmount = 1n * TOKEN_DECIMALS;
+        const userWithdrawAmount = userDepositAmount;
+        const periodTime = 1000;
+        const userJettonWallet = blockchain.openContract(await JettonWalletUSDT.fromInit(user.address, usdt.address));
+        // deposit first
+        await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
+
+        // get the balance of usdt before withdraw
+        const userUSDTBalanceBeforeWH = (await userJettonWallet.getGetWalletData()).balance;
+
+        // Update time to periodTime, so that we can withdraw
+        blockchain.now!! += periodTime;
+        const userUSDTBalanceBefore = (await userJettonWallet.getGetWalletData()).balance;
+
+        const withdrawResult = await withdraw(masterChef, user, masterChefJettonWallet, userWithdrawAmount);
+
+        // User JettonWallet should have received the reward
+        const userUSDTBalanceAfter = (await userJettonWallet.getGetWalletData()).balance;
+        expect(userUSDTBalanceAfter).toEqual(userUSDTBalanceBefore + userWithdrawAmount);
+
+        const result = await masterChef.send(
+            user.getSender(),
+            { value: toNano('2') },
+            {
+                $$type: 'WithdrawAndHarvest',
+                queryId: 0n,
+                lpTokenAddress: masterChefJettonWallet.address,
+                withdrawAmount: 0n,
+                beneficiary: user.address,
+            },
+        );
+
+        // User can't get withdraw amount but he can get reward
+        const benefit = (userDepositAmount * BigInt(periodTime) * rewardPerSecond) / TOKEN_DECIMALS;
+        const userUSDTBalanceAfterWH = (await userJettonWallet.getGetWalletData()).balance;
+        expect(userUSDTBalanceAfterWH).toEqual(userUSDTBalanceAfter + benefit)
     });
 
     it('Should harvest -> withdraw and harvest -> harvest -> withdraw', async () => {

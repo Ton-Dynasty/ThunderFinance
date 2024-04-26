@@ -93,6 +93,7 @@ contract MiniChef with Deployable {
     receive(msg: WithdrawAndHarvestInternal) {
         require(sender() == self.masterChef, "only masterChef can harvest");
         let userInfo: UserInfo = self.userInfo.get(msg.lpTokenAddress)!!;
+        require(userInfo.amount >= msg.withdrawAmount, "insufficient balance");
         let accumulatedReward: Int = userInfo.amount * msg.accRewardPerShare / ACC_PRECISION; 
         let _pendingReward: Int = accumulatedReward - userInfo.rewardDebt;
         if (_pendingReward <= 0) {
