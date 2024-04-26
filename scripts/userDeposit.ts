@@ -16,10 +16,10 @@ export async function run(provider: NetworkProvider) {
     const senderUSDTWalletAddress = await rewardTokenMaster.getWalletAddress(provider.sender().address!!);
     const senderUSDTWallet = provider.open(JettonWallet.createFromAddress(senderUSDTWalletAddress));
     let depositAmount = 50n * 10n ** 9n;
-    let forwardAmount = toNano('1');
+    let forwardAmount = toNano('0.05');
     await senderUSDTWallet.sendTransfer(
         provider.sender(),
-        toNano('2'),
+        toNano('0.1'),
         depositAmount,
         masterchef.address,
         provider.sender().address!!,

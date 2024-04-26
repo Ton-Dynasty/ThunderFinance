@@ -23,6 +23,7 @@ export async function run(provider: NetworkProvider) {
             $$type: 'AddPool',
             lpTokenAddress: masterchefUSDTWallet.address,
             allocPoint: 5000n,
+            queryId: 10n,
         },
     );
 }

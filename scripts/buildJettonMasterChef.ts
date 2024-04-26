@@ -25,7 +25,7 @@ export async function run(provider: NetworkProvider) {
     await kitchen.send(
         provider.sender(),
         {
-            value: toNano('1'),
+            value: toNano('0.25'),
         },
         {
             $$type: 'BuildJettonMasterChef',

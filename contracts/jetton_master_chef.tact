@@ -98,9 +98,9 @@ contract JettonMasterChef with Deployable, MasterChef {
         // Send the redundant jetton back to the owner
         if(self.getRedundant == false) {
             let redundantTime: Int = now() - self.startTime;
-            if(redundantTime > 0 && myBalance() >= ton("0.5")) {
+            if(redundantTime > 0 && myBalance() >= ton("0.05")) {
                 let rewardBack: Int = redundantTime * self.rewardPerSecond;
-                self.sendJetton(self.mcRewardJettonWallet, ton("0.5"), rewardBack, self.owner, self.owner, 0);
+                self.sendJetton(self.mcRewardJettonWallet, ton("0.05"), rewardBack, self.owner, self.owner, 0);
             }
             self.getRedundant = true;
         }
