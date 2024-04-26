@@ -91,9 +91,8 @@ contract TonMasterChef with Deployable, MasterChef {
 
         // Send the redundant jetton back to the owner
         if(self.getRedundant == false) {
-            let redundantTime: Int = now() - self.startTime;
-            if(redundantTime > 0) {
-                let rewardBack: Int = redundantTime * self.rewardPerSecond;
+            let rewardBack: Int = (now() - self.startTime) * self.rewardPerSecond;
+            if(rewardBack >= ton("0.01")) {
                 self.sendTon(self.owner, rewardBack, 0);
             }
             self.getRedundant = true;
