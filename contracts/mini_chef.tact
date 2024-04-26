@@ -106,11 +106,12 @@ contract MiniChef with Deployable {
                 to: self.masterChef,
                 value: 0,
                 mode: SendRemainingValue,
-                body: WithdrawInternalReply{
+                body: WithdrawAndHarvestReply{
                     queryId: msg.queryId,
                     lpTokenAddress: msg.lpTokenAddress,
-                    amount: msg.withdrawAmount,
-                    sender: msg.sender,
+                    rewardAmount: 0,
+                    withdrawAmount: msg.withdrawAmount,
+                    sender: self.owner,
                     beneficiary: msg.beneficiary
                 }.toCell()
             });

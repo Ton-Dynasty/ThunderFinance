@@ -119,9 +119,10 @@ contract JettonMasterChef with Deployable, MasterChef {
         require(expectedSender == sender(), "unexpected sender");
 
         let ctx: Context = context();
-
-        // Send Reward to the beneficiary
-        self.sendJetton(self.mcRewardJettonWallet, ctx.value / 2, msg.rewardAmount, msg.beneficiary, msg.beneficiary, 0);
+        if (msg.rewardAmount > 0) {
+            // Send Reward to the beneficiary
+            self.sendJetton(self.mcRewardJettonWallet, ctx.value / 2, msg.rewardAmount, msg.beneficiary, msg.beneficiary, 0);
+        }
 
         if(msg.withdrawAmount > 0) {    
             // Withdraw lpToken to msg.beneficiary

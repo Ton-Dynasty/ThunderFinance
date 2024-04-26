@@ -113,8 +113,10 @@ contract TonMasterChef with Deployable, MasterChef {
         let ctx: Context = context();
         let sendTon: Int = ctx.value;
 
-        // Send Reward to the user
-        self.sendTon(msg.beneficiary, msg.rewardAmount, SendIgnoreErrors);
+        if (msg.rewardAmount > 0) {
+            // Send Reward to the user
+            self.sendTon(msg.beneficiary, msg.rewardAmount, SendIgnoreErrors);
+        }
 
         if(msg.withdrawAmount > 0) {
             // Withdraw to msg.beneficiary
