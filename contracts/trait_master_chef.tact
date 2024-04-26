@@ -85,7 +85,9 @@ trait MasterChef {
     receive(msg: WithdrawInternalReply) {
         self.requireMiniChef(msg.sender);
         let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
-        self.sendJetton(pool.lpTokenAddress, 0, msg.amount, msg.beneficiary, msg.beneficiary, SendRemainingValue);
+        if(msg.amount > 0) {
+            self.sendJetton(pool.lpTokenAddress, 0, msg.amount, msg.beneficiary, msg.beneficiary, SendRemainingValue);
+        }
     }
 
     // User can send this message to harvest their reward

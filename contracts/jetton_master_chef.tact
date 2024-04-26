@@ -123,9 +123,11 @@ contract JettonMasterChef with Deployable, MasterChef {
         // Send Reward to the beneficiary
         self.sendJetton(self.mcRewardJettonWallet, ctx.value / 2, msg.rewardAmount, msg.beneficiary, msg.beneficiary, 0);
 
-        // Withdraw lpToken to msg.beneficiary
-        let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
-        self.sendJetton(pool.lpTokenAddress, ctx.value / 2, msg.withdrawAmount, msg.beneficiary, msg.beneficiary, 0);
+        if(msg.withdrawAmount > 0) {    
+            // Withdraw lpToken to msg.beneficiary
+            let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
+            self.sendJetton(pool.lpTokenAddress, ctx.value / 2, msg.withdrawAmount, msg.beneficiary, msg.beneficiary, 0);
+        }
     }
 
     // Get Methods //
