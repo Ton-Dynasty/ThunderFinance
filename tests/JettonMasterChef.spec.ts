@@ -7,6 +7,7 @@ import { JettonWalletUSDT } from '../wrappers/JettonWallet';
 import { JettonMasterUSDT } from '../wrappers/JettonMaster';
 import '@ton/test-utils';
 import * as fs from 'fs';
+import { ACC_PRECISION, TOKEN_DECIMALS } from './constant';
 
 describe('Jetton MasterChef Tests', () => {
     let blockchain: Blockchain;
@@ -26,8 +27,6 @@ describe('Jetton MasterChef Tests', () => {
     let deadline: bigint;
     let totalReward: bigint;
     let masterChefJettonWalletAddress: Address;
-    const ACC_PRECISION = 10n ** 12n;
-    const TOKEN_DECIMALS = 10n ** 6n;
     const gasFile = 'JettonMasterChefCosts.txt';
 
     // Helper function to append data to a file
@@ -940,12 +939,12 @@ describe('Jetton MasterChef Tests', () => {
     //     // deposit first
     //     const r = await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
     //     printTransactionFees(r.transactions);
-    //     const deployerBalanceAfter = await (await deployerJettonWallet.getGetWalletData()).balance;
+    //     const deployerBalanceAfter =  (await deployerJettonWallet.getGetWalletData()).balance;
 
     //     // Deployer Should get redundent jetton
     //     let rewardPerSecond = (await masterChef.getGetJettonMasterChefData()).rewardPerSecond;
     //     // After 10s, first user deposit, so that the deployer should get the redundent jetton (10s * rewardPerSecond)
-    //     expect(deployerBalanceAfter).toEqual(deployerBalanceBefore + rewardPerSecond * 10n);
+    //     expect(deployerBalanceAfter.toString()).toEqual((deployerBalanceBefore + rewardPerSecond * BigInt(periodTime)).toString());
     //     // get the balance of usdt before withdraw
     //     const userUSDTBalanceBeforeWithdraw = (await userJettonWallet.getGetWalletData()).balance;
 

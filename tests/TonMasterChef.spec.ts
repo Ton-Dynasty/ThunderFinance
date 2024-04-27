@@ -7,6 +7,7 @@ import { JettonWalletUSDT } from '../wrappers/JettonWallet';
 import { JettonMasterUSDT } from '../wrappers/JettonMaster';
 import '@ton/test-utils';
 import * as fs from 'fs';
+import { ACC_PRECISION, TOKEN_DECIMALS } from './constant';
 
 describe('TON MasterChef Tests', () => {
     let blockchain: Blockchain;
@@ -23,8 +24,6 @@ describe('TON MasterChef Tests', () => {
     let totalReward: bigint;
     let masterChefJettonWalletAddress: Address;
     const fee = 55000000n; // This fee is for GAS_FEE and THUNDERMINT_FEE
-    const ACC_PRECISION = 10n ** 12n;
-    const TOKEN_DECIMALS = 10n ** 6n;
     const gasFile = 'TONMasterChefCosts.txt';
 
     // Helper function to append data to a file

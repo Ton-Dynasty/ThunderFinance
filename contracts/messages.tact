@@ -197,11 +197,11 @@ struct MasterChefData {
 
 
 // Constants
-const THUNDER_FEE: Int = ton("0.01"); // User have to pay the fee to ThunderMint
-const ACC_PRECISION: Int = pow(10, 12);   // Precision for the accumulated reward per share
+const THUNDER_FEE: Int = ton("0.01");     // User have to pay the fee to ThunderMint
+const ACC_PRECISION: Int = pow(10, 20);   // Precision for the accumulated reward per share
 const ZERO_ADDRESS: Address = address("0QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACkT");
-const FEE_PERCENT_FOR_DEV: Int = 3;   // 0.3% of the reward will be given to the ThunderMint
-const MIN_GAS_FEE: Int = ton("0.05"); // Minimum gas fee for calling send ton
+const FEE_PERCENT_FOR_DEV: Int = 3;       // 0.3% of the reward will be given to the ThunderMint
+const MIN_GAS_FEE: Int = ton("0.05");     // Minimum gas fee for calling send ton
 
 // ERROR CODES
 const ERROR_POOL_NOT_FOUND: Int = 1002;
