@@ -1230,7 +1230,7 @@ describe('Jetton MasterChef Tests', () => {
             from: kitchen.address,
             to: masterChef.address,
             success: false,
-            exitCode: 29461, // Start time > deadline
+            exitCode: 29462, // Start time > deadline
         });
     });
 

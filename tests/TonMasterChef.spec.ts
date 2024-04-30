@@ -1207,7 +1207,7 @@ describe('TON MasterChef Tests', () => {
             from: kitchen.address,
             to: masterChef.address,
             success: false,
-            exitCode: 29461, // start time > deadline
+            exitCode: 29462, // start time > deadline
         });
     });
 

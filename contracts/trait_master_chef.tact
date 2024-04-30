@@ -159,8 +159,26 @@ trait MasterChef {
 
     // Baise setup function
     inline fun basicSetUp(_thunderMintWallet: Address, _metaData: Slice, _totalReward: Int, _deadline: Int, _startTime: Int) {
-        require(_deadline > _startTime, "deadline should be greater than startTime");
-        require(_deadline > 0 && _startTime > 0, "deadline and startTime should be greater than 0");
+        if(_deadline <= _startTime) {
+            send(SendParameters{
+                to: self.owner,
+                value: 0,
+                mode: SendRemainingBalance + SendDestroyIfZero,
+                body: "Setup Error: deadline <= startTime".asComment()
+            });
+            throw(ERROR_DEADLINE_LT_STARTTIME);
+            return;
+        }
+        if (_deadline == 0 || _startTime == 0) {
+            send(SendParameters{
+                to: self.owner,
+                value: 0,
+                mode: SendRemainingBalance + SendDestroyIfZero,
+                body: "Setup Error: deadline or startTime is 0".asComment()
+            });
+            throw(ERROR_DEADLINE_STARTTIME_ZERO);
+            return;
+        }
         self.thunderMintWallet = _thunderMintWallet;
         self.metaData = build_content_cell(_metaData);
         self.totalReward = _totalReward;
