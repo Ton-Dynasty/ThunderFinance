@@ -113,9 +113,7 @@ contract JettonMasterChef with Deployable, MasterChef {
 
     // MiniChef send this message to ask MasterChef to withdraw LP tokens and harvest reward
     receive(msg: WithdrawAndHarvestReply) {
-        let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
-        let expectedSender: Address = contractAddress(initCode);
-        require(expectedSender == sender(), "unexpected sender");
+        self.requireMiniChef(msg.sender);
 
         let ctx: Context = context();
         if (msg.rewardAmount > 0) {
