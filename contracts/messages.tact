@@ -193,6 +193,11 @@ struct MasterChefData {
     totalReward: Int as coins;      // Total reward
 }
 
+struct RedeemData {
+    reduntantReward: Int as coins; // Redundant reward,
+    totalLpSupply: Int as coins;
+    lastWithdrawTime: Int;
+}
 
 // Constants
 const THUNDER_FEE: Int = ton("0.01");     // User have to pay the fee to ThunderMint

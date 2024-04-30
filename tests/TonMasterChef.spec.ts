@@ -8,6 +8,7 @@ import { JettonMasterUSDT } from '../wrappers/JettonMaster';
 import '@ton/test-utils';
 import * as fs from 'fs';
 import { ACC_PRECISION, TOKEN_DECIMALS } from './constant';
+import exp from 'constants';
 
 describe('TON MasterChef Tests', () => {
     let blockchain: Blockchain;
@@ -416,7 +417,7 @@ describe('TON MasterChef Tests', () => {
 
         const benefit = (userDepositAmount * BigInt(periodTime) * rewardPerSecond) / TOKEN_DECIMALS;
         // Check if user get the reward
-        let feeInHarvest = 54659059n;
+        let feeInHarvest = 54661059n;
         expect(userTonBalanceAfter - userTonBalanceBefore + feeInHarvest).toBeGreaterThanOrEqual(benefit);
         const userHarvestCost = Number(benefit - (userTonBalanceAfter - userTonBalanceBefore)) / 10 ** 10;
         // console.log('userHarvestCost', userHarvestCost, 'TON');
@@ -437,7 +438,7 @@ describe('TON MasterChef Tests', () => {
 
         const benefit = (userDepositAmount * BigInt(periodTime) * rewardPerSecond) / TOKEN_DECIMALS;
         // Check if user get the reward
-        let feeInHarvest = 54659059n;
+        let feeInHarvest = 54661059n;
         expect(userTonBalanceAfter - userTonBalanceBefore + feeInHarvest).toBeGreaterThanOrEqual(benefit);
 
         // Owner reallocate the pool point
@@ -471,7 +472,7 @@ describe('TON MasterChef Tests', () => {
 
         const benefit2 = (userDepositAmount * BigInt(periodTime) * rewardPerSecond) / TOKEN_DECIMALS;
         // Check if user get the reward
-        feeInHarvest = 54659059n;
+        feeInHarvest = 54661059n;
         expect(userTonBalanceAfter2 - userTonBalanceBefore2 + feeInHarvest).toBeGreaterThanOrEqual(benefit2);
     });
 
@@ -510,7 +511,7 @@ describe('TON MasterChef Tests', () => {
 
         const benefit = (userDepositAmount * BigInt(periodTime) * rewardPerSecond) / TOKEN_DECIMALS / 2n;
         // Check if user get the reward
-        let feeInHarvest = 54659059n;
+        let feeInHarvest = 54661059n;
         expect(userTonBalanceAfter - userTonBalanceBefore + feeInHarvest).toBeGreaterThanOrEqual(benefit);
 
         // Owner reallocate the pool point
@@ -545,7 +546,7 @@ describe('TON MasterChef Tests', () => {
         // benefit should be x 2/3 because USDT Pool's allocPoint is 200 and total allocPoint is 300
         const benefit2 = (2n * (userDepositAmount * BigInt(periodTime) * rewardPerSecond)) / TOKEN_DECIMALS / 3n;
         // Check if user get the reward
-        feeInHarvest = 54659059n;
+        feeInHarvest = 54661059n;
         expect(userTonBalanceAfter2 - userTonBalanceBefore2 + feeInHarvest).toBeGreaterThanOrEqual(benefit2);
     });
 
@@ -588,7 +589,7 @@ describe('TON MasterChef Tests', () => {
 
         const benefit = (2n * (userDepositAmount * BigInt(periodTime) * rewardPerSecond)) / TOKEN_DECIMALS / 2n;
         // Check if user get the reward
-        let feeInHarvest = 54659059n;
+        let feeInHarvest = 55661059n;
         // Because we harvest twice, so the fee should be x 2
         expect(userTonBalanceAfter - userTonBalanceBefore + feeInHarvest * 2n).toBeGreaterThanOrEqual(benefit);
 
@@ -624,7 +625,7 @@ describe('TON MasterChef Tests', () => {
         // benefit should be x 2/3 because USDT Pool's allocPoint is 200 and total allocPoint is 300
         const benefit2 = (2n * (userDepositAmount * BigInt(periodTime) * rewardPerSecond)) / TOKEN_DECIMALS / 3n;
         // Check if user get the reward
-        feeInHarvest = 54659059n;
+        feeInHarvest = 55661059n;
         expect(userTonBalanceAfter2 - userTonBalanceBefore2 + feeInHarvest).toBeGreaterThanOrEqual(benefit2);
     });
 
@@ -782,20 +783,6 @@ describe('TON MasterChef Tests', () => {
         // check the differnce between userUSDTBalanceBefore and userUSDTBalanceAfter is equal to userWithdrawAmount
         expect(userUSDTBalanceAfter).toEqual(userUSDTBalanceBefore + userWithdrawAmount);
     });
-
-    it('Should deposit and withdraw', async () => {
-        const userDepositAmount = 1n * TOKEN_DECIMALS;
-        const deployerBalanceBefore = await deployer.getBalance();
-
-        // deposit first
-        await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
-        const deployerBalanceAfter = await deployer.getBalance();
-        const rewardPerSecond = await (await masterChef.getGetTonMasterChefData()).rewardPerSecond;
-        const redundentTon = rewardPerSecond * 10n - toNano('0.08'); // 0.08 is gas fee for transfer ton
-        // Deployer should get the redundent TON
-        expect(deployerBalanceAfter - deployerBalanceBefore).toBeGreaterThanOrEqual(redundentTon);
-    });
-
     it('Should deposit and withdarw with harvest', async () => {
         const userDepositAmount = 1n * TOKEN_DECIMALS;
         const userWithdrawAmount = 5n * 10n ** 5n;
@@ -1753,6 +1740,103 @@ describe('TON MasterChef Tests', () => {
             to: masterChef.address,
             success: false,
             exitCode: 48992, // contract not initialized
+        });
+    });
+
+    it('Should owner redeem the redundant reward token when LpSupply is 0 and someoen stake', async () => {
+        const userDepositAmount = 1n * TOKEN_DECIMALS;
+        const userWithdrawAmount = userDepositAmount;
+        const periodTime = 10;
+        // deposit first
+        await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
+        // get the balance of usdt before withdraw
+
+        // Update time to periodTime, so that we can withdraw
+        blockchain.now!! += periodTime;
+        const poolData = await masterChef.getGetPoolInfo(masterChefJettonWallet.address);
+        const lpSupplyBefore = poolData.lpSupply;
+        // withdraw
+        await withdraw(masterChef, user, masterChefJettonWallet, userWithdrawAmount);
+        const poolDataAfter = await masterChef.getGetPoolInfo(masterChefJettonWallet.address);
+        const lpSupplyAfter = poolDataAfter.lpSupply;
+        expect(lpSupplyAfter).toEqual(lpSupplyBefore - userWithdrawAmount);
+        expect(lpSupplyAfter).toEqual(0n);
+
+        blockchain.now!! += periodTime;
+        await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
+        // Owner call redeem to masterChef
+        const ownerTONBalanceBefore = await deployer.getBalance();
+        await masterChef.send(deployer.getSender(), { value: toNano('2') }, 'Redeem');
+        const ownerTONBalanceAfter = await deployer.getBalance();
+        // 10n: the first user deposit time - start time which this period is redundant reward
+        // The other 10n is time of someone unstake to make LpSupply to 0 and stake again
+        const redundantReward = 10n * 2n * rewardPerSecond;
+        let fee = 55661059n;
+        expect(ownerTONBalanceAfter - ownerTONBalanceBefore + fee).toBeGreaterThan(redundantReward);
+    });
+
+    it('Should owner redeem the redundant reward token when no one stake before deadline', async () => {
+        const userDepositAmount = 1n * TOKEN_DECIMALS;
+        const userWithdrawAmount = userDepositAmount;
+        const periodTime = 10;
+        // deposit first
+        await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
+        // get the balance of usdt before withdraw
+
+        // Update time to periodTime, so that we can withdraw
+        blockchain.now!! += periodTime;
+        const poolData = await masterChef.getGetPoolInfo(masterChefJettonWallet.address);
+        const lpSupplyBefore = poolData.lpSupply;
+        // withdraw
+        await withdraw(masterChef, user, masterChefJettonWallet, userWithdrawAmount);
+        let lastWithdrawTime = BigInt(blockchain.now!!);
+        const poolDataAfter = await masterChef.getGetPoolInfo(masterChefJettonWallet.address);
+        const lpSupplyAfter = poolDataAfter.lpSupply;
+        expect(lpSupplyAfter).toEqual(lpSupplyBefore - userWithdrawAmount);
+        expect(lpSupplyAfter).toEqual(0n);
+
+        // Expect lastWithdrawTime == blockchain.now
+        const redeemData = await masterChef.getGetRedeemData();
+        expect(redeemData.lastWithdrawTime).toEqual(BigInt(blockchain.now!!));
+
+        // Updtate time to deadline
+        blockchain.now!! += 2500;
+
+        // Owner call redeem to masterChef
+        const ownerTONBalanceBefore = await deployer.getBalance();
+        await masterChef.send(deployer.getSender(), { value: toNano('2') }, 'Redeem');
+        const ownerTONBalanceAfter = await deployer.getBalance();
+        // 10n: the first user deposit time - start time which this period is redundant reward
+        const redundantReward = (deadline - lastWithdrawTime + 10n) * rewardPerSecond;
+        let fee = 55661059n;
+        expect(ownerTONBalanceAfter - ownerTONBalanceBefore + fee).toBeGreaterThan(redundantReward);
+    });
+    it('Should not withdraw when sending ton is not enough', async () => {
+        const userDepositAmount = 1n * TOKEN_DECIMALS;
+        const userWithdrawAmount = 5n * 10n ** 5n;
+        const periodTime = 100;
+        // deposit first
+        await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
+
+        // Update time to periodTime, so that we can withdraw
+        blockchain.now!! += periodTime;
+        // withdraw
+        const withdrawResult = await masterChef.send(
+            user.getSender(),
+            { value: toNano('0.06') },
+            {
+                $$type: 'Withdraw',
+                queryId: 0n,
+                lpTokenAddress: masterChefJettonWallet.address,
+                amount: userWithdrawAmount,
+                beneficiary: user.address,
+            },
+        );
+        expect(withdrawResult.transactions).toHaveTransaction({
+            from: user.address,
+            to: masterChef.address,
+            success: false,
+            exitCode: 28952,
         });
     });
 });

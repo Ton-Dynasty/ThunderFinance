@@ -14,6 +14,9 @@ contract JettonMasterChef with Deployable, MasterChef {
     startTime: Int as uint64 = 0;
     metaData: Cell;
     getRedundant: Bool = false;        // The flag to get the redundant data
+    totalLpSupply: Int = 0; // Caculated total LP supply(In each pool)
+    reduntantReward: Int = 0; // The redundant reward for the owner
+    lastWithdrawTime: Int = 0; // The last withdraw time
 
     // For Reward Jetton
     mcRewardJettonWallet: Address;
@@ -83,24 +86,21 @@ contract JettonMasterChef with Deployable, MasterChef {
 
             return;
         }
-
         // check if pool exists or exceed the deadline
-        if(self.pools.get(ctx.sender) == null || now() > self.deadline || now() < self.startTime || ctx.value < ton("0.04")){
+        if(self.pools.get(ctx.sender) == null || now() > self.deadline || now() < self.startTime || ctx.value < ton("0.065")){
             // Send the jetton back to the sender if pool does not exist
             self.sendJetton(ctx.sender, 0, msg.amount, msg.sender, msg.sender, SendRemainingValue);
             return;
         }
+
+        // Send the redundant jetton back to the owner
+        if(self.totalLpSupply == 0) {
+            self.reduntantReward = self.reduntantReward + (now() - self.lastWithdrawTime) * self.rewardPerSecond;
+        }
+        
         // Deposit the LP tokens for the user
         self.userDeposit(msg, ctx);
 
-        // Send the redundant jetton back to the owner
-        if(self.getRedundant == false) {
-            if(myBalance() >= ton("0.05")) {
-                let rewardBack: Int = (now() - self.startTime) * self.rewardPerSecond;
-                self.sendJetton(self.mcRewardJettonWallet, ton("0.05"), rewardBack, self.owner, self.owner, 0);
-            }
-            self.getRedundant = true;
-        }
     }
 
     // MiniChef will send this message to ask MasterChef to send reward
@@ -123,10 +123,22 @@ contract JettonMasterChef with Deployable, MasterChef {
             // Withdraw lpToken to msg.beneficiary
             let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
             pool.lpSupply = pool.lpSupply - msg.withdrawAmount;
+            self.totalLpSupply = self.totalLpSupply - msg.withdrawAmount;
+            self.lastWithdrawTime = now();
             self.pools.set(ctx.sender, pool);
             self.sendJetton(pool.lpTokenAddress, ctx.value / 2, msg.withdrawAmount, msg.beneficiary, msg.beneficiary, 0);
 
         }
+    }
+
+    receive("Redeem") {
+        if(self.totalLpSupply == 0) {
+            let time: Int = min(now(), self.deadline);
+            self.reduntantReward = self.reduntantReward + (time - self.lastWithdrawTime) * self.rewardPerSecond;
+            self.lastWithdrawTime = now();
+        }
+        self.sendJetton(self.mcRewardJettonWallet, 0, self.reduntantReward, self.owner, self.owner, SendRemainingValue);
+        self.reduntantReward = 0;
     }
 
     // Get Methods //

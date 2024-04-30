@@ -14,6 +14,9 @@ contract TonMasterChef with Deployable, MasterChef {
     startTime: Int as uint64 = 0;
     metaData: Cell;
     getRedundant: Bool = false;        // The flag to get the redundant data
+    totalLpSupply: Int = 0; // Caculated total LP supply(In each pool)
+    reduntantReward: Int = 0; // The redundant reward for the owner
+    lastWithdrawTime: Int = 0; // The last withdraw time
 
     // For Reward TON
     rewardPerSecond: Int as coins = 0;
@@ -90,17 +93,13 @@ contract TonMasterChef with Deployable, MasterChef {
             return;
         }
         
+        // Send the redundant ton back to the owner
+        if(self.totalLpSupply == 0) {
+            self.reduntantReward = self.reduntantReward + (now() - self.lastWithdrawTime) * self.rewardPerSecond;
+        }
+
         // Deposit the LP tokens for the user
         self.userDeposit(msg, ctx);
-
-        // Send the redundant jetton back to the owner
-        if(self.getRedundant == false) {
-            let rewardBack: Int = (now() - self.startTime) * self.rewardPerSecond;
-            if(rewardBack >= ton("0.01")) {
-                self.sendTon(self.owner, rewardBack, 0);
-            }
-            self.getRedundant = true;
-        }
     }
 
     // MiniChef will send this message to ask MasterChef to send reward
@@ -125,9 +124,21 @@ contract TonMasterChef with Deployable, MasterChef {
             // Withdraw to msg.beneficiary
             let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
             pool.lpSupply = pool.lpSupply - msg.withdrawAmount;
+            self.totalLpSupply = self.totalLpSupply - msg.withdrawAmount;
+            self.lastWithdrawTime = now();
             self.pools.set(ctx.sender, pool);
             self.sendJetton(pool.lpTokenAddress, sendTon - THUNDER_FEE, msg.withdrawAmount, msg.beneficiary, msg.beneficiary, SendIgnoreErrors);
         }
+    }
+
+    receive("Redeem") {
+        if(self.totalLpSupply == 0) {
+            let time: Int = min(now(), self.deadline);
+            self.reduntantReward = self.reduntantReward + (time - self.lastWithdrawTime) * self.rewardPerSecond;
+            self.lastWithdrawTime = now();
+        }
+        self.sendTon(self.owner, self.reduntantReward, SendRemainingValue);
+        self.reduntantReward = 0;
     }
 
     // Get Methods //
@@ -148,5 +159,6 @@ contract TonMasterChef with Deployable, MasterChef {
             totalReward: self.totalReward
         };
     }
+
 
 }

@@ -22,6 +22,9 @@ trait MasterChef {
     metaData: Cell;                    // The meta data of the contract, such as the name, image url, description, etc.
     startTime: Int = 0;                // The time when the reward distribution starts (initialize in basic setup)
     getRedundant: Bool = false;        // The flag to get the redundant data
+    totalLpSupply: Int = 0; // Caculated total LP supply(In each pool)
+    reduntantReward: Int = 0; // The redundant reward for the owner
+    lastWithdrawTime: Int = 0; // The last withdraw time
 
     // For Reward jetton
     rewardPerSecond: Int = 0;          // The reward per second (coins), so called RPS.
@@ -86,6 +89,8 @@ trait MasterChef {
         if(msg.amount > 0) {
             let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
             pool.lpSupply = pool.lpSupply - msg.amount;
+            self.totalLpSupply = self.totalLpSupply - msg.amount;
+            self.lastWithdrawTime = now();
             self.pools.set(msg.lpTokenAddress, pool);
             self.sendJetton(pool.lpTokenAddress, 0, msg.amount, msg.beneficiary, msg.beneficiary, SendRemainingValue);
         }
@@ -183,6 +188,7 @@ trait MasterChef {
         self.totalReward = _totalReward;
         self.deadline = _deadline;
         self.startTime = _startTime;
+        self.lastWithdrawTime = _startTime;
         self.rewardPerSecond = self.totalReward / (self.deadline - self.startTime);
     }
 
@@ -193,8 +199,7 @@ trait MasterChef {
         // check if pool exists
         require(self.pools.get(lpTokenAddress) != null , "pool not exists");
 
-        require(_value >= ton("0.075"), "value not enough");
-
+        require(_value >= ton("0.065"), "value not enough");
 
         // should update accRewardPerShare first and get the pool info
         self.updatePool(lpTokenAddress);
@@ -218,6 +223,7 @@ trait MasterChef {
         self.updatePool(ctx.sender);
         let pool: PoolInfo = self.pools.get(ctx.sender)!!;
         pool.lpSupply = pool.lpSupply + msg.amount;
+        self.totalLpSupply = self.totalLpSupply + msg.amount;
         self.pools.set(ctx.sender, pool);
         // Get the MiniChef init code for the user
         let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
@@ -333,5 +339,15 @@ trait MasterChef {
             return pool.accRewardPerShare + (rewardAmount / pool.lpSupply);
         } 
         return 0;
+    }
+
+
+    // get RedeemData
+    get fun getRedeemData(): RedeemData {
+        return RedeemData{
+            reduntantReward: self.reduntantReward,
+            totalLpSupply: self.totalLpSupply,
+            lastWithdrawTime: self.lastWithdrawTime
+        };
     }
 }
