@@ -159,6 +159,8 @@ trait MasterChef {
 
     // Baise setup function
     inline fun basicSetUp(_thunderMintWallet: Address, _metaData: Slice, _totalReward: Int, _deadline: Int, _startTime: Int) {
+        require(_deadline > _startTime, "deadline should be greater than startTime");
+        require(_deadline > 0 && _startTime > 0, "deadline and startTime should be greater than 0");
         self.thunderMintWallet = _thunderMintWallet;
         self.metaData = build_content_cell(_metaData);
         self.totalReward = _totalReward;

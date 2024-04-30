@@ -1170,6 +1170,74 @@ describe('TON MasterChef Tests', () => {
         expect(isInitialized).toBe(false);
     });
 
+    it('Should not initialize if start time > deadline', async () => {
+        // Send an insufficient reward amount and verify that it is returned in full.
+        ({ deployer, user, kitchen, usdt, masterChef } = await setupRevertEnv());
+
+        deadline = BigInt(blockchain.now!! + 2000);
+        totalReward = toNano('10');
+        let sendingTon = (totalReward * 1003n) / 1000n - toNano('1');
+        const balanceBefore = await deployer.getBalance();
+        // Build the MasterChef contract from kitchen
+        const masterChefResult = await kitchen.send(
+            deployer.getSender(),
+            {
+                value: sendingTon,
+            },
+            {
+                $$type: 'BuildTonMasterChef',
+                owner: deployer.address,
+                seed: seed,
+                metaData: beginCell().storeStringTail('httpppp').endCell(),
+                deadline: 10n,
+                totalReward: totalReward,
+                startTime: BigInt(blockchain.now!!),
+                queryId: 0n,
+            },
+        );
+        expect(masterChefResult.transactions).toHaveTransaction({
+            from: kitchen.address,
+            to: masterChef.address,
+            success: false,
+            exitCode: 29461, // start time > deadline
+        });
+
+    });
+
+    it('Should not initialize if start time or deadline == 0', async () => {
+        // Send an insufficient reward amount and verify that it is returned in full.
+        ({ deployer, user, kitchen, usdt, masterChef } = await setupRevertEnv());
+
+        deadline = BigInt(blockchain.now!! + 2000);
+        totalReward = toNano('10');
+        let sendingTon = (totalReward * 1003n) / 1000n - toNano('1');
+        const balanceBefore = await deployer.getBalance();
+        // Build the MasterChef contract from kitchen
+        const masterChefResult = await kitchen.send(
+            deployer.getSender(),
+            {
+                value: sendingTon,
+            },
+            {
+                $$type: 'BuildTonMasterChef',
+                owner: deployer.address,
+                seed: seed,
+                metaData: beginCell().storeStringTail('httpppp').endCell(),
+                deadline: 10n,
+                totalReward: totalReward,
+                startTime: 0n,
+                queryId: 0n,
+            },
+        );
+        expect(masterChefResult.transactions).toHaveTransaction({
+            from: kitchen.address,
+            to: masterChef.address,
+            success: false,
+            exitCode: 62197, // start time > deadline
+        });
+
+    });
+
     // Test user deposit behavior before a pool is added.
     it('Should reject user deposits before any pool is added', async () => {
         // Attempt to make a deposit before any pool has been added to the contract and expect failure.
