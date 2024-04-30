@@ -1,6 +1,6 @@
 import "@stdlib/deploy";
-import "./packages/token/jetton/JettonMaster";
-import "./packages/token/jetton/JettonWallet";
+import "./JettonMaster";
+import "./JettonWallet";
 
 contract JettonWalletUSDT with JettonWallet {
     balance: Int as coins = 0;
