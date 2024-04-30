@@ -756,7 +756,12 @@ describe('TON MasterChef Tests', () => {
         // withdraw
         blockchain.now!! += periodTime;
         const userWithdrawBefore = await user.getBalance();
+        const poolData = await masterChef.getGetPoolInfo(masterChefJettonWallet.address);
+        const lpSupplyBefore = poolData.lpSupply;
         const withdrawResult = await withdraw(masterChef, user, masterChefJettonWallet, userWithdrawAmount);
+        const poolDataAfter = await masterChef.getGetPoolInfo(masterChefJettonWallet.address);
+        const lpSupplyAfter = poolDataAfter.lpSupply;
+        expect(lpSupplyAfter).toBe(lpSupplyBefore - userWithdrawAmount);
         const userWithdrawAfter = await user.getBalance();
 
         const userWithdrawCost = Number(userWithdrawBefore - userWithdrawAfter) / 10 ** 10;

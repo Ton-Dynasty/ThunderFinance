@@ -904,13 +904,18 @@ describe('Jetton MasterChef Tests', () => {
         // Update time to periodTime, so that we can withdraw
         blockchain.now!! += periodTime;
         const userWithdrawCostTon = await user.getBalance();
+        const poolData = await masterChef.getGetPoolInfo(masterChefJettonWallet.address);
+        const lpSupplyBefore = poolData.lpSupply;
         // withdraw
         await withdraw(masterChef, user, masterChefJettonWallet, userWithdrawAmount);
+        const poolDataAfter = await masterChef.getGetPoolInfo(masterChefJettonWallet.address);
+        const lpSupplyAfter = poolDataAfter.lpSupply;
+        expect(lpSupplyBefore - lpSupplyAfter).toEqual(userWithdrawAmount);
+
+
         const userAfterWithdrawCostTon = await user.getBalance();
         const userWithdrawCost = Number(userWithdrawCostTon - userAfterWithdrawCostTon) / 10 ** 10;
-        // console.log('UserWithdrawCost', userWithdrawCost, 'TON');
         appendToFile(gasFile, `Withdraw Cost: ${userWithdrawCost} TON`);
-        // console.log("-----------------")
         const userUSDTBalanceBeforeHarvest = (await userJettonWallet.getGetWalletData()).balance;
 
         // Update time to periodTime, so that we can harvest
@@ -918,12 +923,10 @@ describe('Jetton MasterChef Tests', () => {
         // User send Harvest to MasterChef
         await harvest(masterChef, user, masterChefJettonWallet);
         const userUSDTBalanceAfterHarvest = (await userJettonWallet.getGetWalletData()).balance;
-
         // check the differnce between userUSDTBalanceBeforeWithdraw and userUSDTBalanceAfterHarvest is equal to userWithdrawAmount
         expect(userUSDTBalanceBeforeHarvest).toEqual(userUSDTBalanceBeforeWithdraw + userWithdrawAmount);
         // check the differnce between userUSDTBalanceBeforeWithdraw and userUSDTBalanceAfterHarvest is equal to userWithdrawAmount
-        const remainDeposit = userDepositAmount - userWithdrawAmount;
-        const benefit = ((userDepositAmount + remainDeposit) * BigInt(periodTime) * rewardPerSecond) / TOKEN_DECIMALS;
+        const benefit = ( BigInt(periodTime) * 2n * rewardPerSecond)
         expect(userUSDTBalanceAfterHarvest).toEqual(userUSDTBalanceBeforeHarvest + benefit);
     });
 
@@ -1873,7 +1876,7 @@ describe('Jetton MasterChef Tests', () => {
         // User can't get withdraw amount but he can get reward
         const benefit = (userDepositAmount * BigInt(periodTime) * rewardPerSecond) / TOKEN_DECIMALS;
         const userUSDTBalanceAfterWH = (await userJettonWallet.getGetWalletData()).balance;
-        expect(userUSDTBalanceAfterWH).toEqual(userUSDTBalanceAfter + benefit)
+        expect(userUSDTBalanceAfterWH).toEqual(userUSDTBalanceAfter + benefit);
     });
 
     it('Should harvest -> withdraw and harvest -> harvest -> withdraw', async () => {

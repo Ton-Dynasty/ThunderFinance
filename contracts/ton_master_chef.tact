@@ -120,6 +120,8 @@ contract TonMasterChef with Deployable, MasterChef {
         if(msg.withdrawAmount > 0) {
             // Withdraw to msg.beneficiary
             let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
+            pool.lpSupply = pool.lpSupply - msg.withdrawAmount;
+            self.pools.set(ctx.sender, pool);
             self.sendJetton(pool.lpTokenAddress, sendTon - THUNDER_FEE, msg.withdrawAmount, msg.beneficiary, msg.beneficiary, SendIgnoreErrors);
         }
     }

@@ -84,8 +84,10 @@ trait MasterChef {
     // Users' MiniChef will send this message to ask MasterChef to withdraw LP tokens
     receive(msg: WithdrawInternalReply) {
         self.requireMiniChef(msg.sender);
-        let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
         if(msg.amount > 0) {
+            let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
+            pool.lpSupply = pool.lpSupply - msg.amount;
+            self.pools.set(msg.lpTokenAddress, pool);
             self.sendJetton(pool.lpTokenAddress, 0, msg.amount, msg.beneficiary, msg.beneficiary, SendRemainingValue);
         }
     }
