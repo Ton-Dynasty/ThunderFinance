@@ -13,7 +13,6 @@ contract TonMasterChef with Deployable, MasterChef {
     deadline: Int as uint64 = 0;
     startTime: Int as uint64 = 0;
     metaData: Cell;
-    getRedundant: Bool = false;        // The flag to get the redundant data
     totalLpSupply: Int = 0; // Caculated total LP supply(In each pool)
     reduntantReward: Int = 0; // The redundant reward for the owner
     lastWithdrawTime: Int = 0; // The last withdraw time

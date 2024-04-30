@@ -21,7 +21,6 @@ trait MasterChef {
     deadline: Int = 0;                 // The time when the reward distribution ends (initialize in basic setup)
     metaData: Cell;                    // The meta data of the contract, such as the name, image url, description, etc.
     startTime: Int = 0;                // The time when the reward distribution starts (initialize in basic setup)
-    getRedundant: Bool = false;        // The flag to get the redundant data
     totalLpSupply: Int = 0; // Caculated total LP supply(In each pool)
     reduntantReward: Int = 0; // The redundant reward for the owner
     lastWithdrawTime: Int = 0; // The last withdraw time
