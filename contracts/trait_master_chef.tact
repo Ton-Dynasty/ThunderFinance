@@ -18,7 +18,6 @@ trait MasterChef {
     owner: Address;                    // The owner of this contract, may be the deployer
     pools: map<Address, PoolInfo>;     // All the pools in the MasterChef, the key is the "LP Jetton Wallet" address
     totalAllocPoint: Int;              // Total alloc point means the weight of the pools
-    createdAt: Int = 0;                // The time when the contract is created (initialize in basic setup)
     deadline: Int = 0;                 // The time when the reward distribution ends (initialize in basic setup)
     metaData: Cell;                    // The meta data of the contract, such as the name, image url, description, etc.
     startTime: Int = 0;                // The time when the reward distribution starts (initialize in basic setup)
@@ -184,7 +183,6 @@ trait MasterChef {
         self.totalReward = _totalReward;
         self.deadline = _deadline;
         self.startTime = _startTime;
-        self.createdAt = now();
         self.rewardPerSecond = self.totalReward / (self.deadline - self.startTime);
     }
 

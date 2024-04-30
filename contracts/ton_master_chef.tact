@@ -10,7 +10,6 @@ contract TonMasterChef with Deployable, MasterChef {
     owner: Address;
     pools: map<Address, PoolInfo>;
     totalAllocPoint: Int as uint256 = 0;
-    createdAt: Int as uint64 = 0;
     deadline: Int as uint64 = 0;
     startTime: Int as uint64 = 0;
     metaData: Cell;
