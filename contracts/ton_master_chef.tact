@@ -44,7 +44,7 @@ contract TonMasterChef with Deployable, MasterChef {
         let ctx: Context = context();
         // Calculate reward per second in basicSetUp() and also other basic setup
         self.basicSetUp(msg.thunderMintWallet, msg.metaData, msg.totalReward, msg.deadline, msg.startTime);
-        if(self.rewardPerSecond <= 0 || now() > self.deadline) {
+        if(self.rewardPerSecond <= 0) {
             send(SendParameters{
                 to: self.owner,
                 value: 0,
@@ -56,7 +56,7 @@ contract TonMasterChef with Deployable, MasterChef {
         let remainTon: Int = ctx.value - MIN_GAS_FEE;
         let feeForDevs: Int = msg.totalReward * FEE_PERCENT_FOR_DEV / 1000;
         let expectedTon: Int = msg.totalReward + feeForDevs;
-        if (remainTon < expectedTon) {
+        if (remainTon < expectedTon || now() > self.deadline) {
             send(SendParameters{
                 to: msg.owner,
                 value: remainTon,
