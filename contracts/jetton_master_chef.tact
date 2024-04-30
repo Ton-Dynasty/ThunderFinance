@@ -136,8 +136,10 @@ contract JettonMasterChef with Deployable, MasterChef {
             self.reduntantReward = self.reduntantReward + (time - self.lastWithdrawTime) * self.rewardPerSecond;
             self.lastWithdrawTime = now();
         }
-        self.sendJetton(self.mcRewardJettonWallet, 0, self.reduntantReward, self.owner, self.owner, SendRemainingValue);
-        self.reduntantReward = 0;
+        if(self.reduntantReward > 0) {
+            self.sendJetton(self.mcRewardJettonWallet, 0, self.reduntantReward, self.owner, self.owner, SendRemainingValue);
+            self.reduntantReward = 0;
+        }
     }
 
     // Get Methods //

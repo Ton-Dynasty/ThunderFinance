@@ -136,8 +136,10 @@ contract TonMasterChef with Deployable, MasterChef {
             self.reduntantReward = self.reduntantReward + (time - self.lastWithdrawTime) * self.rewardPerSecond;
             self.lastWithdrawTime = now();
         }
-        self.sendTon(self.owner, self.reduntantReward, SendRemainingValue);
-        self.reduntantReward = 0;
+        if(self.reduntantReward > 0) {
+            self.sendTon(self.owner, self.reduntantReward, SendRemainingValue);
+            self.reduntantReward = 0;
+        }
     }
 
     // Get Methods //
