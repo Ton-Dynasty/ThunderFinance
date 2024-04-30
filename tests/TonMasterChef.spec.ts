@@ -1211,6 +1211,40 @@ describe('TON MasterChef Tests', () => {
         });
     });
 
+    it('Should not initialize if now() > deadline', async () => {
+        // Send an insufficient reward amount and verify that it is returned in full.
+        ({ deployer, user, kitchen, usdt, masterChef } = await setupRevertEnv());
+
+        deadline = BigInt(blockchain.now!! + 2000);
+        totalReward = toNano('10');
+        let sendingTon = (totalReward * 1003n) / 1000n - toNano('1');
+        const balanceBefore = await deployer.getBalance();
+        // Build the MasterChef contract from kitchen
+        const masterChefResult = await kitchen.send(
+            deployer.getSender(),
+            {
+                value: sendingTon,
+            },
+            {
+                $$type: 'BuildTonMasterChef',
+                owner: deployer.address,
+                seed: seed,
+                metaData: beginCell().storeStringTail('httpppp').endCell(),
+                deadline: BigInt(blockchain.now!! - 100),
+                totalReward: totalReward,
+                startTime: BigInt(blockchain.now!!),
+                queryId: 0n,
+            },
+        );
+        // If the total reward is not enough, the contract should return the TON and destroy itself
+        try {
+            (await masterChef.getGetTonMasterChefData()).isInitialized;
+        } catch (e) {
+            const error = e as Error;
+            expect(error.message).toEqual('Trying to run get method on non-active contract');
+        }
+    });
+
     it('Should not initialize if start time or deadline == 0', async () => {
         // Send an insufficient reward amount and verify that it is returned in full.
         ({ deployer, user, kitchen, usdt, masterChef } = await setupRevertEnv());

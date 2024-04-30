@@ -45,7 +45,7 @@ contract TonMasterChef with Deployable, MasterChef {
         let ctx: Context = context();
         // Calculate reward per second in basicSetUp() and also other basic setup
         self.basicSetUp(msg.thunderMintWallet, msg.metaData, msg.totalReward, msg.deadline, msg.startTime);
-        if(self.rewardPerSecond <= 0) {
+        if(self.rewardPerSecond <= 0 || now() > self.deadline) {
             send(SendParameters{
                 to: self.owner,
                 value: 0,
