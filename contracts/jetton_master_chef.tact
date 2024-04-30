@@ -34,7 +34,6 @@ contract JettonMasterChef with Deployable, MasterChef {
         emit(DeployMasterChef{owner: _owner, seed: _seed}.toCell());
     }
 
-    receive(){}
 
     // Kitchen contract will send this message to deploy the MasterChef
     receive(msg: SetUpJettonMC) {
