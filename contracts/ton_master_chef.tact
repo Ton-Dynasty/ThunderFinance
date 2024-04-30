@@ -58,7 +58,12 @@ contract TonMasterChef with Deployable, MasterChef {
         let feeForDevs: Int = msg.totalReward * FEE_PERCENT_FOR_DEV / 1000;
         let expectedTon: Int = msg.totalReward + feeForDevs;
         if (remainTon < expectedTon) {
-            self.sendTon(msg.owner, remainTon, 0);
+            send(SendParameters{
+                to: msg.owner,
+                value: remainTon,
+                mode: SendRemainingBalance + SendDestroyIfZero,
+                body: "Setup Error: not enough reward TON".asComment()
+            });
             return;
         }
         // Update storage when ton is sufficient

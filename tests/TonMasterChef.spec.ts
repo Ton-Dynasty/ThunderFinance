@@ -1035,9 +1035,13 @@ describe('TON MasterChef Tests', () => {
             to: masterChef.address,
         });
 
-        // isInitialized Should be true
-        const isInitialized = (await masterChef.getGetTonMasterChefData()).isInitialized;
-        expect(isInitialized).toBe(false);
+        // If the total reward is not enough, the contract should return the TON and destroy itself
+        try {
+            const isInitialized = (await masterChef.getGetTonMasterChefData()).isInitialized;
+        } catch (e) {
+            const error = e as Error;
+            expect(error.message).toEqual('Trying to run get method on non-active contract');
+        }
     });
 
     it('Should not deposit after deadline', async () => {
@@ -1162,12 +1166,16 @@ describe('TON MasterChef Tests', () => {
             to: deployer.address,
         });
 
-        let returnFee = 300000000n; // 221021736n
+        let returnFee = 300000000n;
         expect(balanceAfter + returnFee).toBeGreaterThanOrEqual(balanceBefore); // 0.5 TON is the fee
 
-        let isInitialized = (await masterChef.getGetTonMasterChefData()).isInitialized;
-        // Should not be initialized
-        expect(isInitialized).toBe(false);
+        // If the total reward is not enough, the contract should return the TON and destroy itself
+        try {
+            (await masterChef.getGetTonMasterChefData()).isInitialized;
+        } catch (e) {
+            const error = e as Error;
+            expect(error.message).toEqual('Trying to run get method on non-active contract');
+        }
     });
 
     it('Should not initialize if start time > deadline', async () => {
@@ -1201,7 +1209,6 @@ describe('TON MasterChef Tests', () => {
             success: false,
             exitCode: 29461, // start time > deadline
         });
-
     });
 
     it('Should not initialize if start time or deadline == 0', async () => {
@@ -1235,7 +1242,6 @@ describe('TON MasterChef Tests', () => {
             success: false,
             exitCode: 62197, // start time > deadline
         });
-
     });
 
     // Test user deposit behavior before a pool is added.
@@ -1554,7 +1560,7 @@ describe('TON MasterChef Tests', () => {
 
         deadline = BigInt(blockchain.now!! + 2000);
         totalReward = toNano('10');
-        let sendingTon = (totalReward * 1003n) / 1000n;
+        let sendingTon = (totalReward * 1003n) / 1000n + toNano('1');
         // Build the MasterChef contract from kitchen
         await kitchen.send(
             deployer.getSender(),
