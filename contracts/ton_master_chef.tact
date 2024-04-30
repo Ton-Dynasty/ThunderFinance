@@ -84,7 +84,7 @@ contract TonMasterChef with Deployable, MasterChef {
         let ctx: Context = context();
 
         // check if pool exists or exceed the deadline
-        if(self.pools.get(ctx.sender) == null || now() > self.deadline || now() < self.startTime) {
+        if(self.pools.get(ctx.sender) == null || now() > self.deadline || now() < self.startTime || ctx.value < ton("0.04")) {
             // Send the jetton back to the sender if pool does not exist
             self.sendJetton(ctx.sender, 0, msg.amount, msg.sender, msg.sender, SendRemainingValue);
             return;

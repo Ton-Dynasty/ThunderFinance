@@ -58,8 +58,8 @@ trait MasterChef {
 
     // User can send this message to withdraw their LP tokens
     receive(msg: Withdraw) {
-        self.userOpSetUp(msg.lpTokenAddress);
         let ctx: Context = context();
+        self.userOpSetUp(msg.lpTokenAddress,ctx.value);
         let remainTon: Int = ctx.value - THUNDER_FEE;
 
         let initCode: StateInit = self._calculateMiniChefInit(ctx.sender);
@@ -93,8 +93,8 @@ trait MasterChef {
 
     // User can send this message to harvest their reward
     receive(msg: Harvest) {
-        self.userOpSetUp(msg.lpTokenAddress);
         let ctx: Context = context();
+        self.userOpSetUp(msg.lpTokenAddress,ctx.value);
         let remainTon: Int = ctx.value - THUNDER_FEE;
 
         let initCode: StateInit = self._calculateMiniChefInit(sender());
@@ -118,8 +118,8 @@ trait MasterChef {
 
     // Withdraw and Harvest in one step
     receive(msg: WithdrawAndHarvest) {
-        self.userOpSetUp(msg.lpTokenAddress);
         let ctx: Context = context();
+        self.userOpSetUp(msg.lpTokenAddress,ctx.value);
         let remainTon: Int = ctx.value - THUNDER_FEE;
 
         let initCode: StateInit = self._calculateMiniChefInit(sender());
@@ -187,11 +187,14 @@ trait MasterChef {
     }
 
     // Check contract is initialized and pool exists and then Update the pool
-    inline fun userOpSetUp(lpTokenAddress: Address) {
+    inline fun userOpSetUp(lpTokenAddress: Address, _value: Int) {
         self.requireInitialized();
         require(now() > self.startTime, "reward distribution not started");
         // check if pool exists
         require(self.pools.get(lpTokenAddress) != null , "pool not exists");
+
+        require(_value >= ton("0.075"), "value not enough");
+
 
         // should update accRewardPerShare first and get the pool info
         self.updatePool(lpTokenAddress);
