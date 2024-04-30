@@ -22,7 +22,6 @@ contract Kitchen with Deployable {
                 body: SetUpJettonMC{
                     owner: msg.owner,
                     thunderMintWallet: self.owner,
-                    thunderMintJettonWallet: msg.thunderMintJettonWallet,
                     mcRewardJettonWallet: msg.mcRewardJettonWallet,
                     metaData: msg.metaData,
                     totalReward: msg.totalReward,

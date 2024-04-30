@@ -21,7 +21,6 @@ message(0x7362d09c) JettonTransferNotification {
 message(0x89265822) BuildJettonMasterChef {
     owner: Address;                    // Owner of the MasterChef
     seed: Int as uint256;              // Seed for the MasterChef
-    thunderMintJettonWallet: Address;  // ThunderMint Wallet address to collect the fee in Jetton
     mcRewardJettonWallet: Address;     // MasterChef Wallet address for reward jetton
     metaData: Slice;                   // MetaData for the MasterChef, such as name, image url and description
     totalReward: Int as coins;         // Total reward for the MasterChef
@@ -39,7 +38,6 @@ message(0xf6cf7e6c) SetUpJettonMC {
     owner: Address;                   // Owner (deployer) of the MasterChef
     mcRewardJettonWallet: Address;    // MasterChef Wallet address for reward jetton
     thunderMintWallet: Address;       // ThunderMint Wallet address to collect the fee in TON
-    thunderMintJettonWallet: Address; // ThunderMint Wallet address to collect the fee in Jetton
     metaData: Slice;                  // MetaData for the MasterChef
     totalReward: Int as coins;        // Total reward for the MasterChef
     deadline: Int as uint64;          // MasterChef distribution deadline
