@@ -131,6 +131,8 @@ contract TonMasterChef with Deployable, MasterChef {
     }
 
     receive("Redeem") {
+        let ctx: Context = context();
+        require(ctx.value > ton("0.05"), "Not enough TON to redeem");
         if(self.totalLpSupply == 0) {
             let time: Int = min(now(), self.deadline);
             self.reduntantReward = self.reduntantReward + (time - self.lastWithdrawTime) * self.rewardPerSecond;

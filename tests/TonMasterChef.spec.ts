@@ -1839,4 +1839,40 @@ describe('TON MasterChef Tests', () => {
             exitCode: 28952,
         });
     });
+
+    it('Should send enough ton to redeem', async () => {
+        const userDepositAmount = 1n * TOKEN_DECIMALS;
+        const userWithdrawAmount = userDepositAmount;
+        const periodTime = 10;
+        // deposit first
+        await deposit(masterChef, user, masterChefJettonWallet, usdt, userDepositAmount);
+        // get the balance of usdt before withdraw
+
+        // Update time to periodTime, so that we can withdraw
+        blockchain.now!! += periodTime;
+        const poolData = await masterChef.getGetPoolInfo(masterChefJettonWallet.address);
+        const lpSupplyBefore = poolData.lpSupply;
+        // withdraw
+        await withdraw(masterChef, user, masterChefJettonWallet, userWithdrawAmount);
+        const poolDataAfter = await masterChef.getGetPoolInfo(masterChefJettonWallet.address);
+        const lpSupplyAfter = poolDataAfter.lpSupply;
+        expect(lpSupplyAfter).toEqual(lpSupplyBefore - userWithdrawAmount);
+        expect(lpSupplyAfter).toEqual(0n);
+
+        // Expect lastWithdrawTime == blockchain.now
+        const redeemData = await masterChef.getGetRedeemData();
+        expect(redeemData.lastWithdrawTime).toEqual(BigInt(blockchain.now!!));
+
+        // Updtate time to deadline
+        blockchain.now!! += 2500;
+
+        // Owner call redeem to masterChef
+        const redeemResult = await masterChef.send(deployer.getSender(), { value: toNano('0.03') }, 'Redeem');
+        expect(redeemResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: masterChef.address,
+            success: false,
+            exitCode: 45761,
+        });
+    });
 });
