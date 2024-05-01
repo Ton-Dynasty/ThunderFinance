@@ -205,7 +205,7 @@ const ACC_PRECISION: Int = pow(10, 20);   // Precision for the accumulated rewar
 const ZERO_ADDRESS: Address = address("0QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACkT");
 const FEE_PERCENT_FOR_DEV: Int = 3;       // 0.3% of the reward will be given to the ThunderMint
 const MIN_GAS_FEE: Int = ton("0.05");     // Minimum gas fee for calling send ton
-const gasConsumption: Int = ton("0.001");
+const gasConsumption: Int = ton("0.0059");
 
 // ERROR CODES
 const ERROR_POOL_NOT_FOUND: Int = 1002;

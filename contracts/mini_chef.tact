@@ -27,12 +27,12 @@ contract MiniChef with Deployable {
         userInfo.rewardDebt = userInfo.rewardDebt + msg.rewardDebt; 
         self.userInfo.set(msg.lpTokenAddress, userInfo);
         let ctx: Context = context();
-        let sendBackTon: Int = ctx.value - gasConsumption;
+        let sendBackTon: Int = ctx.value - gasConsumption - MIN_GAS_FEE;
         // Send remain Ton to owner
         send(SendParameters{
             to: self.owner,
             value: sendBackTon,
-            mode: SendIgnoreErrors,
+            mode: 0,
             body: "Deposit Successfully".asComment()
         });
     }
