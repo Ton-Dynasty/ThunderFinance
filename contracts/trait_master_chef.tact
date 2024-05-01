@@ -18,10 +18,12 @@ trait MasterChef {
     owner: Address;                    // The owner of this contract, may be the deployer
     pools: map<Address, PoolInfo>;     // All the pools in the MasterChef, the key is the "LP Jetton Wallet" address
     totalAllocPoint: Int;              // Total alloc point means the weight of the pools
-    createdAt: Int = 0;                // The time when the contract is created (initialize in basic setup)
     deadline: Int = 0;                 // The time when the reward distribution ends (initialize in basic setup)
     metaData: Cell;                    // The meta data of the contract, such as the name, image url, description, etc.
     startTime: Int = 0;                // The time when the reward distribution starts (initialize in basic setup)
+    totalLpSupply: Int = 0; // Caculated total LP supply(In each pool)
+    reduntantReward: Int = 0; // The redundant reward for the owner
+    lastWithdrawTime: Int = 0; // The last withdraw time
 
     // For Reward jetton
     rewardPerSecond: Int = 0;          // The reward per second (coins), so called RPS.
@@ -47,6 +49,7 @@ trait MasterChef {
             lpTokenAddress: msg.lpTokenAddress
         };
         self.pools.set(msg.lpTokenAddress, poolInfo);
+        self.sendTon(sender(), 0, SendRemainingValue);
     }
 
     // Anyone can send this message to update the pool, recalculate the reward per share
@@ -57,8 +60,8 @@ trait MasterChef {
 
     // User can send this message to withdraw their LP tokens
     receive(msg: Withdraw) {
-        self.userOpSetUp(msg.lpTokenAddress);
         let ctx: Context = context();
+        self.userOpSetUp(msg.lpTokenAddress,ctx.value);
         let remainTon: Int = ctx.value - THUNDER_FEE;
 
         let initCode: StateInit = self._calculateMiniChefInit(ctx.sender);
@@ -82,14 +85,20 @@ trait MasterChef {
     // Users' MiniChef will send this message to ask MasterChef to withdraw LP tokens
     receive(msg: WithdrawInternalReply) {
         self.requireMiniChef(msg.sender);
-        let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
-        self.sendJetton(pool.lpTokenAddress, 0, msg.amount, msg.beneficiary, msg.beneficiary, SendRemainingValue);
+        if(msg.amount > 0) {
+            let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
+            pool.lpSupply = pool.lpSupply - msg.amount;
+            self.totalLpSupply = self.totalLpSupply - msg.amount;
+            self.lastWithdrawTime = now();
+            self.pools.set(msg.lpTokenAddress, pool);
+            self.sendJetton(pool.lpTokenAddress, 0, msg.amount, msg.beneficiary, msg.beneficiary, SendRemainingValue);
+        }
     }
 
     // User can send this message to harvest their reward
     receive(msg: Harvest) {
-        self.userOpSetUp(msg.lpTokenAddress);
         let ctx: Context = context();
+        self.userOpSetUp(msg.lpTokenAddress,ctx.value);
         let remainTon: Int = ctx.value - THUNDER_FEE;
 
         let initCode: StateInit = self._calculateMiniChefInit(sender());
@@ -113,8 +122,8 @@ trait MasterChef {
 
     // Withdraw and Harvest in one step
     receive(msg: WithdrawAndHarvest) {
-        self.userOpSetUp(msg.lpTokenAddress);
         let ctx: Context = context();
+        self.userOpSetUp(msg.lpTokenAddress,ctx.value);
         let remainTon: Int = ctx.value - THUNDER_FEE;
 
         let initCode: StateInit = self._calculateMiniChefInit(sender());
@@ -153,21 +162,43 @@ trait MasterChef {
 
     // Baise setup function
     inline fun basicSetUp(_thunderMintWallet: Address, _metaData: Slice, _totalReward: Int, _deadline: Int, _startTime: Int) {
+        if(_deadline <= _startTime) {
+            send(SendParameters{
+                to: self.owner,
+                value: 0,
+                mode: SendRemainingBalance + SendDestroyIfZero,
+                body: "Setup Error: deadline <= startTime".asComment()
+            });
+            throw(ERROR_DEADLINE_LT_STARTTIME);
+            return;
+        }
+        if (_deadline == 0 || _startTime == 0) {
+            send(SendParameters{
+                to: self.owner,
+                value: 0,
+                mode: SendRemainingBalance + SendDestroyIfZero,
+                body: "Setup Error: deadline or startTime is 0".asComment()
+            });
+            throw(ERROR_DEADLINE_STARTTIME_ZERO);
+            return;
+        }
         self.thunderMintWallet = _thunderMintWallet;
         self.metaData = build_content_cell(_metaData);
         self.totalReward = _totalReward;
         self.deadline = _deadline;
         self.startTime = _startTime;
-        self.createdAt = now();
+        self.lastWithdrawTime = _startTime;
         self.rewardPerSecond = self.totalReward / (self.deadline - self.startTime);
     }
 
     // Check contract is initialized and pool exists and then Update the pool
-    inline fun userOpSetUp(lpTokenAddress: Address) {
+    inline fun userOpSetUp(lpTokenAddress: Address, _value: Int) {
         self.requireInitialized();
         require(now() > self.startTime, "reward distribution not started");
         // check if pool exists
         require(self.pools.get(lpTokenAddress) != null , "pool not exists");
+
+        require(_value >= ton("0.065"), "value not enough");
 
         // should update accRewardPerShare first and get the pool info
         self.updatePool(lpTokenAddress);
@@ -191,13 +222,15 @@ trait MasterChef {
         self.updatePool(ctx.sender);
         let pool: PoolInfo = self.pools.get(ctx.sender)!!;
         pool.lpSupply = pool.lpSupply + msg.amount;
+        self.totalLpSupply = self.totalLpSupply + msg.amount;
         self.pools.set(ctx.sender, pool);
+        let sendBackTon: Int = ctx.value - gasConsumption;
         // Get the MiniChef init code for the user
         let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
         send(SendParameters{
                 to: contractAddress(initCode),
-                value: 0,
-                mode: SendRemainingValue,
+                value: sendBackTon,
+                mode: 0,
                 body: UserDeposit{
                     queryId: msg.query_id,
                     lpTokenAddress: ctx.sender,
@@ -246,7 +279,7 @@ trait MasterChef {
                 response_destination: _response_destination,
                 custom_payload: null,
                 forward_ton_amount: 0,
-                forward_payload: beginCell().storeUint(1,1).endCell().asSlice() // Have to put 1 bit, so that we can pass jetton minter exit code 708
+                forward_payload: beginCell().storeUint(0,1).endCell().asSlice() // Have to put 1 bit, so that we can pass jetton minter exit code 708
             }.toCell()    
         });
     }
@@ -306,5 +339,15 @@ trait MasterChef {
             return pool.accRewardPerShare + (rewardAmount / pool.lpSupply);
         } 
         return 0;
+    }
+
+
+    // get RedeemData
+    get fun getRedeemData(): RedeemData {
+        return RedeemData{
+            reduntantReward: self.reduntantReward,
+            totalLpSupply: self.totalLpSupply,
+            lastWithdrawTime: self.lastWithdrawTime
+        };
     }
 }

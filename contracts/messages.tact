@@ -21,12 +21,12 @@ message(0x7362d09c) JettonTransferNotification {
 message(0x89265822) BuildJettonMasterChef {
     owner: Address;                    // Owner of the MasterChef
     seed: Int as uint256;              // Seed for the MasterChef
-    thunderMintJettonWallet: Address;  // ThunderMint Wallet address to collect the fee in Jetton
     mcRewardJettonWallet: Address;     // MasterChef Wallet address for reward jetton
     metaData: Slice;                   // MetaData for the MasterChef, such as name, image url and description
     totalReward: Int as coins;         // Total reward for the MasterChef
     deadline: Int as uint64;           // MasterChef distribution deadline
     startTime: Int as uint64;          // Start Mining Time
+    queryId: Int as uint64;                // arbitrary request number
 }
 
 // For MasterChef Contract
@@ -38,15 +38,16 @@ message(0xf6cf7e6c) SetUpJettonMC {
     owner: Address;                   // Owner (deployer) of the MasterChef
     mcRewardJettonWallet: Address;    // MasterChef Wallet address for reward jetton
     thunderMintWallet: Address;       // ThunderMint Wallet address to collect the fee in TON
-    thunderMintJettonWallet: Address; // ThunderMint Wallet address to collect the fee in Jetton
     metaData: Slice;                  // MetaData for the MasterChef
     totalReward: Int as coins;        // Total reward for the MasterChef
     deadline: Int as uint64;          // MasterChef distribution deadline
     startTime: Int as uint64;         // Start Mining Time
+    queryId: Int as uint64;                // arbitrary request number
 }
 message(0x4b7d1ae4) AddPool{
     lpTokenAddress: Address;        // Pool Factory LP token Wallet address
     allocPoint: Int as uint256;    // How many allocation points assigned to this pool.
+    queryId: Int as uint64;                // arbitrary request number
 }
 
 message(0x5e653b7f) UpdatePool {
@@ -139,6 +140,7 @@ message(0x8bf38613) SetUpTonMC {
     totalReward: Int as coins;   // Total reward for the MasterChef
     deadline: Int as uint64;     // MasterChef distribution deadline
     startTime: Int as uint64;          // Start Mining Time
+    queryId: Int as uint64;                // arbitrary request number
 }
 
 message(0xd449b642) BuildTonMasterChef {
@@ -148,6 +150,7 @@ message(0xd449b642) BuildTonMasterChef {
     totalReward: Int as coins; // Total reward for the MasterChef
     deadline: Int as uint64;   // MasterChef distribution deadline
     startTime: Int as uint64;          // Start Mining Time
+    queryId: Int as uint64;                // arbitrary request number
 }
 
 // Event: Deploy MasterChef
@@ -190,16 +193,24 @@ struct MasterChefData {
     totalReward: Int as coins;      // Total reward
 }
 
+struct RedeemData {
+    reduntantReward: Int as coins; // Redundant reward,
+    totalLpSupply: Int as coins;
+    lastWithdrawTime: Int;
+}
 
 // Constants
-const THUNDER_FEE: Int = ton("0.01"); // User have to pay the fee to ThunderMint
-const ACC_PRECISION: Int = pow(10, 12);   // Precision for the accumulated reward per share
+const THUNDER_FEE: Int = ton("0.01");     // User have to pay the fee to ThunderMint
+const ACC_PRECISION: Int = pow(10, 20);   // Precision for the accumulated reward per share
 const ZERO_ADDRESS: Address = address("0QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACkT");
-const FEE_PERCENT_FOR_DEV: Int = 3;   // 0.3% of the reward will be given to the ThunderMint
-const MIN_GAS_FEE: Int = ton("0.05"); // Minimum gas fee for calling send ton
+const FEE_PERCENT_FOR_DEV: Int = 3;       // 0.3% of the reward will be given to the ThunderMint
+const MIN_GAS_FEE: Int = ton("0.05");     // Minimum gas fee for calling send ton
+const gasConsumption: Int = ton("0.0059");
 
 // ERROR CODES
 const ERROR_POOL_NOT_FOUND: Int = 1002;
 const ERROR_WRONG_AUTH: Int = 1004;
 const ERROR_NO_REWARD: Int = 1005;
 const ERROR_NOT_INITIALIZED: Int = 1006;
+const ERROR_DEADLINE_LT_STARTTIME: Int = 29462;
+const ERROR_DEADLINE_STARTTIME_ZERO: Int = 62197;

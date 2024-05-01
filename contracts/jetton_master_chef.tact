@@ -10,10 +10,12 @@ contract JettonMasterChef with Deployable, MasterChef {
     owner: Address;
     pools: map<Address, PoolInfo>;
     totalAllocPoint: Int as uint256 = 0;
-    createdAt: Int as uint64 = 0;
     deadline: Int as uint64 = 0;
     startTime: Int as uint64 = 0;
     metaData: Cell;
+    totalLpSupply: Int = 0; // Caculated total LP supply(In each pool)
+    reduntantReward: Int = 0; // The redundant reward for the owner
+    lastWithdrawTime: Int = 0; // The last withdraw time
 
     // For Reward Jetton
     mcRewardJettonWallet: Address;
@@ -32,6 +34,7 @@ contract JettonMasterChef with Deployable, MasterChef {
         self.metaData = emptyCell();
         emit(DeployMasterChef{owner: _owner, seed: _seed}.toCell());
     }
+
 
     // Kitchen contract will send this message to deploy the MasterChef
     receive(msg: SetUpJettonMC) {
@@ -82,15 +85,21 @@ contract JettonMasterChef with Deployable, MasterChef {
 
             return;
         }
-
         // check if pool exists or exceed the deadline
-        if(self.pools.get(ctx.sender) == null || now() > self.deadline || now() < self.startTime){
+        if(self.pools.get(ctx.sender) == null || now() > self.deadline || now() < self.startTime || ctx.value < ton("0.065")){
             // Send the jetton back to the sender if pool does not exist
             self.sendJetton(ctx.sender, 0, msg.amount, msg.sender, msg.sender, SendRemainingValue);
             return;
         }
+
+        // Send the redundant jetton back to the owner
+        if(self.totalLpSupply == 0) {
+            self.reduntantReward = self.reduntantReward + (now() - self.lastWithdrawTime) * self.rewardPerSecond;
+        }
+        
         // Deposit the LP tokens for the user
         self.userDeposit(msg, ctx);
+
     }
 
     // MiniChef will send this message to ask MasterChef to send reward
@@ -101,18 +110,38 @@ contract JettonMasterChef with Deployable, MasterChef {
 
     // MiniChef send this message to ask MasterChef to withdraw LP tokens and harvest reward
     receive(msg: WithdrawAndHarvestReply) {
-        let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
-        let expectedSender: Address = contractAddress(initCode);
-        require(expectedSender == sender(), "unexpected sender");
+        self.requireMiniChef(msg.sender);
 
         let ctx: Context = context();
+        if (msg.rewardAmount > 0) {
+            // Send Reward to the beneficiary
+            self.sendJetton(self.mcRewardJettonWallet, ctx.value / 2, msg.rewardAmount, msg.beneficiary, msg.beneficiary, 0);
+        }
 
-        // Send Reward to the beneficiary
-        self.sendJetton(self.mcRewardJettonWallet, ctx.value / 2, msg.rewardAmount, msg.beneficiary, msg.beneficiary, 0);
+        if(msg.withdrawAmount > 0) {    
+            // Withdraw lpToken to msg.beneficiary
+            let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
+            pool.lpSupply = pool.lpSupply - msg.withdrawAmount;
+            self.totalLpSupply = self.totalLpSupply - msg.withdrawAmount;
+            self.lastWithdrawTime = now();
+            self.pools.set(ctx.sender, pool);
+            self.sendJetton(pool.lpTokenAddress, ctx.value / 2, msg.withdrawAmount, msg.beneficiary, msg.beneficiary, 0);
 
-        // Withdraw lpToken to msg.beneficiary
-        let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
-        self.sendJetton(pool.lpTokenAddress, ctx.value / 2, msg.withdrawAmount, msg.beneficiary, msg.beneficiary, 0);
+        }
+    }
+
+    receive("Redeem") {
+        let ctx: Context = context();
+        require(ctx.value > ton("0.05"), "Not enough TON to redeem");
+        if(self.totalLpSupply == 0) {
+            let time: Int = min(now(), self.deadline);
+            self.reduntantReward = self.reduntantReward + (time - self.lastWithdrawTime) * self.rewardPerSecond;
+            self.lastWithdrawTime = now();
+        }
+        if(self.reduntantReward > 0) {
+            self.sendJetton(self.mcRewardJettonWallet, 0, self.reduntantReward, self.owner, self.owner, SendRemainingValue);
+            self.reduntantReward = 0;
+        }
     }
 
     // Get Methods //

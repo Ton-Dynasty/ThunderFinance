@@ -22,12 +22,12 @@ contract Kitchen with Deployable {
                 body: SetUpJettonMC{
                     owner: msg.owner,
                     thunderMintWallet: self.owner,
-                    thunderMintJettonWallet: msg.thunderMintJettonWallet,
                     mcRewardJettonWallet: msg.mcRewardJettonWallet,
                     metaData: msg.metaData,
                     totalReward: msg.totalReward,
                     deadline: msg.deadline,
-                    startTime: msg.startTime
+                    startTime: msg.startTime,
+                    queryId: msg.queryId
                 }.toCell(),
                 code: initCode.code,
                 data: initCode.data
@@ -48,7 +48,8 @@ contract Kitchen with Deployable {
                     metaData: msg.metaData,
                     totalReward: msg.totalReward,
                     deadline: msg.deadline,
-                    startTime: msg.startTime
+                    startTime: msg.startTime,
+                    queryId: msg.queryId
                 }.toCell(),
                 code: initCode.code,
                 data: initCode.data

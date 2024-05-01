@@ -10,12 +10,12 @@ export async function run(provider: NetworkProvider) {
     const deployment = await loadDeployment();
     const masterchef = provider.open(JettonMasterChef.fromAddress(Address.parse(deployment.MasterChef)));
 
-    const rewardTokenMasterAddress = Address.parse("EQB3Xa6oQ4TVwXtDCYUq6DuDgWuZ6Lc-J2yaS5dirMMHyQpl")
+    const rewardTokenMasterAddress = Address.parse(deployment.RewardJettonMaster);
     const rewardTokenMaster = provider.open(JettonMinter.createFromAddress(rewardTokenMasterAddress));
 
     const masterchefUSDTWalletAddress = await rewardTokenMaster.getWalletAddress(masterchef.address);
     const masterchefUSDTWallet = provider.open(JettonWallet.createFromAddress(masterchefUSDTWalletAddress));
-    const withdrawAmount = 25n * 10n ** 6n;
+    const withdrawAmount = 25n * 10n ** 9n;
     await masterchef.send(
         provider.sender(),
         { value: toNano('1') },
