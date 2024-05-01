@@ -14,7 +14,7 @@ contract TonMasterChef with Deployable, MasterChef {
     startTime: Int as uint64 = 0;
     metaData: Cell;
     totalLpSupply: Int = 0; // Caculated total LP supply(In each pool)
-    reduntantReward: Int = 0; // The redundant reward for the owner
+    redundantReward: Int = 0; // The redundant reward for the owner
     lastWithdrawTime: Int = 0; // The last withdraw time
 
     // For Reward TON
@@ -94,7 +94,7 @@ contract TonMasterChef with Deployable, MasterChef {
         
         // Send the redundant ton back to the owner
         if(self.totalLpSupply == 0) {
-            self.reduntantReward = self.reduntantReward + (now() - self.lastWithdrawTime) * self.rewardPerSecond;
+            self.redundantReward = self.redundantReward + (now() - self.lastWithdrawTime) * self.rewardPerSecond;
         }
 
         // Deposit the LP tokens for the user
@@ -135,12 +135,12 @@ contract TonMasterChef with Deployable, MasterChef {
         require(ctx.value > ton("0.05"), "Not enough TON to redeem");
         if(self.totalLpSupply == 0) {
             let time: Int = min(now(), self.deadline);
-            self.reduntantReward = self.reduntantReward + (time - self.lastWithdrawTime) * self.rewardPerSecond;
+            self.redundantReward = self.redundantReward + (time - self.lastWithdrawTime) * self.rewardPerSecond;
             self.lastWithdrawTime = now();
         }
-        if(self.reduntantReward > 0) {
-            self.sendTon(self.owner, self.reduntantReward, SendRemainingValue);
-            self.reduntantReward = 0;
+        if(self.redundantReward > 0) {
+            self.sendTon(self.owner, self.redundantReward, SendRemainingValue);
+            self.redundantReward = 0;
         }
     }
 

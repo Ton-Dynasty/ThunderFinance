@@ -63,7 +63,7 @@ trait JettonWallet {
     balance: Int;
     owner: Address;
     jetton_master: Address;
-    virtual const gasConsumption: Int = ton("0.05");
+    virtual const GAS_CONSUMPTION: Int = ton("0.05");
     virtual const minTonsForStorage: Int = ton("0.05");
 
     //********************************************//
@@ -132,7 +132,7 @@ trait JettonWallet {
     virtual inline fun _internal_transfer_estimate_remain_value(ctx: Context, msg: JettonInternalTransfer): Int {
         let tonBalanceBeforeMsg: Int = myBalance() - ctx.value;
         let storage_fee: Int =  self.minTonsForStorage - min(tonBalanceBeforeMsg, self.minTonsForStorage);
-        let remain: Int = ctx.value - (storage_fee + self.gasConsumption);
+        let remain: Int = ctx.value - (storage_fee + self.GAS_CONSUMPTION);
         if (msg.forward_ton_amount > 0) {
             remain = remain - (ctx.readForwardFee() + msg.forward_ton_amount);
         }
@@ -206,7 +206,7 @@ trait JettonWallet {
         if (msg.forward_ton_amount > 0) {
             fwd_count = 2;
         }
-        require(ctx.value > fwd_count * ctx.readForwardFee() + 2 * self.gasConsumption + self.minTonsForStorage, "Not enough funds to transfer");
+        require(ctx.value > fwd_count * ctx.readForwardFee() + 2 * self.GAS_CONSUMPTION + self.minTonsForStorage, "Not enough funds to transfer");
     }
 
     // @dev  _transfer_jetton will transfer jettons to the jetton wallet of the destination address (owner of jetton wallet)
