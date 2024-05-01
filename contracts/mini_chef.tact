@@ -26,11 +26,13 @@ contract MiniChef with Deployable {
         userInfo.amount = userInfo.amount + msg.amount;
         userInfo.rewardDebt = userInfo.rewardDebt + msg.rewardDebt; 
         self.userInfo.set(msg.lpTokenAddress, userInfo);
+        let ctx: Context = context();
+        let sendBackTon: Int = ctx.value - gasConsumption;
         // Send remain Ton to owner
         send(SendParameters{
             to: self.owner,
-            value: 0,
-            mode: SendRemainingValue,
+            value: sendBackTon,
+            mode: SendIgnoreErrors,
             body: "Deposit Successfully".asComment()
         });
     }
@@ -47,11 +49,12 @@ contract MiniChef with Deployable {
         userInfo.rewardDebt = userInfo.rewardDebt - msg.rewardDebt; 
 
         self.userInfo.set(msg.lpTokenAddress, userInfo);
-
+        let ctx: Context = context();
+        let sendBackTon: Int = ctx.value - gasConsumption;
         send(SendParameters{
             to: self.masterChef,
-            value: 0,
-            mode: SendRemainingValue,
+            value: sendBackTon,
+            mode: 0,
             body: WithdrawInternalReply{
                 queryId: msg.queryId,
                 lpTokenAddress: msg.lpTokenAddress,
@@ -73,11 +76,13 @@ contract MiniChef with Deployable {
         }
         userInfo.rewardDebt = accumulatedReward;
         self.userInfo.set(msg.lpTokenAddress, userInfo);
+        let ctx: Context = context();
+        let sendBackTon: Int = ctx.value - gasConsumption;
         // Send pending reward ammount to MasterChef, and then MasterChef will send it to the user
         send(SendParameters{
             to: self.masterChef,
-            value: 0,
-            mode: SendRemainingValue,
+            value: sendBackTon,
+            mode: 0,
             body: HarvestInternalReply{
                 queryId: msg.queryId,
                 lpTokenAddress: msg.lpTokenAddress,
@@ -96,6 +101,9 @@ contract MiniChef with Deployable {
         require(userInfo.amount >= msg.withdrawAmount, "insufficient balance");
         let accumulatedReward: Int = userInfo.amount * msg.accRewardPerShare / ACC_PRECISION; 
         let _pendingReward: Int = accumulatedReward - userInfo.rewardDebt;
+
+        let ctx: Context = context();
+        let sendBackTon: Int = ctx.value - gasConsumption;
         if (_pendingReward <= 0) {
             userInfo.amount = userInfo.amount - msg.withdrawAmount;
             userInfo.rewardDebt = userInfo.rewardDebt - msg.withdrawAmount * msg.accRewardPerShare / ACC_PRECISION;
@@ -104,8 +112,8 @@ contract MiniChef with Deployable {
 
             send(SendParameters{
                 to: self.masterChef,
-                value: 0,
-                mode: SendRemainingValue,
+                value: sendBackTon,
+                mode: 0,
                 body: WithdrawAndHarvestReply{
                     queryId: msg.queryId,
                     lpTokenAddress: msg.lpTokenAddress,
@@ -124,8 +132,8 @@ contract MiniChef with Deployable {
         // Send WithdrawAndHarvestReply to MasterChef
         send(SendParameters{
             to: self.masterChef,
-            value: 0,
-            mode: SendRemainingValue,
+            value: sendBackTon,
+            mode: 0,
             body: WithdrawAndHarvestReply{
                 queryId: msg.queryId,
                 lpTokenAddress: msg.lpTokenAddress,
