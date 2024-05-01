@@ -194,7 +194,7 @@ struct MasterChefData {
 }
 
 struct RedeemData {
-    reduntantReward: Int as coins; // Redundant reward,
+    redundantReward: Int as coins; // Redundant reward,
     totalLpSupply: Int as coins;
     lastWithdrawTime: Int;
 }

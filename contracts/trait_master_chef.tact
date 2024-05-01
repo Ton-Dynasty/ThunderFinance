@@ -22,7 +22,7 @@ trait MasterChef {
     metaData: Cell;                    // The meta data of the contract, such as the name, image url, description, etc.
     startTime: Int = 0;                // The time when the reward distribution starts (initialize in basic setup)
     totalLpSupply: Int = 0; // Caculated total LP supply(In each pool)
-    reduntantReward: Int = 0; // The redundant reward for the owner
+    redundantReward: Int = 0; // The redundant reward for the owner
     lastWithdrawTime: Int = 0; // The last withdraw time
 
     // For Reward jetton
@@ -345,7 +345,7 @@ trait MasterChef {
     // get RedeemData
     get fun getRedeemData(): RedeemData {
         return RedeemData{
-            reduntantReward: self.reduntantReward,
+            redundantReward: self.redundantReward,
             totalLpSupply: self.totalLpSupply,
             lastWithdrawTime: self.lastWithdrawTime
         };
