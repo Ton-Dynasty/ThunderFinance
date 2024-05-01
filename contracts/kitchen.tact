@@ -14,11 +14,13 @@ contract Kitchen with Deployable {
 
     // Deploy MasterChef for jetton
     receive(msg: BuildJettonMasterChef) {
+        let ctx: Context = context();
+        let sendTon: Int = ctx.value - KITCHEN_FEE;
         let initCode: StateInit = self.calculateJettonMasterChef(msg.owner,msg.seed);
         send(SendParameters{
                 to: contractAddress(initCode),
-                value: 0,
-                mode: SendRemainingValue,
+                value: sendTon,
+                mode: 0,
                 body: SetUpJettonMC{
                     owner: msg.owner,
                     thunderMintWallet: self.owner,
@@ -37,11 +39,13 @@ contract Kitchen with Deployable {
 
     // Deploy MasterChef for TON
     receive(msg: BuildTonMasterChef) {
+        let ctx: Context = context();
+        let sendTon: Int = ctx.value - KITCHEN_FEE;
         let initCode: StateInit = self.calculateTonMasterChef(msg.owner,msg.seed);
         send(SendParameters{
                 to: contractAddress(initCode),
-                value: 0,
-                mode: SendRemainingValue,
+                value: sendTon,
+                mode: 0,
                 body: SetUpTonMC{
                     owner: msg.owner,
                     thunderMintWallet: self.owner,

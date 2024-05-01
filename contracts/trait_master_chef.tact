@@ -224,7 +224,7 @@ trait MasterChef {
         pool.lpSupply = pool.lpSupply + msg.amount;
         self.totalLpSupply = self.totalLpSupply + msg.amount;
         self.pools.set(ctx.sender, pool);
-        let sendBackTon: Int = ctx.value - gasConsumption;
+        let sendBackTon: Int = ctx.value - GAS_CONSUMPTION;
         // Get the MiniChef init code for the user
         let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
         send(SendParameters{
