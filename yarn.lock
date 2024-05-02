@@ -683,28 +683,28 @@
   resolved "https://registry.yarnpkg.com/@tact-lang/opcode/-/opcode-0.0.14.tgz#52a9cb65bd43b8975481ecac26a3a59b377d1cf2"
   integrity sha512-8FKHK2jwvViRBReO2t40DCkHAP9KPTRWZof4kdsAUJFlyeWIC8SsRQSl9QkZxF+48WvjDduKNqN5Ltb80paufA==
 
-"@ton-community/func-js-bin@0.4.4-newops":
-  version "0.4.4-newops"
-  resolved "https://registry.yarnpkg.com/@ton-community/func-js-bin/-/func-js-bin-0.4.4-newops.tgz#6731b46921ac61fafa3091a8e0be4b8cb92fddc6"
-  integrity sha512-tvbnb/rpK+L/PmT0TwZctI00hvvWgkqRlsiFLsZUqLERo5BPDDnurYHnbt/VE/2gz9pljJ5mANmhwd0K6oW/2Q==
+"@ton-community/func-js-bin@0.4.4-newops.1":
+  version "0.4.4-newops.1"
+  resolved "https://registry.yarnpkg.com/@ton-community/func-js-bin/-/func-js-bin-0.4.4-newops.1.tgz#d21cd01da8abf29cb301969f782c01b0852fdac5"
+  integrity sha512-TV4t6XhmItq4t+wv4pV30yEwb+YvdmsKo4Ig4B0zp4PLdI0r9iZHz4y5bBHcXmDQDRqulXzK6kTgfHvs2CIsaQ==
 
-"@ton-community/func-js@^0.6.3":
-  version "0.6.3"
-  resolved "https://registry.yarnpkg.com/@ton-community/func-js/-/func-js-0.6.3.tgz#43b30c4f99a7c3786911989bc88e607c8acd33d5"
-  integrity sha512-38VEr8rikSWPwAVpLgzj5A6yGVaxhomXfOp99RnjPhUNQY7iE7bT0wMUTK5iOAnFIsHyKn6AQ3V692tN1ASNcg==
+"@ton-community/func-js@^0.7.0":
+  version "0.7.0"
+  resolved "https://registry.yarnpkg.com/@ton-community/func-js/-/func-js-0.7.0.tgz#8bb334f4649b30b6d1e13ef1a3daa5670a0a8404"
+  integrity sha512-VYJsv6Pqz6+qh3HlZWReBG5W9RXutAdIFYDqmblPSCXfjBhx/QjON/3WoppzUVrqQQdD0BVIh4PR+xRHRCBNhw==
   dependencies:
-    "@ton-community/func-js-bin" "0.4.4-newops"
+    "@ton-community/func-js-bin" "0.4.4-newops.1"
     arg "^5.0.2"
 
-"@ton/blueprint@^0.18.0":
-  version "0.18.0"
-  resolved "https://registry.yarnpkg.com/@ton/blueprint/-/blueprint-0.18.0.tgz#26846758c3924864c4e97d1258bfeec0bd473bac"
-  integrity sha512-2sEZx8btXPzxvt7/Sb5+dWJuY5BYhIpwagdw2C4NA4QPFfUTrWfsyR19QbkVWSxHpaDP+yeQLR2tif5cIcK6Ug==
+"@ton/blueprint@^0.19.1":
+  version "0.19.1"
+  resolved "https://registry.yarnpkg.com/@ton/blueprint/-/blueprint-0.19.1.tgz#d3af44e7a29478e07f4ab51e23b0e388adb58e37"
+  integrity sha512-2kd4sTzpiVyku0Rs9Hrh+32OwnsTAMjrlLJwcHam44H1YeJWFDLCWO2rtm9NRYkqYsLdPJTe1bQr8BzWsBuOwg==
   dependencies:
     "@orbs-network/ton-access" "^2.3.3"
     "@tact-lang/compiler" "^1.2.0"
-    "@ton-community/func-js" "^0.6.3"
-    "@tonconnect/sdk" "^2.1.3"
+    "@ton-community/func-js" "^0.7.0"
+    "@tonconnect/sdk" "^2.2.0"
     arg "^5.0.2"
     chalk "^4.1.0"
     dotenv "^16.1.4"
@@ -788,7 +788,7 @@
     tweetnacl "^1.0.3"
     tweetnacl-util "^0.15.1"
 
-"@tonconnect/sdk@^2.1.3":
+"@tonconnect/sdk@^2.2.0":
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/@tonconnect/sdk/-/sdk-2.2.0.tgz#8b0432102a4634ed3a1d2de1f44e1e03e4059591"
   integrity sha512-8plnAXzaLhapUnt47ZqAOQSIQ8NHSvgTSR74QVJdPWqg8128smgGM4cDYewKdBfTD6Lup0odT1WMMrJu+rE4NQ==
@@ -896,7 +896,14 @@
   resolved "https://registry.yarnpkg.com/@types/long/-/long-4.0.2.tgz#b74129719fc8d11c01868010082d483b7545591a"
   integrity sha512-MqTGEo5bj5t157U6fA/BiDynNkn0YknVdh48CMPkTSpFTVmvao5UQmm7uEF6xBEo7qIMAlY/JSleYaE6VOdpaA==
 
-"@types/node@*", "@types/node@>=13.7.0", "@types/node@^20.11.20":
+"@types/node@*", "@types/node@>=13.7.0":
+  version "20.12.8"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-20.12.8.tgz#35897bf2bfe3469847ab04634636de09552e8256"
+  integrity sha512-NU0rJLJnshZWdE/097cdCBbyW1h4hEg0xpovcoAQYHl8dnEyp/NAOiE45pvc+Bd1Dt+2r94v2eGFpQJ4R7g+2w==
+  dependencies:
+    undici-types "~5.26.4"
+
+"@types/node@^20.11.20":
   version "20.11.30"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-20.11.30.tgz#9c33467fc23167a347e73834f788f4b9f399d66f"
   integrity sha512-dHM6ZxwlmuZaRmUPfv1p+KrdD1Dci04FbdEm/9wEMouFqxYoFl5aMkt0VMAUtYRQDyYvD41WJLukhq/ha3YuTw==
@@ -2870,9 +2877,9 @@ qrcode-terminal@^0.12.0:
   integrity sha512-EXtzRZmC+YGmGlDFbXKxQiMZNwCLEO6BANKXG4iCtSIM0yqc/pappSx3RIKr4r0uh5JsBckOXeKrB3Iz7mdQpQ==
 
 qs@^6.11.0:
-  version "6.12.0"
-  resolved "https://registry.yarnpkg.com/qs/-/qs-6.12.0.tgz#edd40c3b823995946a8a0b1f208669c7a200db77"
-  integrity sha512-trVZiI6RMOkO476zLGaBIzszOdFPnCCXHPG9kn0yuS1uz6xdVxPfZdB3vUig9pxPFDM9BRAgz/YUIVQ1/vuiUg==
+  version "6.12.1"
+  resolved "https://registry.yarnpkg.com/qs/-/qs-6.12.1.tgz#39422111ca7cbdb70425541cba20c7d7b216599a"
+  integrity sha512-zWmv4RSuB9r2mYQw3zxQuHWeU+42aKi1wWig/j4ele4ygELZ7PEO6MM7rim9oAQH2A5MWfsAVf/jPvTPgCbvUQ==
   dependencies:
     side-channel "^1.0.6"
 
@@ -3488,7 +3495,12 @@ yocto-queue@^0.1.0:
   resolved "https://registry.yarnpkg.com/yocto-queue/-/yocto-queue-0.1.0.tgz#0294eb3dee05028d31ee1a5fa2c556a6aaf10a1b"
   integrity sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==
 
-zod@^3.21.4, zod@^3.22.4:
+zod@^3.21.4:
   version "3.22.4"
   resolved "https://registry.yarnpkg.com/zod/-/zod-3.22.4.tgz#f31c3a9386f61b1f228af56faa9255e845cf3fff"
   integrity sha512-iC+8Io04lddc+mVqQ9AZ7OQ2MrUKGN+oIQyq1vemgt46jwCwLfhq7/pwnBnNXXXZb8VTVLKwp9EDkx+ryxIWmg==
+
+zod@^3.22.4:
+  version "3.23.5"
+  resolved "https://registry.yarnpkg.com/zod/-/zod-3.23.5.tgz#c7b7617d017d4a2f21852f533258d26a9a5ae09f"
+  integrity sha512-fkwiq0VIQTksNNA131rDOsVJcns0pfVUjHzLrNBiF/O/Xxb5lQyEXkhZWcJ7npWsYlvs+h0jFWXXy4X46Em1JA==
