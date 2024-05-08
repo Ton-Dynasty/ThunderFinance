@@ -204,7 +204,7 @@ const THUNDER_FEE: Int = ton("0.01");     // User have to pay the fee to Thunder
 const ACC_PRECISION: Int = pow(10, 20);   // Precision for the accumulated reward per share
 const ZERO_ADDRESS: Address = address("0QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACkT");
 const FEE_PERCENT_FOR_DEV: Int = 3;       // 0.3% of the reward will be given to the ThunderMint
-const MIN_GAS_FEE: Int = ton("0.05");     // Minimum gas fee for calling send ton
+const MIN_GAS_FEE: Int = ton("0.005");     // Minimum gas fee for calling send ton
 const GAS_CONSUMPTION: Int = ton("0.0065");
 const KITCHEN_FEE: Int = ton("0.03");     // Fee for the Kitchen
 
