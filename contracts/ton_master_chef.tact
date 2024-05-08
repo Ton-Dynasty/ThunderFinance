@@ -126,7 +126,7 @@ contract TonMasterChef with Deployable, MasterChef {
             self.totalLpSupply = self.totalLpSupply - msg.withdrawAmount;
             self.lastWithdrawTime = now();
             self.pools.set(ctx.sender, pool);
-            self.sendJetton(pool.lpTokenAddress, sendTon - THUNDER_FEE, msg.withdrawAmount, msg.beneficiary, msg.beneficiary, SendIgnoreErrors);
+            self.sendJetton(pool.lpTokenAddress, sendTon, msg.withdrawAmount, msg.beneficiary, msg.beneficiary, SendIgnoreErrors);
         }
     }
 
