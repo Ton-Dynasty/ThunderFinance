@@ -88,7 +88,7 @@ contract JettonMasterChef with Deployable, MasterChef {
         // check if pool exists or exceed the deadline
         if(self.pools.get(ctx.sender) == null || now() > self.deadline || now() < self.startTime || ctx.value < ton("0.065")){
             // Send the jetton back to the sender if pool does not exist
-            self.sendJetton(ctx.sender, 0, msg.amount, msg.sender, msg.sender, SendRemainingValue);
+            self.sendJetton(ctx.sender, ctx.value - ton("0.03"), msg.amount, msg.sender, msg.sender, 0);
             return;
         }
 
@@ -105,7 +105,8 @@ contract JettonMasterChef with Deployable, MasterChef {
     // MiniChef will send this message to ask MasterChef to send reward
     receive(msg: HarvestInternalReply) {
         self.requireMiniChef(msg.sender);
-        self.sendJetton(self.mcRewardJettonWallet, 0, msg.reward, msg.beneficiary, msg.beneficiary, SendRemainingValue);
+        let ctx: Context = context();
+        self.sendJetton(self.mcRewardJettonWallet, ctx.value - ton("0.0097"), msg.reward, msg.beneficiary, msg.beneficiary, 0); // 0.009605376
     }
 
     // MiniChef send this message to ask MasterChef to withdraw LP tokens and harvest reward
@@ -113,9 +114,10 @@ contract JettonMasterChef with Deployable, MasterChef {
         self.requireMiniChef(msg.sender);
 
         let ctx: Context = context();
+        // 0.015 / 2 = 0.0075
         if (msg.rewardAmount > 0) {
             // Send Reward to the beneficiary
-            self.sendJetton(self.mcRewardJettonWallet, ctx.value / 2, msg.rewardAmount, msg.beneficiary, msg.beneficiary, 0);
+            self.sendJetton(self.mcRewardJettonWallet, ctx.value / 2 - ton("0.008"), msg.rewardAmount, msg.beneficiary, msg.beneficiary, 0);
         }
 
         if(msg.withdrawAmount > 0) {    
@@ -125,7 +127,7 @@ contract JettonMasterChef with Deployable, MasterChef {
             self.totalLpSupply = self.totalLpSupply - msg.withdrawAmount;
             self.lastWithdrawTime = now();
             self.pools.set(ctx.sender, pool);
-            self.sendJetton(pool.lpTokenAddress, ctx.value / 2, msg.withdrawAmount, msg.beneficiary, msg.beneficiary, 0);
+            self.sendJetton(pool.lpTokenAddress, ctx.value / 2 - ton("0.008"), msg.withdrawAmount, msg.beneficiary, msg.beneficiary, 0);
 
         }
     }
@@ -139,7 +141,7 @@ contract JettonMasterChef with Deployable, MasterChef {
             self.lastWithdrawTime = now();
         }
         if(self.redundantReward > 0) {
-            self.sendJetton(self.mcRewardJettonWallet, 0, self.redundantReward, self.owner, self.owner, SendRemainingValue);
+            self.sendJetton(self.mcRewardJettonWallet, ctx.value - ton("0.02"), self.redundantReward, self.owner, self.owner, 0);
             self.redundantReward = 0;
         }
     }

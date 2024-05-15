@@ -27,7 +27,7 @@ contract MiniChef with Deployable {
         userInfo.rewardDebt = userInfo.rewardDebt + msg.rewardDebt; 
         self.userInfo.set(msg.lpTokenAddress, userInfo);
         let ctx: Context = context();
-        let sendBackTon: Int = ctx.value - GAS_CONSUMPTION;
+        let sendBackTon: Int = ctx.value - ton("0.00985"); // 0.0098
         // Send remain Ton to owner
         send(SendParameters{
             to: self.owner,
@@ -50,7 +50,7 @@ contract MiniChef with Deployable {
 
         self.userInfo.set(msg.lpTokenAddress, userInfo);
         let ctx: Context = context();
-        let sendBackTon: Int = ctx.value - GAS_CONSUMPTION;
+        let sendBackTon: Int = ctx.value - ton("0.0064"); // 0.006394544
         send(SendParameters{
             to: self.masterChef,
             value: sendBackTon,
@@ -77,7 +77,7 @@ contract MiniChef with Deployable {
         userInfo.rewardDebt = accumulatedReward;
         self.userInfo.set(msg.lpTokenAddress, userInfo);
         let ctx: Context = context();
-        let sendBackTon: Int = ctx.value - GAS_CONSUMPTION;
+        let sendBackTon: Int = ctx.value - ton("0.0063"); // 0.006122650
         // Send pending reward ammount to MasterChef, and then MasterChef will send it to the user
         send(SendParameters{
             to: self.masterChef,
@@ -103,7 +103,7 @@ contract MiniChef with Deployable {
         let _pendingReward: Int = accumulatedReward - userInfo.rewardDebt;
 
         let ctx: Context = context();
-        let sendBackTon: Int = ctx.value - GAS_CONSUMPTION;
+        let sendBackTon: Int = ctx.value - ton("0.0067");
         if (_pendingReward <= 0) {
             userInfo.amount = userInfo.amount - msg.withdrawAmount;
             userInfo.rewardDebt = userInfo.rewardDebt - msg.withdrawAmount * msg.accRewardPerShare / ACC_PRECISION;

@@ -61,8 +61,9 @@ trait MasterChef {
     // User can send this message to withdraw their LP tokens
     receive(msg: Withdraw) {
         let ctx: Context = context();
+        require(ctx.value > ton("0.035"), "value not enough"); // 0.014 + 0.006394544 + 0.0123 =
         self.userOpSetUp(msg.lpTokenAddress,ctx.value);
-        let remainTon: Int = ctx.value - THUNDER_FEE;
+        let remainTon: Int = ctx.value - ton("0.0139"); 
 
         let initCode: StateInit = self._calculateMiniChefInit(ctx.sender);
         let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
@@ -86,12 +87,15 @@ trait MasterChef {
     receive(msg: WithdrawInternalReply) {
         self.requireMiniChef(msg.sender);
         if(msg.amount > 0) {
+            // 0.012062832
+            let ctx: Context = context();
+            let remainTon: Int = ctx.value - ton("0.0123");
             let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
             pool.lpSupply = pool.lpSupply - msg.amount;
             self.totalLpSupply = self.totalLpSupply - msg.amount;
             self.lastWithdrawTime = now();
             self.pools.set(msg.lpTokenAddress, pool);
-            self.sendJetton(pool.lpTokenAddress, 0, msg.amount, msg.beneficiary, msg.beneficiary, SendRemainingValue);
+            self.sendJetton(pool.lpTokenAddress, remainTon, msg.amount, msg.beneficiary, msg.beneficiary, 0);
         }
     }
 
@@ -99,7 +103,8 @@ trait MasterChef {
     receive(msg: Harvest) {
         let ctx: Context = context();
         self.userOpSetUp(msg.lpTokenAddress,ctx.value);
-        let remainTon: Int = ctx.value - THUNDER_FEE;
+        require(ctx.value > ton("0.036"), "value not enough"); // 0.014 + 0.0062 + 0.0097
+        let remainTon: Int = ctx.value - ton("0.0145");
 
         let initCode: StateInit = self._calculateMiniChefInit(sender());
         let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
@@ -123,9 +128,9 @@ trait MasterChef {
     // Withdraw and Harvest in one step
     receive(msg: WithdrawAndHarvest) {
         let ctx: Context = context();
+        require(ctx.value > ton("0.045"), "value not enough"); 
         self.userOpSetUp(msg.lpTokenAddress,ctx.value);
-        let remainTon: Int = ctx.value - THUNDER_FEE;
-
+        let remainTon: Int = ctx.value - ton("0.019"); // 0.019 + 0.0067 + 0.0123
         let initCode: StateInit = self._calculateMiniChefInit(sender());
         let pool: PoolInfo = self.pools.get(msg.lpTokenAddress)!!;
         send(SendParameters{
@@ -224,7 +229,7 @@ trait MasterChef {
         pool.lpSupply = pool.lpSupply + msg.amount;
         self.totalLpSupply = self.totalLpSupply + msg.amount;
         self.pools.set(ctx.sender, pool);
-        let sendBackTon: Int = ctx.value - GAS_CONSUMPTION;
+        let sendBackTon: Int = ctx.value - ton("0.019"); // 0.018173503
         // Get the MiniChef init code for the user
         let initCode: StateInit = self._calculateMiniChefInit(msg.sender);
         send(SendParameters{
