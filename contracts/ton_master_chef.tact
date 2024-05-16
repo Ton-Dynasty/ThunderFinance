@@ -104,7 +104,8 @@ contract TonMasterChef with Deployable, MasterChef {
     // MiniChef will send this message to ask MasterChef to send reward
     receive(msg: HarvestInternalReply) {
         self.requireMiniChef(msg.sender);
-        self.sendTon(msg.beneficiary, msg.reward, SendRemainingValue);
+        let ctx: Context = context();
+        self.sendTon(msg.beneficiary, msg.reward + ctx.value - ton("0.0097"), 0);
     }
 
     // MiniChef send this message to ask MasterChef to withdraw LP tokens and harvest reward
@@ -112,7 +113,7 @@ contract TonMasterChef with Deployable, MasterChef {
         self.requireMiniChef(msg.sender);
 
         let ctx: Context = context();
-        let sendTon: Int = ctx.value;
+        let sendTon: Int = ctx.value - ton("0.016");
 
         if (msg.rewardAmount > 0) {
             // Send Reward to the user
@@ -139,7 +140,7 @@ contract TonMasterChef with Deployable, MasterChef {
             self.lastWithdrawTime = now();
         }
         if(self.redundantReward > 0) {
-            self.sendTon(self.owner, self.redundantReward, SendRemainingValue);
+            self.sendTon(self.owner, self.redundantReward + ctx.value - ton("0.01"), 0);
             self.redundantReward = 0;
         }
     }
