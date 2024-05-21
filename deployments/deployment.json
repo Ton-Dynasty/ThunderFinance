@@ -1,35 +1,7 @@
 {
-  "USDT": "EQBqSpvo4S87mX9tjHaG4zhYZeORhVhMapBJpnMZ64jhrEQK",
-  "AirdropFactory": "EQCKrD4mAxJ40TDCuylk2B2bTpCJVslwdE4MEWaMHa6f1x_1",
-  "Kitchen": "EQChmkXZkE96YzKnKZPl9zZuYYnueA1PztGndMjk8vxa0G0s",
-  "MasterChef": "EQDsgCwZXqrMHJc9gaytVvonpwDk4dmUCt8TGjjfolGOCNd3",
-  "RewardJettonMaster": "kQDw2ioGUN5SHRV97e-U2b6vVHdYW4rH4d8oNl1vT_oU9Lfl",
-  "MerkleDistributor": {
-    "seed": "38435217033760998392163658086743783990464893960025036024613934316511459962221",
-    "merkleNodes": [
-      "95f92a9533cb6923b855977442287c005b9d60d00febbb6c432f1c61ee9645a3",
-      "e0e93b0bf7df2dcc600d49d628c7507aa94fe7122eea31ea9422ab5547ae3dfd",
-      "1bef7b54c77ee2bf9c39cf302a02e4c730a0e7c0973bc52cd2adb4798c2f9fc2",
-      "40bf2d89508cd0bfa6fa8dc88f743c0130957523ccf256c2edb17f826419adfc",
-      "9032bc716d91f2716bae25ee47b413ae4f5616bdda94fc6cac0beeb44778c3fd",
-      "c54cb54bd0d7d3601be1df64e7d37731ed2533ebd599bc4adde23753c5e64196",
-      "e9f4f3f214401639934a1a48add35c3e966ad1d40dce629765d61032f2ed517e"
-    ],
-    "address": "EQC0ZOP4_vsw5Wj_3A3_5abv-yOjieFDfcdqLUzcfqYSQP6p",
-    "airdropList": [
-      {
-        "account": "EQC8zFHM8LCMp9Xs--w3g9wmf7RwuDgJcQtV-oHZRSCqQZ__",
-        "amount": "20000000"
-      },
-      {
-        "account": "EQC8zFHM8LCMp9Xs--w3g9wmf7RwuDgJcQtV-oHZRSCqQZ__",
-        "amount": "50000000"
-      },
-      {
-        "account": "EQDrRQlKRo5J10a-nUb8UQ7f3ueVYBQVZV9X8uAjmS7gH7f9",
-        "amount": "30000000"
-      }
-    ],
-    "distributorJettonWallet": "EQCfPigtp9RMZbKWAroiHFk-v5WIAaeZdofwWwZlf65uViMn"
-  }
+    "USDT": "EQBqSpvo4S87mX9tjHaG4zhYZeORhVhMapBJpnMZ64jhrEQK",
+    "AirdropFactory": "EQCKrD4mAxJ40TDCuylk2B2bTpCJVslwdE4MEWaMHa6f1x_1",
+    "Kitchen": "EQChmkXZkE96YzKnKZPl9zZuYYnueA1PztGndMjk8vxa0G0s",
+    "MasterChef": "EQAYh6Rg1DG2wns5mOZOiOHaWokKeXGItNZk-H976bnv3Nqg",
+    "RewardJettonMaster": "kQDw2ioGUN5SHRV97e-U2b6vVHdYW4rH4d8oNl1vT_oU9Lfl"
 }
